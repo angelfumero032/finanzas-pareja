@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useRef, useMemo } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LangContext'
-import { t, MONTHS, timeAgo } from '../i18n'
+import { t, MONTHS } from '../i18n'
 import MovimientoModal from '../components/MovimientoModal'
 import ActivityPanel from '../components/ActivityPanel'
 
@@ -64,25 +64,28 @@ export default function MesView() {
   const loadMes = useCallback(async () => {
     if (!hogarId) return
     setLoading(true)
-    const [movRes, preRes] = await Promise.all([
-      supabase
-        .from('movimientos')
-        .select('*')
-        .eq('hogar_id', hogarId)
-        .eq('anio', anio)
-        .eq('mes', mes)
-        .order('fecha', { ascending: false })
-        .order('creado_en', { ascending: false }),
-      supabase
-        .from('presupuestos')
-        .select('*')
-        .eq('hogar_id', hogarId)
-        .eq('anio', anio)
-        .eq('mes', mes),
-    ])
-    if (movRes.data) setMovimientos(movRes.data)
-    if (preRes.data) setPresupuestos(preRes.data)
-    setLoading(false)
+    try {
+      const [movRes, preRes] = await Promise.all([
+        supabase
+          .from('movimientos')
+          .select('*')
+          .eq('hogar_id', hogarId)
+          .eq('anio', anio)
+          .eq('mes', mes)
+          .order('fecha', { ascending: false })
+          .order('creado_en', { ascending: false }),
+        supabase
+          .from('presupuestos')
+          .select('*')
+          .eq('hogar_id', hogarId)
+          .eq('anio', anio)
+          .eq('mes', mes),
+      ])
+      if (movRes.data) setMovimientos(movRes.data)
+      if (preRes.data) setPresupuestos(preRes.data)
+    } finally {
+      setLoading(false)
+    }
   }, [hogarId, anio, mes])
 
   useEffect(() => { loadMes() }, [loadMes])

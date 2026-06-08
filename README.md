@@ -9,52 +9,77 @@ sincronizado en tiempo real y con aviso al otro de cada cambio.
 - **Idioma:** por usuario (ES/EN), ES por defecto. **Moneda:** €.
 - Plan maestro y estado: `01_Proyectos/Personal/finanzas-pareja/` en el disco AF-Claude-T7.
 
-> Estado: **Etapa 1 (esqueleto)** del plan v1. El login, la vista de mes y las
-> notificaciones se cablean en la Etapa 3. Ver el plan para el detalle de etapas.
+> Estado: **Etapa 3 completa** — login, vista de mes, CRUD, presupuestos, Realtime, campana de actividad, toggle de idioma. Build OK (67 módulos, 116 ms). Pendiente: `schema.sql` + `seed.sql` en Supabase (si no aplicados), luego deploy (Etapa 4).
 
 ## Arranque local
 
 ```bash
 npm install
-cp .env.example .env.local   # y rellena las claves de Supabase (abajo)
+cp .env.example .env.local   # rellena las claves de Supabase (abajo)
 npm run dev
 ```
 
-Scripts: `npm run dev` (servidor local) · `npm run build` (producción) ·
-`npm run preview` (previsualizar build) · `npm run lint`.
+Scripts: `npm run dev` · `npm run build` · `npm run preview` · `npm run lint`.
 
-## Configurar Supabase (Etapa 2)
+## Requisito previo: Supabase
 
-1. Crea un proyecto gratis en [supabase.com](https://supabase.com) (región EU).
-2. **Auth → Sign In / Providers:** Email activado; **desactiva «Allow new users to sign up»**
-   (sin registro público).
-3. **Auth → Users → Add user** dos veces: crea las 2 cuentas (email + contraseña).
-   Copia el `User UID` de cada una.
-4. **SQL Editor:** pega y ejecuta `supabase/schema.sql`. Luego edita `supabase/seed.sql`
-   con los 2 UID reales (y emails/nombres) y ejecútalo.
-5. **Project Settings → API:** copia `Project URL` y la clave `anon public` a tu `.env.local`:
+Si no está hecho todavía, aplica el esquema y los datos iniciales:
+
+1. **Auth → Sign In / Providers:** Email activado; **desactiva «Allow new users to sign up»**.
+2. **Auth → Users → Add user** dos veces (email + contraseña de cada persona). Copia los `User UID`.
+3. **SQL Editor:** pega y ejecuta `supabase/schema.sql`. Luego edita `supabase/seed.sql`
+   (ya tiene los UID reales de Ángel y pareja), verifica emails/nombres y ejecútalo.
+4. **Project Settings → API:** copia `Project URL` y la clave `anon public` a `.env.local`:
 
    ```
    VITE_SUPABASE_URL=https://TU-PROYECTO.supabase.co
    VITE_SUPABASE_ANON_KEY=eyJ...
    ```
 
-6. **Database → Replication / Publications:** confirma que la tabla `actividad` está en
-   la publicación `supabase_realtime` (el `schema.sql` ya lo añade).
+5. **Database → Replication:** confirma que `actividad` y `movimientos` están en `supabase_realtime`
+   (el `schema.sql` ya lo hace vía `alter publication`).
+
+## Deploy (Etapa 4)
+
+```bash
+# 1. Repo privado en GitHub (una vez)
+git remote add origin git@github.com:TU-USUARIO/finanzas-pareja.git
+git push -u origin main
+
+# 2. Netlify → Add new site → Import from Git
+#    Build command:  npm run build
+#    Publish dir:    dist
+#    Env vars:       VITE_SUPABASE_URL  /  VITE_SUPABASE_ANON_KEY
+
+# 3. Supabase → Auth → URL Configuration
+#    Site URL:           https://TU-APP.netlify.app
+#    Redirect URLs:      https://TU-APP.netlify.app/**
+```
 
 ## Seguridad
 
 - **Nunca** subas claves al repo: `.env.local` está en `.gitignore`. Usa `.env.example` como plantilla.
-- En el frontend solo va la clave **anon** (pública por diseño); la `service_role` no se usa aquí.
-- El despliegue (Netlify) lleva las variables en el **panel de Netlify**, no en el repo.
+- En el frontend solo va la clave **anon** (pública por diseño); la `service_role` nunca se usa aquí.
+- Las variables en Netlify van en el panel, no en el repo.
 
 ## Estructura
 
 ```
 src/
-  lib/supabaseClient.js     # cliente Supabase (Auth + datos + Realtime)
-  App.jsx                   # esqueleto Etapa 1
+  lib/supabaseClient.js           # cliente Supabase
+  context/AuthContext.jsx         # sesión + perfil del usuario
+  context/LangContext.jsx         # idioma por usuario (ES/EN), persistido en DB
+  i18n.js                         # traducciones + MONTHS + timeAgo
+  pages/
+    LoginPage.jsx                 # login email+contraseña, sin registro
+    MesView.jsx                   # vista principal: cabecera, resumen, categorías, movimientos
+  components/
+    MovimientoModal.jsx           # modal añadir/editar/eliminar movimiento
+    ActivityPanel.jsx             # panel lateral de actividad reciente + campana
+  App.jsx                         # raíz: AuthProvider → AppInner → LangProvider → MesView
+  App.css                         # todos los estilos (custom properties, responsive)
+  index.css                       # reset mínimo
 supabase/
-  schema.sql                # tablas + RLS + triggers de actividad
-  seed.sql                  # hogar + 2 perfiles + categorías ES por defecto
+  schema.sql                      # 8 tablas + RLS (mi_hogar()) + triggers actividad + Realtime
+  seed.sql                        # hogar + 2 perfiles + categorías ES por defecto
 ```
