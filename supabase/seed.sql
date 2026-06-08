@@ -17,8 +17,8 @@ do $$
 declare
   v_hogar uuid;
   v_cat   uuid;
-  u1 uuid := '00000000-0000-0000-0000-000000000001';  -- TODO: UID real de Ángel
-  u2 uuid := '00000000-0000-0000-0000-000000000002';  -- TODO: UID real de la pareja
+  u1 uuid := '58e9e3ab-6076-4ed2-978c-dbc506657751';  -- UID de Ángel (Auth → Users)
+  u2 uuid := 'c37b45f8-16bf-4b5a-a0a0-ab32e0a8d634';  -- UID de la pareja (Auth → Users)
 begin
   -- Hogar compartido.
   insert into hogares (nombre, moneda) values ('Nuestro hogar', 'EUR')
