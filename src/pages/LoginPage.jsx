@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { t } from '../i18n'
 
+const loginLang = navigator.language?.startsWith('es') ? 'es' : 'en'
+
 export default function LoginPage() {
   const [email, setEmail] = useState(() => localStorage.getItem('lastEmail') ?? '')
   const [password, setPassword] = useState('')
@@ -16,12 +18,12 @@ export default function LoginPage() {
     try {
       const { error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) {
-        setError(t('es', 'invalid_credentials'))
+        setError(t(loginLang, 'invalid_credentials'))
       } else {
         localStorage.setItem('lastEmail', email)
       }
     } catch {
-      setError(t('es', 'invalid_credentials'))
+      setError(t(loginLang, 'invalid_credentials'))
     } finally {
       setLoading(false)
     }
@@ -31,11 +33,11 @@ export default function LoginPage() {
     <div className="login-wrap">
       <div className="login-card">
         <div className="login-icon">💰</div>
-        <h1 className="login-title">Finanzas en pareja</h1>
-        <p className="login-sub">Accede con tu cuenta</p>
+        <h1 className="login-title">{t(loginLang, 'app_name')}</h1>
+        <p className="login-sub">{t(loginLang, 'sign_in')}</p>
         <form onSubmit={handleSubmit} className="login-form">
           <div className="field">
-            <label htmlFor="lp-email">Correo</label>
+            <label htmlFor="lp-email">{t(loginLang, 'email')}</label>
             <input
               id="lp-email"
               type="email"
@@ -43,11 +45,11 @@ export default function LoginPage() {
               value={email}
               onChange={e => setEmail(e.target.value)}
               required
-              placeholder="tu@email.com"
+              placeholder="you@email.com"
             />
           </div>
           <div className="field">
-            <label htmlFor="lp-pass">Contraseña</label>
+            <label htmlFor="lp-pass">{t(loginLang, 'password')}</label>
             <div className="pass-wrap">
               <input
                 id="lp-pass"
@@ -64,13 +66,15 @@ export default function LoginPage() {
                 onClick={() => setShowPass(p => !p)}
                 tabIndex={-1}
               >
-                {showPass ? 'ocultar' : 'ver'}
+                {showPass
+                  ? (loginLang === 'es' ? 'ocultar' : 'hide')
+                  : (loginLang === 'es' ? 'ver' : 'show')}
               </button>
             </div>
           </div>
           {error && <p className="login-error">{error}</p>}
           <button type="submit" className="btn-primary btn-full" disabled={loading}>
-            {loading ? 'Entrando…' : 'Entrar'}
+            {loading ? t(loginLang, 'signing_in') : t(loginLang, 'sign_in_btn')}
           </button>
         </form>
       </div>

@@ -728,7 +728,7 @@ export default function MesView() {
 
   // ── Guardia: perfil no cargado ──
   if (!profile) {
-    return <div className="splash">{t('es', 'loading')}</div>
+    return <div className="splash">{t(lang, 'loading')}</div>
   }
 
   if (!hogarId) {

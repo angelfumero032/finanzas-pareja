@@ -8,7 +8,7 @@ function AppInner() {
   const { session, profile } = useAuth()
 
   if (session === undefined) {
-    return <div className="splash">Cargando…</div>
+    return <div className="splash">Loading…</div>
   }
 
   if (!session) {
