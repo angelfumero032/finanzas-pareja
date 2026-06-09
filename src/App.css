@@ -2171,6 +2171,79 @@ kbd {
 }
 .savings-rate-value.savings-negative { color: var(--expense); }
 
+/* ── Savings goal row ── */
+.savings-goal-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  min-height: 24px;
+}
+.savings-goal-track {
+  flex: 1;
+  height: 6px;
+  background: var(--surface2);
+  border-radius: 99px;
+  overflow: hidden;
+}
+.savings-goal-fill {
+  height: 100%;
+  background: var(--income);
+  border-radius: 99px;
+  transition: width 0.4s ease;
+  opacity: 0.75;
+}
+.savings-goal-done { background: var(--income); opacity: 1; }
+.savings-goal-pct {
+  font-size: 0.72rem;
+  font-weight: 600;
+  min-width: 26px;
+  text-align: right;
+}
+.savings-goal-label-btn {
+  background: none;
+  border: none;
+  font-size: 0.72rem;
+  color: var(--text3);
+  cursor: pointer;
+  padding: 0;
+  font-family: inherit;
+  white-space: nowrap;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 2px;
+}
+.savings-goal-label-btn:hover { color: var(--accent); }
+.savings-goal-add-btn {
+  background: none;
+  border: none;
+  font-size: 0.72rem;
+  color: var(--text3);
+  cursor: pointer;
+  padding: 0;
+  font-family: inherit;
+  opacity: 0.7;
+}
+.savings-goal-add-btn:hover { opacity: 1; color: var(--accent); }
+.savings-goal-form {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  width: 100%;
+}
+.savings-goal-form-label { font-size: 0.75rem; color: var(--text2); white-space: nowrap; }
+.savings-goal-input {
+  border: 1.5px solid var(--accent);
+  border-radius: 4px;
+  padding: 0.15rem 0.4rem;
+  font-size: 0.9rem;
+  width: 80px;
+  background: var(--surface);
+  color: var(--text);
+  font-family: inherit;
+}
+
 /* ── Over-budget alert ── */
 .overbudget-alert {
   display: flex;

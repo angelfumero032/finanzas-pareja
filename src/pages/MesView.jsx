@@ -145,6 +145,27 @@ export default function MesView() {
 
   const hogarId = profile?.hogar_id
 
+  // Monthly savings goal (per-device, per-household)
+  const [savingsGoal, setSavingsGoal] = useState(null)
+  const [editingGoal, setEditingGoal] = useState(false)
+  const [goalInput, setGoalInput] = useState('')
+  useEffect(() => {
+    if (!hogarId) return
+    const stored = localStorage.getItem(`savings_goal_${hogarId}`)
+    setSavingsGoal(stored ? parseFloat(stored) : null)
+  }, [hogarId])
+  function saveGoal(val) {
+    const n = parseFloat(String(val).replace(',', '.'))
+    if (!isNaN(n) && n > 0) {
+      localStorage.setItem(`savings_goal_${hogarId}`, String(n))
+      setSavingsGoal(n)
+    } else {
+      localStorage.removeItem(`savings_goal_${hogarId}`)
+      setSavingsGoal(null)
+    }
+    setEditingGoal(false)
+  }
+
   const fmt = useMemo(() => {
     const f = new Intl.NumberFormat(lang === 'es' ? 'es-ES' : 'en-GB', {
       style: 'currency',
@@ -1048,6 +1069,70 @@ export default function MesView() {
             )}
           </div>
         </div>
+
+        {/* Savings goal progress */}
+        {totalIngresos > 0 && (
+          <div className="savings-goal-row">
+            {editingGoal ? (
+              <form
+                className="savings-goal-form"
+                onSubmit={e => { e.preventDefault(); saveGoal(goalInput) }}
+              >
+                <label className="savings-goal-form-label">
+                  {lang === 'es' ? 'Meta de ahorro (€):' : 'Savings goal (€):'}
+                </label>
+                <input
+                  className="savings-goal-input"
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={goalInput}
+                  onChange={e => setGoalInput(e.target.value)}
+                  autoFocus
+                  placeholder="0"
+                  onFocus={e => e.target.select()}
+                  onBlur={() => saveGoal(goalInput)}
+                  onKeyDown={e => e.key === 'Escape' && setEditingGoal(false)}
+                />
+                <button type="submit" className="btn-sm btn-primary">
+                  {t(lang, 'save')}
+                </button>
+                <button type="button" className="btn-sm btn-secondary"
+                  onClick={() => setEditingGoal(false)}>
+                  {t(lang, 'cancel')}
+                </button>
+              </form>
+            ) : savingsGoal ? (
+              <>
+                <div className="savings-goal-track">
+                  <div
+                    className={`savings-goal-fill${balance >= savingsGoal ? ' savings-goal-done' : ''}`}
+                    style={{ width: `${Math.min(100, Math.max(0, balance / savingsGoal * 100))}%` }}
+                  />
+                </div>
+                <span className={`savings-goal-pct ${balance >= savingsGoal ? 'delta-pos' : balance < 0 ? 'delta-neg' : ''}`}>
+                  {balance >= savingsGoal
+                    ? '✓'
+                    : `${Math.round(Math.max(0, balance) / savingsGoal * 100)}%`}
+                </span>
+                <button
+                  className="savings-goal-label-btn"
+                  onClick={() => { setGoalInput(String(savingsGoal)); setEditingGoal(true) }}
+                  title={lang === 'es' ? 'Editar meta de ahorro' : 'Edit savings goal'}
+                >
+                  {lang === 'es' ? `Meta: ${fmt(savingsGoal)}` : `Goal: ${fmt(savingsGoal)}`}
+                </button>
+              </>
+            ) : (
+              <button
+                className="savings-goal-add-btn"
+                onClick={() => { setGoalInput(''); setEditingGoal(true) }}
+              >
+                {lang === 'es' ? '+ Meta de ahorro' : '+ Savings goal'}
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Income by category (multiple sources) */}
         {ingresosPorCat.length > 1 && (
