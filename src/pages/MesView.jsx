@@ -999,6 +999,13 @@ export default function MesView() {
     return map
   }, [gastosItems])
 
+  const noSpendDays = useMemo(() => {
+    if (!isCurrentMonth) return null
+    const daysElapsed = todayDate.getDate()
+    const daysWithSpending = new Set(gastosItems.map(m => m.fecha)).size
+    return Math.max(0, daysElapsed - daysWithSpending)
+  }, [isCurrentMonth, gastosItems, todayDate])
+
   const thisWeekStats = useMemo(() => {
     if (!isCurrentMonth) return null
     // Monday-first week containing today
@@ -1199,6 +1206,26 @@ export default function MesView() {
             )}
           </div>
         </div>
+
+        {/* No-spend days + days remaining (current month only) */}
+        {isCurrentMonth && !loading && (noSpendDays > 0 || true) && (() => {
+          const daysInMonth = new Date(anio, mes, 0).getDate()
+          const daysLeft = daysInMonth - todayDate.getDate()
+          return (
+            <div className="month-stats-row">
+              {noSpendDays > 0 && (
+                <span className="month-stat-chip month-stat-nospend" title={lang === 'es' ? 'Días sin gasto este mes' : 'No-spend days this month'}>
+                  🎯 {noSpendDays} {lang === 'es' ? 'sin gasto' : 'no-spend'}
+                </span>
+              )}
+              {daysLeft > 0 && (
+                <span className="month-stat-chip month-stat-daysleft" title={lang === 'es' ? 'Días restantes del mes' : 'Days remaining in month'}>
+                  📅 {daysLeft} {lang === 'es' ? 'días restantes' : 'days left'}
+                </span>
+              )}
+            </div>
+          )
+        })()}
 
         {/* Share month summary */}
         {(totalIngresos > 0 || totalGastos > 0) && !loading && (

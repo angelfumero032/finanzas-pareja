@@ -2588,6 +2588,28 @@ kbd {
 .grade-f { background: color-mix(in srgb, var(--expense) 18%, transparent); color: var(--expense); font-size: 1.3rem; }
 .health-score-label { font-size: 0.8rem; color: var(--text2); }
 
+/* ── Month stats chips (no-spend days, days remaining) ── */
+.month-stats-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  padding: 0.2rem 0;
+}
+.month-stat-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 1rem;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text2);
+  white-space: nowrap;
+}
+.month-stat-nospend { border-color: color-mix(in srgb, var(--income) 30%, var(--border)); color: var(--income); }
+.month-stat-daysleft { border-color: var(--border); }
+
 /* ── This week mini-summary ── */
 .this-week-row {
   display: flex;
