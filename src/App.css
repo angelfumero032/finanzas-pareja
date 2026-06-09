@@ -1200,6 +1200,58 @@ html, body { overscroll-behavior: none; }
 .activity-text  { font-size: 0.875rem; color: var(--text); line-height: 1.4; }
 .activity-time  { font-size: 0.68rem; color: var(--text3); }
 
+/* ── Resumen anual ── */
+.section-year .section-header { margin-bottom: 0.5rem; }
+
+.year-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.4rem;
+}
+@media (max-width: 360px) {
+  .year-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+.year-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.12rem;
+  padding: 0.45rem 0.2rem;
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--surface2);
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.12s;
+  min-height: 4rem;
+  justify-content: center;
+}
+.year-cell:hover { background: color-mix(in srgb, var(--accent) 8%, var(--surface2)); border-color: var(--accent); }
+.year-cell-current { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--surface)); }
+.year-cell-empty { opacity: 0.4; }
+.year-cell-future { opacity: 0.3; }
+
+.year-cell-month {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text2);
+}
+.year-cell-current .year-cell-month { color: var(--accent); }
+.year-cell-exp {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--expense);
+}
+.year-cell-bal {
+  font-size: 0.65rem;
+  font-weight: 700;
+}
+.year-bal-pos { color: var(--income); }
+.year-bal-neg { color: var(--expense); }
+
 /* ── Gráficas ── */
 .chart-block { margin-bottom: 0; }
 .chart-block-sep { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); }

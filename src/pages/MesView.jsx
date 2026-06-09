@@ -89,6 +89,11 @@ export default function MesView() {
   const [duplicateData, setDuplicateData] = useState(null)
   const [modalKey, setModalKey] = useState(0)
 
+  // Year summary (lazy loaded when toggled)
+  const [showYearView, setShowYearView] = useState(false)
+  const [yearData, setYearData] = useState(null)
+  const [yearLoading, setYearLoading] = useState(false)
+
   // Dark mode manual override (D key cycles system/dark/light)
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'auto')
   useEffect(() => {
@@ -239,6 +244,33 @@ export default function MesView() {
   }, [hogarId, anio, mes])
 
   useEffect(() => { loadPrevMes() }, [loadPrevMes])
+
+  // ── Resumen anual (lazy) ──
+  const loadYearData = useCallback(async () => {
+    if (!hogarId) return
+    setYearLoading(true)
+    try {
+      const { data } = await supabase
+        .from('movimientos')
+        .select('tipo, importe, mes')
+        .eq('hogar_id', hogarId)
+        .eq('anio', anio)
+      if (!data) return
+      const byMonth = Array.from({ length: 12 }, (_, i) => ({ mes: i + 1, income: 0, expenses: 0 }))
+      data.forEach(m => {
+        const idx = m.mes - 1
+        if (byMonth[idx]) {
+          if (m.tipo === 'ingreso') byMonth[idx].income += Number(m.importe)
+          else byMonth[idx].expenses += Number(m.importe)
+        }
+      })
+      setYearData(byMonth)
+    } finally {
+      setYearLoading(false)
+    }
+  }, [hogarId, anio])
+
+  useEffect(() => { if (showYearView) loadYearData() }, [showYearView, loadYearData])
 
   const trendData = useMemo(() =>
     rawTrend.map(d => ({
@@ -614,6 +646,12 @@ export default function MesView() {
     return totals
   }, [movimientosFiltrados, sortMovs])
 
+  function fmtK(n) {
+    if (n >= 10000) return `${(n / 1000).toFixed(0)}k€`
+    if (n >= 1000) return `${(n / 1000).toFixed(1)}k€`
+    return `${Math.round(n)}€`
+  }
+
   function catName(id) { return catMap.get(id) ?? t(lang, 'no_category') }
   function subcatName(id) { return id ? (subcatMap.get(id) ?? '') : '' }
   function formatFecha(dateStr) {
@@ -800,6 +838,53 @@ export default function MesView() {
               }}
             />
 
+            {/* Resumen anual */}
+            <section className="section section-year">
+              <div className="section-header">
+                <h2 className="section-title">{lang === 'es' ? `Año ${anio}` : `Year ${anio}`}</h2>
+                <button
+                  className="btn-sm btn-secondary"
+                  onClick={() => setShowYearView(v => !v)}
+                >
+                  {showYearView ? (lang === 'es' ? 'Ocultar' : 'Hide') : (lang === 'es' ? 'Ver resumen' : 'Show summary')}
+                </button>
+              </div>
+              {showYearView && (
+                yearLoading ? (
+                  <div className="loading-row">{t(lang, 'loading')}</div>
+                ) : yearData ? (
+                  <div className="year-grid">
+                    {yearData.map((d, i) => {
+                      const balance = d.income - d.expenses
+                      const isCurrent = i + 1 === mes && anio === todayDate.getFullYear()
+                      const isEmpty = d.income === 0 && d.expenses === 0
+                      const isFuture = anio === todayDate.getFullYear()
+                        ? i + 1 > todayDate.getMonth() + 1
+                        : anio > todayDate.getFullYear()
+                      return (
+                        <button
+                          key={i}
+                          className={`year-cell${isCurrent ? ' year-cell-current' : ''}${isEmpty ? ' year-cell-empty' : ''}${isFuture ? ' year-cell-future' : ''}`}
+                          onClick={() => setMes(i + 1)}
+                          title={MONTHS[lang][i]}
+                        >
+                          <span className="year-cell-month">{MONTHS[lang][i].slice(0, 3)}</span>
+                          {!isEmpty && (
+                            <>
+                              <span className="year-cell-exp">{fmtK(d.expenses)}</span>
+                              <span className={`year-cell-bal ${balance >= 0 ? 'year-bal-pos' : 'year-bal-neg'}`}>
+                                {balance >= 0 ? '+' : ''}{fmtK(balance)}
+                              </span>
+                            </>
+                          )}
+                        </button>
+                      )
+                    })}
+                  </div>
+                ) : null
+              )}
+            </section>
+
             {/* Por categoría (gastos) */}
             <section className="section">
               <div className="section-header">
@@ -859,14 +944,26 @@ export default function MesView() {
                       )}
                     </div>
                     {isCurrentMonth && (
-                      <div className="budget-pace-row">
-                        <span className="budget-pace-day">
-                          {lang === 'es'
-                            ? `Día ${todayDate.getDate()} de ${daysInMonth}`
-                            : `Day ${todayDate.getDate()} of ${daysInMonth}`}
-                        </span>
-                        <span className={`budget-pace-label ${paceCls}`}>{paceLabel}</span>
-                      </div>
+                      <>
+                        <div className="budget-pace-row">
+                          <span className="budget-pace-day">
+                            {lang === 'es'
+                              ? `Día ${todayDate.getDate()} de ${daysInMonth}`
+                              : `Day ${todayDate.getDate()} of ${daysInMonth}`}
+                          </span>
+                          <span className={`budget-pace-label ${paceCls}`}>{paceLabel}</span>
+                        </div>
+                        {totalGastos > 0 && todayDate.getDate() > 0 && (
+                          <div className="budget-pace-row">
+                            <span className="budget-pace-day">
+                              {lang === 'es' ? 'Media gasto/día' : 'Avg spend/day'}
+                            </span>
+                            <span className="budget-pace-label pace-ok">
+                              {fmt(totalGastos / todayDate.getDate())}
+                            </span>
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                 )
