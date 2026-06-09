@@ -1304,23 +1304,40 @@ export default function MesView() {
           </div>
         )}
 
-        {gastosPorUsuario && totalGastos > 0 && (
-          <div className="by-user-row">
-            {gastosPorUsuario.map(u => (
-              <div key={u.id} className="by-user-item">
-                <span className="by-user-name">{u.nombre}</span>
-                <span className="by-user-amt">{fmt(u.total)}</span>
-                <div className="by-user-bar-track">
-                  <div
-                    className="by-user-bar-fill"
-                    style={{ width: `${Math.round(u.total / totalGastos * 100)}%` }}
-                  />
-                </div>
-                <span className="by-user-pct">{Math.round(u.total / totalGastos * 100)}%</span>
+        {gastosPorUsuario && totalGastos > 0 && (() => {
+          const [a, b] = gastosPorUsuario
+          const settle = a && b ? Math.abs(a.total - b.total) / 2 : 0
+          const debtor = a && b ? (a.total > b.total ? b : a) : null
+          const creditor = a && b ? (a.total > b.total ? a : b) : null
+          return (
+            <div className="by-user-section">
+              <div className="by-user-row">
+                {gastosPorUsuario.map(u => (
+                  <div key={u.id} className="by-user-item">
+                    <span className="by-user-name">{u.nombre}</span>
+                    <span className="by-user-amt">{fmt(u.total)}</span>
+                    <div className="by-user-bar-track">
+                      <div
+                        className="by-user-bar-fill"
+                        style={{ width: `${Math.round(u.total / totalGastos * 100)}%` }}
+                      />
+                    </div>
+                    <span className="by-user-pct">{Math.round(u.total / totalGastos * 100)}%</span>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        )}
+              {settle > 0.5 && debtor && creditor && (
+                <div className="settle-row">
+                  <span className="settle-label">
+                    {lang === 'es'
+                      ? <>{debtor.nombre} debe {fmt(settle)} a {creditor.nombre}</>
+                      : <>{debtor.nombre} owes {fmt(settle)} to {creditor.nombre}</>}
+                  </span>
+                </div>
+              )}
+            </div>
+          )
+        })()}
 
         {/* Month note */}
         {!loading && monthNoteKey && (

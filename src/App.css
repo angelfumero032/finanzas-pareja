@@ -458,6 +458,17 @@ html, body { overscroll-behavior: none; }
   font-weight: 600;
   text-align: right;
 }
+.by-user-section { display: flex; flex-direction: column; gap: 0.35rem; }
+.settle-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.5rem;
+  background: color-mix(in srgb, var(--warn) 8%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--warn) 25%, var(--border));
+  border-radius: 6px;
+}
+.settle-label { font-size: 0.8rem; color: var(--text2); }
 
 /* ── Secciones ── */
 .section {
