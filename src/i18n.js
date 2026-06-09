@@ -25,6 +25,9 @@ const T = {
     today: 'Hoy',
     yesterday: 'Ayer',
     copy_budget_prev: 'Copiar mes anterior',
+    saved: 'ahorro',
+    overspent: 'sin ahorro',
+    no_expense_cats: 'Sin categorías de gasto.',
     activity_title: 'Actividad',
     no_activity: 'Sin actividad reciente.',
     amount: 'Importe (€)',
@@ -81,6 +84,9 @@ const T = {
     today: 'Today',
     yesterday: 'Yesterday',
     copy_budget_prev: 'Copy from last month',
+    saved: 'saved',
+    overspent: 'overspent',
+    no_expense_cats: 'No expense categories.',
     activity_title: 'Activity',
     no_activity: 'No recent activity.',
     amount: 'Amount (€)',
@@ -129,5 +135,5 @@ export function timeAgo(dateStr, lang) {
   if (secs < 60) return t(lang, 'just_now')
   if (secs < 3600) return `${Math.floor(secs / 60)}${t(lang, 'min_ago')}`
   if (secs < 86400) return `${Math.floor(secs / 3600)}${t(lang, 'hr_ago')}`
-  return `${Math.floor(secs / 86400)}${t(lang, 'day_ago')}`
+  return new Date(dateStr).toLocaleTimeString(lang === 'es' ? 'es-ES' : 'en-GB', { hour: '2-digit', minute: '2-digit', hour12: false })
 }

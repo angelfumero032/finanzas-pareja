@@ -965,16 +965,16 @@ export default function MesView() {
       )}
 
       {/* FAB añadir movimiento */}
-      {!modalOpen && !showActivity && (
-        <button
-          className="fab"
-          onClick={() => { setEditMov(null); setModalOpen(true) }}
-          title={t(lang, 'new_movement')}
-          aria-label={t(lang, 'new_movement')}
-        >
-          +
-        </button>
-      )}
+      <button
+        className={`fab${modalOpen || showActivity || showHelp ? ' fab-hidden' : ''}`}
+        onClick={() => { setEditMov(null); setModalOpen(true) }}
+        title={t(lang, 'new_movement')}
+        aria-label={t(lang, 'new_movement')}
+        aria-hidden={modalOpen || showActivity || showHelp}
+        tabIndex={modalOpen || showActivity || showHelp ? -1 : 0}
+      >
+        +
+      </button>
     </div>
   )
 }

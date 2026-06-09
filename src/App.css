@@ -1068,13 +1068,14 @@ html, body { overscroll-behavior: none; }
   align-items: center;
   justify-content: center;
   z-index: 90;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.2s ease;
 }
 .fab:hover {
   transform: scale(1.08);
   box-shadow: 0 6px 20px rgba(37,99,235,0.4);
 }
 .fab:active { transform: scale(0.95); }
+.fab-hidden { opacity: 0; pointer-events: none; transform: scale(0.75); }
 
 /* ── Modal: animaciones de entrada ── */
 @keyframes overlayIn {
