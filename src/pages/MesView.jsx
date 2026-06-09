@@ -40,6 +40,8 @@ export default function MesView() {
   const [filtroCatId, setFiltroCatId] = useState(null)
 
   const movListRef = useRef(null)
+  const touchX = useRef(null)
+  const touchY = useRef(null)
 
   // Edición inline de presupuesto
   const [editBudget, setEditBudget] = useState(null) // { catId }
@@ -249,6 +251,22 @@ export default function MesView() {
     return () => window.removeEventListener('keydown', onKey)
   }, [modalOpen, showActivity, isCurrentMonth, prevMes, nextMes])
 
+  // ── Swipe horizontal → cambiar mes ──
+  function handleTouchStart(e) {
+    touchX.current = e.touches[0].clientX
+    touchY.current = e.touches[0].clientY
+  }
+  function handleTouchEnd(e) {
+    if (touchX.current === null || modalOpen || showActivity) return
+    const dx = e.changedTouches[0].clientX - touchX.current
+    const dy = e.changedTouches[0].clientY - touchY.current
+    touchX.current = null
+    if (Math.abs(dx) > 72 && Math.abs(dx) > Math.abs(dy) * 2) {
+      if (dx > 0) prevMes()
+      else if (!isCurrentMonth) nextMes()
+    }
+  }
+
   // ── Actividad: abrir panel + marcar como leído ──
   async function handleOpenActivity() {
     setShowActivity(true)
@@ -398,7 +416,7 @@ export default function MesView() {
   }
 
   return (
-    <div className="app-root">
+    <div className="app-root" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
       {/* ── Cabecera ── */}
       <header className="app-header">
         <button className="btn-nav" onClick={prevMes} title={t(lang, 'prev_month')}>‹</button>
