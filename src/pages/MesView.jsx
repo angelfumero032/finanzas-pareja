@@ -405,6 +405,9 @@ export default function MesView() {
       if (e.key === '?') setShowHelp(h => !h)
       if (e.key === '/' && searchRef.current) { e.preventDefault(); searchRef.current.focus() }
       if (e.key === 'd' || e.key === 'D') cycleTheme()
+      if (e.key === 'e' || e.key === 'E') exportarCSV()
+      if (e.key === 'y' || e.key === 'Y') setShowYearView(v => !v)
+      if (e.key === 'g' || e.key === 'G') document.querySelector('.section-charts')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -1266,6 +1269,19 @@ export default function MesView() {
                 </div>
               </div>
 
+              {presupuestos.length === 0 && totalGastos > 0 && !loading && (
+                <div className="budget-setup-banner">
+                  <span className="budget-setup-text">
+                    {lang === 'es'
+                      ? 'Sin presupuesto para este mes — define límites por categoría para controlar el gasto.'
+                      : 'No budget set — add limits per category to track spending.'}
+                  </span>
+                  <button className="btn-sm btn-primary" onClick={handleCopyBudgetFromLastMonth}>
+                    {t(lang, 'copy_budget_prev')}
+                  </button>
+                </div>
+              )}
+
               {totalPresupuestado > 0 && (() => {
                 const daysInMonth = new Date(anio, mes, 0).getDate()
                 const daysElapsed = isCurrentMonth
@@ -1957,7 +1973,10 @@ export default function MesView() {
                   ['←  →', lang === 'es' ? 'Mes anterior / siguiente' : 'Previous / next month'],
                   ['N', lang === 'es' ? 'Nuevo movimiento' : 'New movement'],
                   ['I', lang === 'es' ? 'Importar CSV' : 'Import CSV'],
+                  ['E', lang === 'es' ? 'Exportar CSV' : 'Export CSV'],
                   ['T', lang === 'es' ? 'Ir al mes actual' : 'Go to current month'],
+                  ['Y', lang === 'es' ? 'Resumen anual' : 'Year summary'],
+                  ['G', lang === 'es' ? 'Ir a gráficas' : 'Go to charts'],
                   ['C', lang === 'es' ? 'Gestionar categorías' : 'Manage categories'],
                   ['R', lang === 'es' ? 'Gastos fijos recurrentes' : 'Recurring templates'],
                   ['/', lang === 'es' ? 'Enfocar búsqueda' : 'Focus search'],
