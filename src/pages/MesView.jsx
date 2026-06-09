@@ -66,6 +66,9 @@ export default function MesView() {
   // Category management modal
   const [showCatsModal, setShowCatsModal] = useState(false)
 
+  // Budget section: hide zero-spend no-budget categories
+  const [hideZeroCats, setHideZeroCats] = useState(false)
+
   // CSV import modal
   const [showImportModal, setShowImportModal] = useState(false)
 
@@ -558,18 +561,22 @@ export default function MesView() {
       .filter(m => {
         if (!busqueda) return true
         const q = busqueda.toLowerCase()
+        const creatorName = m.creado_por === profile?.id
+          ? t(lang, 'you').toLowerCase()
+          : (usuarios.find(u => u.id === m.creado_por)?.nombre ?? '').toLowerCase()
         return (
           (catMap.get(m.categoria_id) ?? '').toLowerCase().includes(q) ||
           (subcatMap.get(m.subcategoria_id) ?? '').toLowerCase().includes(q) ||
           (m.nota || '').toLowerCase().includes(q) ||
-          String(Number(m.importe).toFixed(2)).includes(q)
+          String(Number(m.importe).toFixed(2)).includes(q) ||
+          creatorName.includes(q)
         )
       })
     if (sortMovs === 'importe') {
       list = [...list].sort((a, b) => Number(b.importe) - Number(a.importe))
     }
     return list
-  }, [movimientos, filtroTipo, filtroCatId, busqueda, sortMovs, catMap, subcatMap])
+  }, [movimientos, filtroTipo, filtroCatId, busqueda, sortMovs, catMap, subcatMap, usuarios, profile?.id, lang])
 
   const totalFiltrado = useMemo(
     () => movimientosFiltrados.reduce((s, m) => s + Number(m.importe), 0),
@@ -902,6 +909,15 @@ export default function MesView() {
                   <button className="btn-sm btn-secondary" onClick={handleCopyBudgetFromLastMonth}>
                     {t(lang, 'copy_budget_prev')}
                   </button>
+                  {gastosCats.some(c => (gastoPorCat[c.id] ?? 0) === 0 && !(presupuestoPorCat[c.id] > 0)) && (
+                    <button
+                      className={`btn-sm btn-secondary${hideZeroCats ? ' btn-secondary-active' : ''}`}
+                      onClick={() => setHideZeroCats(h => !h)}
+                      title={lang === 'es' ? 'Ocultar categorías sin gasto ni presupuesto' : 'Hide zero-spend categories'}
+                    >
+                      {hideZeroCats ? (lang === 'es' ? 'Mostrar todas' : 'Show all') : (lang === 'es' ? 'Ocultar ceros' : 'Hide zeros')}
+                    </button>
+                  )}
                   <button
                     className="btn-icon"
                     onClick={() => setShowCatsModal(true)}
@@ -988,7 +1004,9 @@ export default function MesView() {
 
               {gastosCats.length === 0
                 ? <p className="empty-text">{t(lang, 'no_expense_cats')}</p>
-                : gastosCats.map(cat => {
+                : gastosCats
+                    .filter(cat => !hideZeroCats || (gastoPorCat[cat.id] ?? 0) > 0 || presupuestoPorCat[cat.id] > 0)
+                    .map(cat => {
                     const spent = gastoPorCat[cat.id] ?? 0
                     const budget = presupuestoPorCat[cat.id] ?? 0
                     const ratio = budget > 0 ? spent / budget : 0

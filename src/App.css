@@ -146,6 +146,8 @@ html, body { overscroll-behavior: none; }
   transition: background 0.15s;
 }
 .btn-secondary:hover { background: var(--border); }
+.btn-secondary-active { background: color-mix(in srgb, var(--accent) 12%, var(--surface2)); border-color: var(--accent); color: var(--accent); }
+.btn-secondary-active:hover { background: color-mix(in srgb, var(--accent) 18%, var(--surface2)); }
 
 /* Focus-visible outlines for keyboard nav (WCAG 2.1 AA) */
 .btn-primary:focus-visible,
@@ -1578,6 +1580,15 @@ kbd {
   from { opacity: 1; }
   to   { opacity: 0; }
 }
+
+/* ── Note character counter ── */
+.note-counter {
+  float: right;
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--text3);
+}
+.note-counter-warn { color: var(--warn); font-weight: 600; }
 
 /* ── Import CSV modal ── */
 .import-modal-card { max-width: 640px; max-height: 80vh; display: flex; flex-direction: column; }

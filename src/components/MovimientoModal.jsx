@@ -205,7 +205,14 @@ export default function MovimientoModal({ open, onClose, onSave, onDelete, onDup
           )}
 
           <div className="field">
-            <label htmlFor="m-nota">{t(lang, 'note')}</label>
+            <label htmlFor="m-nota">
+              {t(lang, 'note')}
+              {nota.length > 80 && (
+                <span className={`note-counter${nota.length >= 110 ? ' note-counter-warn' : ''}`}>
+                  {120 - nota.length}
+                </span>
+              )}
+            </label>
             <input
               id="m-nota"
               type="text"
