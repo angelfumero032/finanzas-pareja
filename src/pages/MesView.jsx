@@ -472,6 +472,9 @@ export default function MesView() {
       if (e.key === 'e' || e.key === 'E') exportarCSV()
       if (e.key === 'y' || e.key === 'Y') setShowYearView(v => !v)
       if (e.key === 'g' || e.key === 'G') document.querySelector('.section-charts')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      if (e.key === 'p' || e.key === 'P') { setFiltroPendiente(v => !v); setFiltroTipo(t => t === 'all' ? 'gasto' : t) }
+      if (e.key === 'f' || e.key === 'F') { setFiltroFijo(v => v === true ? null : true) }
+      if (e.key === 'x' || e.key === 'X') { setFiltroTipo('all'); setBusqueda(''); setFiltroCatId(null); setFiltroFijo(null); setFiltroPendiente(false) }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -2215,6 +2218,9 @@ export default function MesView() {
                   ['T', lang === 'es' ? 'Ir al mes actual' : 'Go to current month'],
                   ['Y', lang === 'es' ? 'Resumen anual' : 'Year summary'],
                   ['G', lang === 'es' ? 'Ir a gráficas' : 'Go to charts'],
+                  ['P', lang === 'es' ? 'Filtrar pendientes' : 'Toggle pending filter'],
+                  ['F', lang === 'es' ? 'Filtrar gastos fijos' : 'Toggle fixed filter'],
+                  ['X', lang === 'es' ? 'Limpiar todos los filtros' : 'Clear all filters'],
                   ['C', lang === 'es' ? 'Gestionar categorías' : 'Manage categories'],
                   ['R', lang === 'es' ? 'Gastos fijos recurrentes' : 'Recurring templates'],
                   ['/', lang === 'es' ? 'Enfocar búsqueda' : 'Focus search'],
