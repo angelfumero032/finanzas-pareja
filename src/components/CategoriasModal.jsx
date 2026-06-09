@@ -2,6 +2,12 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { t } from '../i18n'
 
+const CAT_PALETTE = [
+  '#6366f1','#8b5cf6','#a78bfa','#ec4899','#f472b6',
+  '#ef4444','#f97316','#f59e0b','#84cc16','#10b981',
+  '#14b8a6','#06b6d4','#22d3ee','#3b82f6','#64748b','#94a3b8',
+]
+
 export default function CategoriasModal({ open, onClose, lang, hogarId, onRefresh }) {
   const [allCats, setAllCats] = useState([])
   const [allSubcats, setAllSubcats] = useState([])
@@ -9,11 +15,13 @@ export default function CategoriasModal({ open, onClose, lang, hogarId, onRefres
   const [showArchived, setShowArchived] = useState(false)
   const [expandedCatId, setExpandedCatId] = useState(null)
   const [newCatNombre, setNewCatNombre] = useState('')
+  const [newCatColor, setNewCatColor] = useState(CAT_PALETTE[0])
   const [newSubNombre, setNewSubNombre] = useState('')
   const [saving, setSaving] = useState(null)
   const [editingCatId, setEditingCatId] = useState(null)
   const [editingSubId, setEditingSubId] = useState(null)
   const [editNombre, setEditNombre] = useState('')
+  const [editingColorId, setEditingColorId] = useState(null)
 
   async function reload() {
     if (!hogarId) return
@@ -52,10 +60,25 @@ export default function CategoriasModal({ open, onClose, lang, hogarId, onRefres
       const maxOrden = activeCats.reduce((mx, c) => Math.max(mx, c.orden ?? 0), 0)
       const { error } = await supabase.from('categorias').insert({
         hogar_id: hogarId, nombre, tipo: tab, orden: maxOrden + 1, archivada: false,
+        color: newCatColor,
       })
       if (error) throw error
       setNewCatNombre('')
+      setNewCatColor(CAT_PALETTE[0])
       await reload()
+    } finally {
+      setSaving(null)
+    }
+  }
+
+  async function handleSaveColor(catId, color) {
+    setEditingColorId(null)
+    setSaving(catId)
+    try {
+      const { error } = await supabase.from('categorias').update({ color }).eq('id', catId)
+      if (error) throw error
+      setAllCats(prev => prev.map(c => c.id === catId ? { ...c, color } : c))
+      onRefresh()
     } finally {
       setSaving(null)
     }
@@ -176,6 +199,32 @@ export default function CategoriasModal({ open, onClose, lang, hogarId, onRefres
                   >
                     <span className="cat-expand-arrow">{isExpanded ? '▾' : '▸'}</span>
                   </button>
+
+                  {/* Color dot — click to open palette */}
+                  <div className="cat-color-wrap">
+                    <button
+                      className="cat-color-dot"
+                      style={{ background: cat.color ?? '#94a3b8' }}
+                      onClick={() => setEditingColorId(editingColorId === cat.id ? null : cat.id)}
+                      title={t(lang, 'edit_color')}
+                      type="button"
+                    />
+                    {editingColorId === cat.id && (
+                      <div className="color-picker-popover">
+                        {CAT_PALETTE.map(c => (
+                          <button
+                            key={c}
+                            className={`color-swatch${cat.color === c ? ' color-swatch-active' : ''}`}
+                            style={{ background: c }}
+                            onClick={() => handleSaveColor(cat.id, c)}
+                            type="button"
+                            aria-label={c}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
                   {editingCatId === cat.id ? (
                     <input
                       className="cat-edit-input"
@@ -285,17 +334,42 @@ export default function CategoriasModal({ open, onClose, lang, hogarId, onRefres
         </div>
 
         <form className="cat-add-form" onSubmit={handleAddCat}>
-          <input
-            className="cat-add-input"
-            type="text"
-            value={newCatNombre}
-            onChange={e => setNewCatNombre(e.target.value)}
-            placeholder={lang === 'es' ? 'Nueva categoría…' : 'New category…'}
-            maxLength={40}
-          />
-          <button type="submit" className="btn-primary btn-sm"
-            disabled={!newCatNombre.trim() || saving === 'new-cat'}
-          >{saving === 'new-cat' ? '…' : (lang === 'es' ? 'Añadir' : 'Add')}</button>
+          <div className="cat-add-row">
+            <div className="cat-color-wrap">
+              <button
+                type="button"
+                className="cat-color-dot"
+                style={{ background: newCatColor }}
+                onClick={() => setEditingColorId(editingColorId === 'new' ? null : 'new')}
+                title={t(lang, 'edit_color')}
+              />
+              {editingColorId === 'new' && (
+                <div className="color-picker-popover color-picker-popover-up">
+                  {CAT_PALETTE.map(c => (
+                    <button
+                      key={c}
+                      type="button"
+                      className={`color-swatch${newCatColor === c ? ' color-swatch-active' : ''}`}
+                      style={{ background: c }}
+                      onClick={() => { setNewCatColor(c); setEditingColorId(null) }}
+                      aria-label={c}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+            <input
+              className="cat-add-input"
+              type="text"
+              value={newCatNombre}
+              onChange={e => setNewCatNombre(e.target.value)}
+              placeholder={lang === 'es' ? 'Nueva categoría…' : 'New category…'}
+              maxLength={40}
+            />
+            <button type="submit" className="btn-primary btn-sm"
+              disabled={!newCatNombre.trim() || saving === 'new-cat'}
+            >{saving === 'new-cat' ? '…' : (lang === 'es' ? 'Añadir' : 'Add')}</button>
+          </div>
         </form>
 
         {archivedCats.length > 0 && (

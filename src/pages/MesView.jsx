@@ -14,6 +14,7 @@ const CAT_PALETTE = [
   '#8b5cf6', '#ec4899', '#14b8a6', '#f97316',
   '#64748b', '#84cc16',
 ]
+// Colors from DB take priority; palette is the fallback
 
 export default function MesView() {
   const { profile } = useAuth()
@@ -44,6 +45,7 @@ export default function MesView() {
 
   // Filtro de tipo y búsqueda en lista de movimientos
   const [filtroTipo, setFiltroTipo] = useState('all')
+  const [filtroFijo, setFiltroFijo] = useState(null) // null=all, true=fixed, false=variable
   const [busqueda, setBusqueda] = useState('')
   const [filtroCatId, setFiltroCatId] = useState(null)
   const [sortMovs, setSortMovs] = useState(() => localStorage.getItem('sortMovs') ?? 'fecha')
@@ -147,7 +149,7 @@ export default function MesView() {
     Object.fromEntries(
       categorias
         .filter(c => c.tipo === 'gasto')
-        .map((c, i) => [c.id, CAT_PALETTE[i % CAT_PALETTE.length]])
+        .map((c, i) => [c.id, c.color || CAT_PALETTE[i % CAT_PALETTE.length]])
     ),
   [categorias])
 
@@ -203,7 +205,7 @@ export default function MesView() {
   useEffect(() => { loadMes() }, [loadMes])
 
   // Limpiar filtros al cambiar de mes
-  useEffect(() => { setBusqueda(''); setFiltroTipo('all'); setFiltroCatId(null) }, [anio, mes])
+  useEffect(() => { setBusqueda(''); setFiltroTipo('all'); setFiltroCatId(null); setFiltroFijo(null) }, [anio, mes])
 
   // Bloquear scroll del body cuando hay un panel/modal abierto (fix iOS)
   useEffect(() => {
@@ -585,13 +587,18 @@ export default function MesView() {
   }
 
   // ── Resumen calculado ──
-  const { gastosItems, ingresosItems, totalGastos, totalIngresos, balance } = useMemo(() => {
+  const { gastosItems, ingresosItems, totalGastos, totalIngresos, balance, gastosFijos, gastosVariables } = useMemo(() => {
     const gi = movimientos.filter(m => m.tipo === 'gasto')
     const ii = movimientos.filter(m => m.tipo === 'ingreso')
     const tg = gi.reduce((s, m) => s + Number(m.importe), 0)
     const ti = ii.reduce((s, m) => s + Number(m.importe), 0)
-    return { gastosItems: gi, ingresosItems: ii, totalGastos: tg, totalIngresos: ti, balance: ti - tg }
+    const gf = gi.filter(m => m.es_fijo)
+    const gv = gi.filter(m => !m.es_fijo)
+    return { gastosItems: gi, ingresosItems: ii, totalGastos: tg, totalIngresos: ti, balance: ti - tg, gastosFijos: gf, gastosVariables: gv }
   }, [movimientos])
+
+  const totalFijos = useMemo(() => gastosFijos.reduce((s, m) => s + Number(m.importe), 0), [gastosFijos])
+  const totalVariables = useMemo(() => gastosVariables.reduce((s, m) => s + Number(m.importe), 0), [gastosVariables])
 
   const deltaIngresos = prevTotals?.ingresos > 0 ? (totalIngresos - prevTotals.ingresos) / prevTotals.ingresos * 100 : null
   const deltaGastos   = prevTotals?.gastos   > 0 ? (totalGastos   - prevTotals.gastos)   / prevTotals.gastos   * 100 : null
@@ -600,6 +607,7 @@ export default function MesView() {
     let list = movimientos
       .filter(m => filtroTipo === 'all' || m.tipo === filtroTipo)
       .filter(m => !filtroCatId || (filtroCatId === 'nocat' ? !m.categoria_id : m.categoria_id === filtroCatId))
+      .filter(m => filtroFijo === null || (filtroFijo === true ? m.es_fijo : !m.es_fijo))
       .filter(m => {
         if (!busqueda) return true
         const q = busqueda.toLowerCase()
@@ -625,7 +633,7 @@ export default function MesView() {
     () => movimientosFiltrados.reduce((s, m) => s + Number(m.importe), 0),
     [movimientosFiltrados]
   )
-  const hayFiltroActivo = filtroTipo !== 'all' || busqueda || filtroCatId
+  const hayFiltroActivo = filtroTipo !== 'all' || busqueda || filtroCatId || filtroFijo !== null
 
   const gastosPorUsuario = useMemo(() => {
     if (usuarios.length < 2) return null
@@ -841,6 +849,32 @@ export default function MesView() {
             )}
           </div>
         </div>
+
+        {/* Fixed vs variable breakdown */}
+        {totalGastos > 0 && gastosFijos.length > 0 && (
+          <div className="fixed-breakdown">
+            <button
+              className={`fixed-pill${filtroFijo === true ? ' fixed-pill-active' : ''}`}
+              onClick={() => { setFiltroFijo(filtroFijo === true ? null : true); movListRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }}
+              title={lang === 'es' ? 'Filtrar gastos fijos' : 'Filter fixed expenses'}
+            >
+              <span className="fixed-pill-label">
+                {t(lang, 'fixed_badge')} · <strong>{fmt(totalFijos)}</strong>
+              </span>
+              <span className="fixed-pill-pct">{Math.round(totalFijos / totalGastos * 100)}%</span>
+            </button>
+            <button
+              className={`fixed-pill fixed-pill-var${filtroFijo === false ? ' fixed-pill-active' : ''}`}
+              onClick={() => { setFiltroFijo(filtroFijo === false ? null : false); movListRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }}
+              title={lang === 'es' ? 'Filtrar gastos variables' : 'Filter variable expenses'}
+            >
+              <span className="fixed-pill-label">
+                {t(lang, 'variable')} · <strong>{fmt(totalVariables)}</strong>
+              </span>
+              <span className="fixed-pill-pct">{Math.round(totalVariables / totalGastos * 100)}%</span>
+            </button>
+          </div>
+        )}
 
         {gastosPorUsuario && totalGastos > 0 && (
           <div className="by-user-row">
@@ -1191,6 +1225,17 @@ export default function MesView() {
                           </button>
                         )
                       })}
+                      {gastosFijos.length > 0 && (
+                        <>
+                          <button
+                            className={`filter-tab filter-tab-fixed${filtroFijo === true ? ' filter-tab-active' : ''}`}
+                            onClick={() => { setFiltroFijo(filtroFijo === true ? null : true); if (filtroFijo !== true) setFiltroTipo('gasto') }}
+                          >
+                            {t(lang, 'fixed_badge')}
+                            <span className="tab-count">{gastosFijos.length}</span>
+                          </button>
+                        </>
+                      )}
                     </div>
                     <button
                       className={`sort-btn${sortMovs === 'importe' ? ' sort-btn-active' : ''}`}
@@ -1240,7 +1285,7 @@ export default function MesView() {
                   {hayFiltroActivo ? (
                     <button
                       className="btn-sm btn-secondary"
-                      onClick={() => { setFiltroTipo('all'); setBusqueda(''); setFiltroCatId(null) }}
+                      onClick={() => { setFiltroTipo('all'); setBusqueda(''); setFiltroCatId(null); setFiltroFijo(null) }}
                     >
                       {t(lang, 'clear_filters')}
                     </button>
@@ -1313,6 +1358,9 @@ export default function MesView() {
                             <span className="movement-cat">
                               {catName(m.categoria_id)}{sub ? ` · ${sub}` : ''}
                             </span>
+                          )}
+                          {m.es_fijo && (
+                            <span className="movement-fixed-badge">{t(lang, 'fixed_badge')}</span>
                           )}
                           {m.nota && <span className="movement-nota">{m.nota}</span>}
                         </div>
