@@ -404,6 +404,23 @@ export default function MesView() {
   const totalFiltrado = movimientosFiltrados.reduce((s, m) => s + Number(m.importe), 0)
   const hayFiltroActivo = filtroTipo !== 'all' || busqueda || filtroCatId
 
+  // Agrupar por fecha cuando el orden es temporal; lista plana cuando es por importe
+  const renderList = useMemo(() => {
+    if (sortMovs === 'importe') {
+      return movimientosFiltrados.map(m => ({ type: 'item', m }))
+    }
+    const result = []
+    let currentDate = null
+    for (const m of movimientosFiltrados) {
+      if (m.fecha !== currentDate) {
+        currentDate = m.fecha
+        result.push({ type: 'header', date: m.fecha })
+      }
+      result.push({ type: 'item', m })
+    }
+    return result
+  }, [movimientosFiltrados, sortMovs])
+
   const gastoPorCat = {}
   movimientos.filter(m => m.tipo === 'gasto' && m.categoria_id).forEach(m => {
     gastoPorCat[m.categoria_id] = (gastoPorCat[m.categoria_id] ?? 0) + Number(m.importe)
@@ -523,8 +540,8 @@ export default function MesView() {
             {totalIngresos > 0 && (
               <span className={`summary-savings ${balance >= 0 ? 'delta-pos' : 'delta-neg'}`}>
                 {balance >= 0
-                  ? `${Math.round(balance / totalIngresos * 100)}% ${lang === 'es' ? 'ahorro' : 'saved'}`
-                  : lang === 'es' ? 'sin ahorro' : 'overspent'}
+                  ? `${Math.round(balance / totalIngresos * 100)}% ${t(lang, 'saved')}`
+                  : t(lang, 'overspent')}
               </span>
             )}
           </div>
@@ -583,7 +600,7 @@ export default function MesView() {
               )}
 
               {gastosCats.length === 0
-                ? <p className="empty-text">Sin categorías de gasto.</p>
+                ? <p className="empty-text">{t(lang, 'no_expense_cats')}</p>
                 : gastosCats.map(cat => {
                     const spent = gastoPorCat[cat.id] ?? 0
                     const budget = presupuestoPorCat[cat.id] ?? 0
@@ -734,7 +751,15 @@ export default function MesView() {
                 </div>
               ) : (
                 <div className="movements-list">
-                  {movimientosFiltrados.map(m => {
+                  {renderList.map((entry, idx) => {
+                    if (entry.type === 'header') {
+                      return (
+                        <div key={`h-${entry.date}`} className="movement-date-header">
+                          {formatFecha(entry.date)}
+                        </div>
+                      )
+                    }
+                    const m = entry.m
                     const sub = subcatName(m.subcategoria_id)
                     return (
                       <button
@@ -743,16 +768,20 @@ export default function MesView() {
                         onClick={() => { setEditMov(m); setModalOpen(true) }}
                       >
                         <div className="movement-left">
-                          <div className="movement-meta">
-                            <span className="movement-date" title={m.fecha}>{formatFecha(m.fecha)}</span>
-                            {usuarios.length > 1 && m.creado_por && (
-                              <span className="movement-creator">
-                                {m.creado_por === profile?.id
-                                  ? t(lang, 'you')
-                                  : (usuarios.find(u => u.id === m.creado_por)?.nombre ?? '')}
-                              </span>
-                            )}
-                          </div>
+                          {(sortMovs === 'importe' || usuarios.length > 1) && (
+                            <div className="movement-meta">
+                              {sortMovs === 'importe' && (
+                                <span className="movement-date" title={m.fecha}>{formatFecha(m.fecha)}</span>
+                              )}
+                              {usuarios.length > 1 && m.creado_por && (
+                                <span className="movement-creator">
+                                  {m.creado_por === profile?.id
+                                    ? t(lang, 'you')
+                                    : (usuarios.find(u => u.id === m.creado_por)?.nombre ?? '')}
+                                </span>
+                              )}
+                            </div>
+                          )}
                           <span className="movement-cat">
                             {m.categoria_id && catColorMap[m.categoria_id] && (
                               <span
