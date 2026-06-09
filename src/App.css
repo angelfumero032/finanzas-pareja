@@ -1604,6 +1604,21 @@ html, body { overscroll-behavior: none; }
 .year-bal-neg { color: var(--expense); }
 
 /* ── Year totals summary row ── */
+.year-totals-section { display: flex; flex-direction: column; gap: 0.3rem; margin-bottom: 0.55rem; }
+.year-totals-section .year-totals-row { margin-bottom: 0; }
+.year-avg-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.6rem;
+  font-size: 0.72rem;
+  color: var(--text3);
+  flex-wrap: wrap;
+}
+.year-avg-label { flex-shrink: 0; }
+.year-avg-inc { color: var(--income); font-weight: 600; }
+.year-avg-exp { color: var(--expense); font-weight: 600; }
+.year-cell-best { font-size: 0.55rem; line-height: 1; display: inline-block; }
 .year-totals-row {
   display: flex;
   align-items: center;

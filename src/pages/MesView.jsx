@@ -2311,55 +2311,80 @@ export default function MesView() {
                     const yearExpenses = yearData.reduce((s, d) => s + d.expenses, 0)
                     const yearBalance = yearIncome - yearExpenses
                     const hasData = yearIncome > 0 || yearExpenses > 0
+                    const monthsWithData = yearData.filter(d => d.income > 0 || d.expenses > 0).length
+                    const avgIncome = monthsWithData > 0 ? yearIncome / monthsWithData : 0
+                    const avgExpenses = monthsWithData > 0 ? yearExpenses / monthsWithData : 0
                     return hasData ? (
-                      <div className="year-totals-row">
-                        <span className="year-totals-item year-totals-inc">+{fmtK(yearIncome)}</span>
-                        <span className="year-totals-sep">·</span>
-                        <span className="year-totals-item year-totals-exp">−{fmtK(yearExpenses)}</span>
-                        <span className="year-totals-sep">·</span>
-                        <span className={`year-totals-item ${yearBalance >= 0 ? 'year-bal-pos' : 'year-bal-neg'}`}>
-                          {yearBalance >= 0 ? '+' : ''}{fmtK(yearBalance)}
-                        </span>
+                      <div className="year-totals-section">
+                        <div className="year-totals-row">
+                          <span className="year-totals-item year-totals-inc">+{fmtK(yearIncome)}</span>
+                          <span className="year-totals-sep">·</span>
+                          <span className="year-totals-item year-totals-exp">−{fmtK(yearExpenses)}</span>
+                          <span className="year-totals-sep">·</span>
+                          <span className={`year-totals-item ${yearBalance >= 0 ? 'year-bal-pos' : 'year-bal-neg'}`}>
+                            {yearBalance >= 0 ? '+' : ''}{fmtK(yearBalance)}
+                          </span>
+                        </div>
+                        {monthsWithData > 1 && (
+                          <div className="year-avg-row">
+                            <span className="year-avg-label">{lang === 'es' ? 'Media/mes' : 'Monthly avg'}</span>
+                            {avgIncome > 0 && <span className="year-avg-inc">+{fmtK(avgIncome)}</span>}
+                            {avgExpenses > 0 && <span className="year-avg-exp">−{fmtK(avgExpenses)}</span>}
+                          </div>
+                        )}
                       </div>
                     ) : null
                   })()}
-                  <div className="year-grid">
-                    {yearData.map((d, i) => {
-                      const monthBalance = d.income - d.expenses
-                      const isCurrent = i + 1 === todayDate.getMonth() + 1 && anio === todayDate.getFullYear()
-                      const isEmpty = d.income === 0 && d.expenses === 0
-                      const isFutureCell = anio === todayDate.getFullYear()
-                        ? i + 1 > todayDate.getMonth() + 1
-                        : anio > todayDate.getFullYear()
-                      const isSelectedMonth = i + 1 === mes
-                      const plantillaTotal = isFutureCell
-                        ? plantillas.filter(p => p.activa).reduce((s, p) => s + Number(p.importe), 0)
-                        : 0
-                      return (
-                        <button
-                          key={i}
-                          className={`year-cell${isCurrent ? ' year-cell-current' : ''}${isSelectedMonth && !isCurrent ? ' year-cell-selected' : ''}${isEmpty && !isFutureCell ? ' year-cell-empty' : ''}${isFutureCell ? ' year-cell-future' : ''}`}
-                          onClick={() => setMes(i + 1)}
-                          title={`${MONTHS[lang][i]}${!isEmpty ? ` · ${lang === 'es' ? 'ingresos' : 'income'}: ${fmtK(d.income)}` : ''}`}
-                        >
-                          <span className="year-cell-month">{MONTHS[lang][i].slice(0, 3)}</span>
-                          {!isEmpty ? (
-                            <>
-                              {d.income > 0 && (
-                                <span className="year-cell-inc">{fmtK(d.income)}</span>
-                              )}
-                              <span className="year-cell-exp">{fmtK(d.expenses)}</span>
-                              <span className={`year-cell-bal ${monthBalance >= 0 ? 'year-bal-pos' : 'year-bal-neg'}`}>
-                                {monthBalance >= 0 ? '+' : ''}{fmtK(monthBalance)}
+                  {(() => {
+                    // Compute best savings month index for badge
+                    let bestIdx = null
+                    yearData.forEach((d, i) => {
+                      if (d.income === 0 && d.expenses === 0) return
+                      const bal = d.income - d.expenses
+                      if (bestIdx === null || bal > yearData[bestIdx].income - yearData[bestIdx].expenses) bestIdx = i
+                    })
+                    const plantillaTotal = plantillas.filter(p => p.activa).reduce((s, p) => s + Number(p.importe), 0)
+                    return (
+                      <div className="year-grid">
+                        {yearData.map((d, i) => {
+                          const monthBalance = d.income - d.expenses
+                          const isCurrent = i + 1 === todayDate.getMonth() + 1 && anio === todayDate.getFullYear()
+                          const isEmpty = d.income === 0 && d.expenses === 0
+                          const isFutureCell = anio === todayDate.getFullYear()
+                            ? i + 1 > todayDate.getMonth() + 1
+                            : anio > todayDate.getFullYear()
+                          const isSelectedMonth = i + 1 === mes
+                          const isBest = bestIdx === i && !isEmpty && monthBalance > 0
+                          return (
+                            <button
+                              key={i}
+                              className={`year-cell${isCurrent ? ' year-cell-current' : ''}${isSelectedMonth && !isCurrent ? ' year-cell-selected' : ''}${isEmpty && !isFutureCell ? ' year-cell-empty' : ''}${isFutureCell ? ' year-cell-future' : ''}`}
+                              onClick={() => setMes(i + 1)}
+                              title={`${MONTHS[lang][i]}${!isEmpty ? ` · ${lang === 'es' ? 'ingresos' : 'income'}: ${fmtK(d.income)}` : ''}`}
+                            >
+                              <span className="year-cell-month">
+                                {MONTHS[lang][i].slice(0, 3)}
+                                {isBest && <span className="year-cell-best" aria-label="best month" title={lang === 'es' ? 'Mejor mes' : 'Best month'}>⭐</span>}
                               </span>
-                            </>
-                          ) : isFutureCell && plantillaTotal > 0 ? (
-                            <span className="year-cell-projected">{fmtK(plantillaTotal)}</span>
-                          ) : null}
-                        </button>
-                      )
-                    })}
-                  </div>
+                              {!isEmpty ? (
+                                <>
+                                  {d.income > 0 && (
+                                    <span className="year-cell-inc">{fmtK(d.income)}</span>
+                                  )}
+                                  <span className="year-cell-exp">{fmtK(d.expenses)}</span>
+                                  <span className={`year-cell-bal ${monthBalance >= 0 ? 'year-bal-pos' : 'year-bal-neg'}`}>
+                                    {monthBalance >= 0 ? '+' : ''}{fmtK(monthBalance)}
+                                  </span>
+                                </>
+                              ) : isFutureCell && plantillaTotal > 0 ? (
+                                <span className="year-cell-projected">{fmtK(plantillaTotal)}</span>
+                              ) : null}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    )
+                  })()}
                   </>
                 ) : null
               )}
