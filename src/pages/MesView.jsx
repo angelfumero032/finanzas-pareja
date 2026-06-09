@@ -637,6 +637,13 @@ export default function MesView() {
                     const ratio = budget > 0 ? spent / budget : 0
                     const pct = Math.min(100, ratio * 100)
                     const barClass = ratio > 1 ? 'bar-over' : ratio > 0.8 ? 'bar-warn' : 'bar-ok'
+                    const fmtC = n => n >= 1000 ? `${(n/1000).toFixed(1)}k€` : `${Math.round(n)}€`
+                    const pctLabel = ratio > 1
+                      ? `+${fmtC(spent - budget)}`
+                      : ratio > 0.8
+                        ? fmtC(budget - spent)
+                        : `${Math.round(pct)}%`
+                    const pctCls = barClass === 'bar-over' ? 'pct-over' : barClass === 'bar-warn' ? 'pct-warn' : 'pct-ok'
                     return (
                       <div key={cat.id} className={`budget-row${filtroCatId === cat.id ? ' budget-row-active' : ''}${spent === 0 ? ' budget-row-zero' : ''}`}>
                         <div className="budget-row-top">
@@ -687,8 +694,8 @@ export default function MesView() {
                             <div className="budget-bar-track">
                               <div className={`budget-bar-fill ${barClass}`} style={{ width: `${pct}%` }} />
                             </div>
-                            <span className={`budget-bar-pct ${barClass === 'bar-over' ? 'pct-over' : barClass === 'bar-warn' ? 'pct-warn' : 'pct-ok'}`}>
-                              {Math.round(ratio * 100)}%
+                            <span className={`budget-bar-pct ${pctCls}`} title={`${Math.round(ratio * 100)}%`}>
+                              {pctLabel}
                             </span>
                           </div>
                         )}
