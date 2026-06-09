@@ -999,6 +999,20 @@ export default function MesView() {
     return map
   }, [gastosItems])
 
+  const thisWeekStats = useMemo(() => {
+    if (!isCurrentMonth) return null
+    // Monday-first week containing today
+    const dow = todayDate.getDay() // 0=Sun
+    const daysFromMon = dow === 0 ? 6 : dow - 1
+    const mon = new Date(todayDate.getFullYear(), todayDate.getMonth(), todayDate.getDate() - daysFromMon)
+    const weekStartStr = mon.toISOString().slice(0, 10)
+    const todayStr = todayDate.toISOString().slice(0, 10)
+    const weekMovs = movimientos.filter(m => m.fecha >= weekStartStr && m.fecha <= todayStr)
+    const weekGastos = weekMovs.filter(m => m.tipo === 'gasto').reduce((s, m) => s + Number(m.importe), 0)
+    const weekIngresos = weekMovs.filter(m => m.tipo === 'ingreso').reduce((s, m) => s + Number(m.importe), 0)
+    return (weekGastos > 0 || weekIngresos > 0) ? { gastos: weekGastos, ingresos: weekIngresos } : null
+  }, [isCurrentMonth, movimientos, todayDate])
+
   const budgetHealthScore = useMemo(() => {
     const budgeted = gastosCats.filter(c => presupuestoPorCat[c.id] > 0)
     if (budgeted.length === 0 || isCurrentMonth) return null
@@ -1199,6 +1213,19 @@ export default function MesView() {
             <span aria-hidden="true">📋</span>
             {lang === 'es' ? 'Copiar resumen' : 'Copy summary'}
           </button>
+        )}
+
+        {/* This week mini-summary (current month only) */}
+        {thisWeekStats && !loading && (
+          <div className="this-week-row">
+            <span className="this-week-label">{lang === 'es' ? 'Esta semana' : 'This week'}</span>
+            {thisWeekStats.gastos > 0 && (
+              <span className="this-week-exp">−{fmt(thisWeekStats.gastos)}</span>
+            )}
+            {thisWeekStats.ingresos > 0 && (
+              <span className="this-week-inc">+{fmt(thisWeekStats.ingresos)}</span>
+            )}
+          </div>
         )}
 
         {/* Budget health score (past months only) */}
@@ -1968,12 +1995,15 @@ export default function MesView() {
                     })
                     const catsInView = [...new Set(typeFiltered.map(m => m.categoria_id ?? 'nocat'))]
                     if (catsInView.length < 2) return null
+                    const countByCat = {}
+                    typeFiltered.forEach(m => { const k = m.categoria_id ?? 'nocat'; countByCat[k] = (countByCat[k] ?? 0) + 1 })
                     return (
                       <div className="cat-chips-row" role="group" aria-label={t(lang, 'filter_by_category')}>
                         {catsInView.map(cid => {
                           const color = cid === 'nocat' ? 'var(--text3)' : (catColorMap[cid] ?? 'var(--accent)')
                           const name = cid === 'nocat' ? t(lang, 'no_category') : (catMap.get(cid) ?? '?')
                           const active = filtroCatId === cid
+                          const cnt = countByCat[cid] ?? 0
                           return (
                             <button
                               key={cid}
@@ -1984,6 +2014,7 @@ export default function MesView() {
                             >
                               <span className="cat-chip-dot" aria-hidden="true" />
                               {name}
+                              {cnt > 1 && <span className="cat-chip-count">{cnt}</span>}
                             </button>
                           )
                         })}

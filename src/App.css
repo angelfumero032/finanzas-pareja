@@ -649,6 +649,18 @@ html, body { overscroll-behavior: none; }
   background: var(--chip-color);
   flex-shrink: 0;
 }
+.cat-chip-count {
+  background: color-mix(in srgb, var(--chip-color) 20%, var(--surface2));
+  color: var(--text3);
+  font-size: 0.62rem;
+  font-weight: 700;
+  border-radius: 10px;
+  padding: 0 0.25rem;
+  min-width: 16px;
+  text-align: center;
+  line-height: 1.4;
+  flex-shrink: 0;
+}
 
 /* ── Presupuesto: barra global ── */
 .budget-overview {
@@ -2561,6 +2573,27 @@ kbd {
 .grade-d { background: color-mix(in srgb, var(--expense) 10%, transparent); color: var(--expense); }
 .grade-f { background: color-mix(in srgb, var(--expense) 18%, transparent); color: var(--expense); font-size: 1.3rem; }
 .health-score-label { font-size: 0.8rem; color: var(--text2); }
+
+/* ── This week mini-summary ── */
+.this-week-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0;
+  font-size: 0.8rem;
+}
+.this-week-label {
+  color: var(--text3);
+  flex-shrink: 0;
+}
+.this-week-exp {
+  color: var(--expense);
+  font-weight: 600;
+}
+.this-week-inc {
+  color: var(--income);
+  font-weight: 600;
+}
 
 /* ── Share summary button ── */
 .share-summary-btn {
