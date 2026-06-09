@@ -109,6 +109,12 @@ function DonutChart({ slices, fmt, lang, onSelectCat, selectedCatId }) {
   )
 }
 
+function fmtTrendK(n) {
+  const abs = Math.abs(n)
+  if (abs >= 1000) return `${(n / 1000).toFixed(0)}k`
+  return `${Math.round(n)}`
+}
+
 function TrendBars({ data, fmt, lang }) {
   const [activeCol, setActiveCol] = useState(null)
   const maxVal = Math.max(...data.flatMap(d => [d.income, d.expenses]), 1)
@@ -134,27 +140,33 @@ function TrendBars({ data, fmt, lang }) {
         </div>
       )}
       <div className="trend-chart">
-        {data.map((d, i) => (
-          <button
-            key={i}
-            className={`trend-col${i === lastIdx ? ' trend-col-current' : ''}${activeCol === i ? ' trend-col-active' : ''}`}
-            onClick={() => setActiveCol(activeCol === i ? null : i)}
-            aria-pressed={activeCol === i}
-            aria-label={`${d.label}: ${t(lang, 'total_income')} ${fmt(d.income)}, ${t(lang, 'total_expenses')} ${fmt(d.expenses)}`}
-          >
-            <div className="trend-bars-pair" aria-hidden="true">
-              <div
-                className="trend-bar income-bar"
-                style={{ height: `${(d.income / maxVal) * 100}%` }}
-              />
-              <div
-                className="trend-bar expense-bar"
-                style={{ height: `${(d.expenses / maxVal) * 100}%` }}
-              />
-            </div>
-            <span className="trend-label" aria-hidden="true">{d.label}</span>
-          </button>
-        ))}
+        {data.map((d, i) => {
+          const net = d.income - d.expenses
+          const hasData = d.income > 0 || d.expenses > 0
+          return (
+            <button
+              key={i}
+              className={`trend-col${i === lastIdx ? ' trend-col-current' : ''}${activeCol === i ? ' trend-col-active' : ''}`}
+              onClick={() => setActiveCol(activeCol === i ? null : i)}
+              aria-pressed={activeCol === i}
+              aria-label={`${d.label}: ${t(lang, 'total_income')} ${fmt(d.income)}, ${t(lang, 'total_expenses')} ${fmt(d.expenses)}`}
+            >
+              <div className="trend-bars-pair" aria-hidden="true">
+                <div className="trend-bar income-bar" style={{ height: `${(d.income / maxVal) * 100}%` }} />
+                <div className="trend-bar expense-bar" style={{ height: `${(d.expenses / maxVal) * 100}%` }} />
+              </div>
+              <span className="trend-label" aria-hidden="true">{d.label}</span>
+              {hasData && (
+                <span
+                  className={`trend-net-badge ${net >= 0 ? 'trend-net-pos' : 'trend-net-neg'}`}
+                  aria-hidden="true"
+                >
+                  {net >= 0 ? '+' : ''}{fmtTrendK(net)}
+                </span>
+              )}
+            </button>
+          )
+        })}
       </div>
       <div className="trend-legend-row">
         <span className="trend-legend-item">

@@ -1514,7 +1514,7 @@ html, body { overscroll-behavior: none; }
   display: flex;
   align-items: flex-end;
   gap: 4px;
-  height: 120px;
+  height: 132px;
 }
 
 .trend-col {
@@ -1590,6 +1590,15 @@ html, body { overscroll-behavior: none; }
 .trend-tooltip-net { font-weight: 700; }
 .trend-net-pos { color: var(--income); }
 .trend-net-neg { color: var(--expense); }
+.trend-net-badge {
+  font-size: 0.58rem;
+  font-weight: 700;
+  line-height: 1;
+  text-align: center;
+  margin-top: 1px;
+  opacity: 0.85;
+  letter-spacing: -0.02em;
+}
 
 .trend-legend-row {
   display: flex;
