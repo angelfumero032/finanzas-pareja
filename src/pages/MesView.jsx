@@ -53,6 +53,9 @@ export default function MesView() {
   // Edición inline de presupuesto
   const [editBudget, setEditBudget] = useState(null) // { catId }
 
+  // Help overlay (atajos de teclado)
+  const [showHelp, setShowHelp] = useState(false)
+
   // Tendencia mensual (últimos 6 meses, sin etiquetas de idioma)
   const [rawTrend, setRawTrend] = useState([])
   const [prevTotals, setPrevTotals] = useState(null)
@@ -256,16 +259,18 @@ export default function MesView() {
   // Teclado: ← → navegar meses, n → añadir movimiento
   useEffect(() => {
     function onKey(e) {
+      if (e.key === 'Escape' && showHelp) { setShowHelp(false); return }
       if (['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target.tagName)) return
-      if (modalOpen || showActivity) return
+      if (modalOpen || showActivity || showHelp) return
       if (e.key === 'ArrowLeft') prevMes()
       if (e.key === 'ArrowRight' && !isCurrentMonth) nextMes()
       if (e.key === 'n' || e.key === 'N') { setEditMov(null); setModalOpen(true) }
       if ((e.key === 't' || e.key === 'T') && !isCurrentMonth) { setAnio(todayDate.getFullYear()); setMes(todayDate.getMonth() + 1) }
+      if (e.key === '?') setShowHelp(h => !h)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [modalOpen, showActivity, isCurrentMonth, prevMes, nextMes])
+  }, [modalOpen, showActivity, showHelp, isCurrentMonth, prevMes, nextMes])
 
   // ── Swipe horizontal → cambiar mes ──
   function handleTouchStart(e) {
@@ -781,12 +786,19 @@ export default function MesView() {
                   <p className="empty-text">
                     {hayFiltroActivo ? t(lang, 'no_results') : t(lang, 'no_movements')}
                   </p>
-                  {hayFiltroActivo && (
+                  {hayFiltroActivo ? (
                     <button
                       className="btn-sm btn-secondary"
                       onClick={() => { setFiltroTipo('all'); setBusqueda(''); setFiltroCatId(null) }}
                     >
                       {t(lang, 'clear_filters')}
+                    </button>
+                  ) : (
+                    <button
+                      className="btn-sm btn-primary"
+                      onClick={() => { setEditMov(null); setModalOpen(true) }}
+                    >
+                      {t(lang, 'add_movement')}
                     </button>
                   )}
                 </div>
@@ -870,6 +882,34 @@ export default function MesView() {
         currentUserId={profile?.id}
         usuarios={usuarios}
       />
+
+      {/* Help overlay: atajos de teclado */}
+      {showHelp && (
+        <div className="modal-overlay" onClick={() => setShowHelp(false)}>
+          <div className="modal-card help-card" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2 className="modal-title">{lang === 'es' ? 'Atajos de teclado' : 'Keyboard shortcuts'}</h2>
+              <button className="btn-icon" onClick={() => setShowHelp(false)} aria-label="Cerrar">✕</button>
+            </div>
+            <table className="help-table">
+              <tbody>
+                {[
+                  ['←  →', lang === 'es' ? 'Mes anterior / siguiente' : 'Previous / next month'],
+                  ['N', lang === 'es' ? 'Nuevo movimiento' : 'New movement'],
+                  ['T', lang === 'es' ? 'Ir al mes actual' : 'Go to current month'],
+                  ['?', lang === 'es' ? 'Mostrar / ocultar atajos' : 'Show / hide shortcuts'],
+                  ['Esc', lang === 'es' ? 'Cerrar modal' : 'Close modal'],
+                ].map(([key, desc]) => (
+                  <tr key={key}>
+                    <td className="help-key"><kbd>{key}</kbd></td>
+                    <td className="help-desc">{desc}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* FAB añadir movimiento */}
       {!modalOpen && !showActivity && (

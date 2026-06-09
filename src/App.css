@@ -1044,6 +1044,35 @@ html, body { overscroll-behavior: none; }
 }
 .movement-date-header:first-child { padding-top: 0.2rem; }
 
+/* ── Help overlay ── */
+.help-card { max-width: 340px; padding-bottom: 1.5rem; }
+.help-table { width: 100%; border-collapse: collapse; }
+.help-table tr + tr td { border-top: 1px solid var(--border); }
+.help-key {
+  padding: 0.5rem 0.75rem 0.5rem 0;
+  vertical-align: middle;
+  white-space: nowrap;
+  width: 1%;
+}
+kbd {
+  display: inline-block;
+  background: var(--surface2);
+  border: 1.5px solid var(--border);
+  border-radius: 5px;
+  padding: 0.1rem 0.45rem;
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.5;
+}
+.help-desc {
+  padding: 0.5rem 0;
+  font-size: 0.87rem;
+  color: var(--text2);
+  vertical-align: middle;
+}
+
 /* ── Modo oscuro ── */
 @media (prefers-color-scheme: dark) {
   :root {
