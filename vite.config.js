@@ -15,7 +15,7 @@ export default defineConfig({
         description: 'Control de finanzas mensuales compartido en pareja.',
         lang: 'es',
         dir: 'ltr',
-        theme_color: '#0f172a',
+        theme_color: '#ffffff',
         background_color: '#f8fafc',
         display: 'standalone',
         start_url: '/',
