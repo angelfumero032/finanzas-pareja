@@ -682,9 +682,10 @@ export default function MesView() {
                                 defaultValue={budget > 0 ? budget : ''}
                                 autoFocus
                                 placeholder="0"
-                                onBlur={e => handleSaveBudget(cat.id, e.target.value)}
+                                onFocus={e => e.target.select()}
+                                onBlur={e => handleSaveBudget(cat.id, e.target.value.replace(',', '.'))}
                                 onKeyDown={e => {
-                                  if (e.key === 'Enter') handleSaveBudget(cat.id, e.target.value)
+                                  if (e.key === 'Enter') handleSaveBudget(cat.id, e.target.value.replace(',', '.'))
                                   if (e.key === 'Escape') setEditBudget(null)
                                 }}
                               />
@@ -755,9 +756,13 @@ export default function MesView() {
                     <button
                       className={`sort-btn${sortMovs === 'importe' ? ' sort-btn-active' : ''}`}
                       onClick={() => setSortMovs(s => s === 'fecha' ? 'importe' : 'fecha')}
-                      title={sortMovs === 'fecha' ? t(lang, 'amount') : t(lang, 'date')}
+                      title={lang === 'es'
+                        ? (sortMovs === 'fecha' ? 'Ordenar por importe' : 'Ordenar por fecha')
+                        : (sortMovs === 'fecha' ? 'Sort by amount' : 'Sort by date')}
                     >
-                      {sortMovs === 'fecha' ? '↕ €' : '↕ ' + t(lang, 'date').slice(0, 4)}
+                      {sortMovs === 'fecha'
+                        ? t(lang, 'date').slice(0, 4) + ' ↓'
+                        : '€ ↓'}
                     </button>
                   </div>
                   <div className="search-wrap">
