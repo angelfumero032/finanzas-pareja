@@ -128,6 +128,13 @@ export default function MesView() {
   // Limpiar filtros al cambiar de mes
   useEffect(() => { setBusqueda(''); setFiltroTipo('all'); setFiltroCatId(null); setSortMovs('fecha') }, [anio, mes])
 
+  // Bloquear scroll del body cuando hay un panel/modal abierto (fix iOS)
+  useEffect(() => {
+    const locked = modalOpen || showActivity || showHelp
+    document.body.style.overflow = locked ? 'hidden' : ''
+    return () => { document.body.style.overflow = '' }
+  }, [modalOpen, showActivity, showHelp])
+
   // ── Tendencia: últimos 6 meses ──
   const loadTrend = useCallback(async () => {
     if (!hogarId) return
@@ -804,7 +811,7 @@ export default function MesView() {
                     <input
                       className="search-input"
                       type="search"
-                      placeholder={t(lang, 'category') + '…'}
+                      placeholder={lang === 'es' ? 'Buscar categoría, nota…' : 'Search category, note…'}
                       value={busqueda}
                       onChange={e => setBusqueda(e.target.value)}
                     />
