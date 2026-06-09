@@ -352,6 +352,63 @@ html, body { overscroll-behavior: none; }
 .summary-savings { font-size: 0.65rem; font-weight: 600; line-height: 1; }
 
 /* ── Desglose por usuario ── */
+/* Income by category breakdown */
+.income-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin: 0 0 0.5rem;
+}
+.income-src-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  gap: 0.5rem;
+  background: none;
+  border: none;
+  border-radius: var(--r-sm);
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  transition: background 0.12s;
+}
+.income-src-row:hover { background: var(--surface2); }
+.income-src-active { background: var(--surface2); }
+.income-src-name {
+  font-size: 0.78rem;
+  color: var(--text2);
+  min-width: 80px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.income-src-bar-track {
+  height: 4px;
+  background: var(--surface2);
+  border-radius: 99px;
+  overflow: hidden;
+  min-width: 40px;
+}
+.income-src-bar-fill {
+  height: 100%;
+  background: var(--income);
+  border-radius: 99px;
+  opacity: 0.7;
+}
+.income-src-amt {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--income);
+  white-space: nowrap;
+}
+.income-src-pct {
+  font-size: 0.7rem;
+  color: var(--text3);
+  min-width: 28px;
+  text-align: right;
+}
+
 .by-user-row {
   display: grid;
   grid-template-columns: 1fr 1fr;

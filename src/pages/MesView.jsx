@@ -790,6 +790,21 @@ export default function MesView() {
     }))
   }, [usuarios, gastosItems, profile?.id, lang])
 
+  const ingresosPorCat = useMemo(() => {
+    if (ingresosItems.length === 0) return []
+    const byCat = {}
+    ingresosItems.forEach(m => {
+      const key = m.categoria_id ?? '__none'
+      byCat[key] = (byCat[key] ?? 0) + Number(m.importe)
+    })
+    const entries = Object.entries(byCat).map(([key, total]) => ({
+      catId: key === '__none' ? null : key,
+      nombre: key === '__none' ? t(lang, 'no_category') : catMap.get(key) ?? t(lang, 'no_category'),
+      total,
+    })).sort((a, b) => b.total - a.total)
+    return entries.length > 1 ? entries : []
+  }, [ingresosItems, catMap, lang])
+
   // Agrupar por fecha cuando el orden es temporal; lista plana cuando es por importe
   const renderList = useMemo(() => {
     if (sortMovs === 'importe') {
@@ -1030,6 +1045,32 @@ export default function MesView() {
             )}
           </div>
         </div>
+
+        {/* Income by category (multiple sources) */}
+        {ingresosPorCat.length > 1 && (
+          <div className="income-breakdown">
+            {ingresosPorCat.map(({ catId, nombre, total }) => (
+              <button
+                key={catId ?? '__none'}
+                className={`income-src-row${filtroCatId === catId && filtroTipo === 'ingreso' ? ' income-src-active' : ''}`}
+                onClick={() => {
+                  const isActive = filtroCatId === catId && filtroTipo === 'ingreso'
+                  setFiltroCatId(isActive ? null : catId)
+                  setFiltroTipo(isActive ? 'all' : 'ingreso')
+                  if (!isActive) movListRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                }}
+                title={lang === 'es' ? `Filtrar por ${nombre}` : `Filter by ${nombre}`}
+              >
+                <span className="income-src-name">{nombre}</span>
+                <div className="income-src-bar-track">
+                  <div className="income-src-bar-fill" style={{ width: `${Math.round(total / totalIngresos * 100)}%` }} />
+                </div>
+                <span className="income-src-amt">{fmt(total)}</span>
+                <span className="income-src-pct">{Math.round(total / totalIngresos * 100)}%</span>
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Fixed vs variable breakdown */}
         {totalGastos > 0 && gastosFijos.length > 0 && (
