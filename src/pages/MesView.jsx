@@ -435,11 +435,13 @@ export default function MesView() {
   }
 
   // ── Resumen calculado ──
-  const gastosItems = movimientos.filter(m => m.tipo === 'gasto')
-  const ingresosItems = movimientos.filter(m => m.tipo === 'ingreso')
-  const totalGastos = gastosItems.reduce((s, m) => s + Number(m.importe), 0)
-  const totalIngresos = ingresosItems.reduce((s, m) => s + Number(m.importe), 0)
-  const balance = totalIngresos - totalGastos
+  const { gastosItems, ingresosItems, totalGastos, totalIngresos, balance } = useMemo(() => {
+    const gi = movimientos.filter(m => m.tipo === 'gasto')
+    const ii = movimientos.filter(m => m.tipo === 'ingreso')
+    const tg = gi.reduce((s, m) => s + Number(m.importe), 0)
+    const ti = ii.reduce((s, m) => s + Number(m.importe), 0)
+    return { gastosItems: gi, ingresosItems: ii, totalGastos: tg, totalIngresos: ti, balance: ti - tg }
+  }, [movimientos])
 
   const deltaIngresos = prevTotals?.ingresos > 0 ? (totalIngresos - prevTotals.ingresos) / prevTotals.ingresos * 100 : null
   const deltaGastos   = prevTotals?.gastos   > 0 ? (totalGastos   - prevTotals.gastos)   / prevTotals.gastos   * 100 : null
