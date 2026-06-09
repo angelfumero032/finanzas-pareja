@@ -407,10 +407,11 @@ export default function MesView() {
     }
   }
 
-  // ── Exportar CSV del mes ──
+  // ── Exportar CSV del mes (respeta el filtro activo) ──
   function exportarCSV() {
+    const source = hayFiltroActivo ? movimientosFiltrados : movimientos
     const header = ['fecha', 'tipo', 'importe', 'categoria', 'subcategoria', 'nota'].join(',')
-    const rows = movimientos.map(m => [
+    const rows = source.map(m => [
       m.fecha,
       m.tipo,
       Number(m.importe).toFixed(2),
@@ -423,7 +424,7 @@ export default function MesView() {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `finanzas-${anio}-${String(mes).padStart(2, '0')}.csv`
+    a.download = `finanzas-${anio}-${String(mes).padStart(2, '0')}${hayFiltroActivo ? '-filtrado' : ''}.csv`
     a.click()
     URL.revokeObjectURL(url)
   }
