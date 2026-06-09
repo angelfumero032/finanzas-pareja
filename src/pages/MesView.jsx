@@ -7,6 +7,12 @@ import MovimientoModal from '../components/MovimientoModal'
 import ActivityPanel from '../components/ActivityPanel'
 import GraficasMes from '../components/GraficasMes'
 
+const CAT_PALETTE = [
+  '#6366f1', '#f59e0b', '#10b981', '#ef4444',
+  '#8b5cf6', '#ec4899', '#14b8a6', '#f97316',
+  '#64748b', '#84cc16',
+]
+
 export default function MesView() {
   const { profile } = useAuth()
   const { lang, setLang } = useLang()
@@ -60,6 +66,14 @@ export default function MesView() {
     })
     return (n) => f.format(n)
   }, [lang])
+
+  const catColorMap = useMemo(() =>
+    Object.fromEntries(
+      categorias
+        .filter(c => c.tipo === 'gasto')
+        .map((c, i) => [c.id, CAT_PALETTE[i % CAT_PALETTE.length]])
+    ),
+  [categorias])
 
   // ── Carga de datos estáticos (categorías, subcategorías, perfiles del hogar) ──
   useEffect(() => {
@@ -488,6 +502,7 @@ export default function MesView() {
               categorias={categorias}
               trendData={trendData}
               fmt={fmt}
+              catColors={catColorMap}
               onSelectCat={catId => {
                 setFiltroCatId(catId)
                 setFiltroTipo(catId ? 'gasto' : 'all')
@@ -540,6 +555,10 @@ export default function MesView() {
                               if (next) movListRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
                             }}
                           >
+                            <span
+                              className="budget-cat-dot"
+                              style={{ background: catColorMap[cat.id] ?? '#94a3b8' }}
+                            />
                             {cat.nombre}
                           </button>
                           <div className="budget-amounts">

@@ -498,8 +498,18 @@
   font-family: inherit;
   text-align: left;
   transition: color 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
 }
 .budget-cat-btn:hover { color: var(--accent); }
+
+.budget-cat-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
 
 .budget-amounts {
   display: flex;

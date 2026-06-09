@@ -25,7 +25,7 @@ function DonutChart({ slices, fmt, lang, onSelectCat }) {
     const start = cursor
     cursor += sweep
     const end = cursor
-    const color = PALETTE[i % PALETTE.length]
+    const color = sl.color ?? PALETTE[i % PALETTE.length]
     const pct = sl.value / total
 
     if (sweep >= 359.98) {
@@ -143,10 +143,15 @@ function TrendBars({ data, fmt, lang }) {
   )
 }
 
-export default function GraficasMes({ lang, gastoPorCat, categorias, trendData, fmt, onSelectCat }) {
+export default function GraficasMes({ lang, gastoPorCat, categorias, trendData, fmt, onSelectCat, catColors }) {
   const pieData = categorias
     .filter(c => c.tipo === 'gasto' && (gastoPorCat[c.id] ?? 0) > 0)
-    .map(c => ({ name: c.nombre, value: gastoPorCat[c.id], catId: c.id }))
+    .map((c, i) => ({
+      name: c.nombre,
+      value: gastoPorCat[c.id],
+      catId: c.id,
+      color: catColors?.[c.id] ?? PALETTE[i % PALETTE.length],
+    }))
     .sort((a, b) => b.value - a.value)
 
   const hasTrend = trendData.some(d => d.income > 0 || d.expenses > 0)
