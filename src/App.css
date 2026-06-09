@@ -394,6 +394,38 @@
   text-align: right;
 }
 
+/* ── Presupuesto: barra global ── */
+.budget-overview {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 0.6rem 0.75rem;
+  margin-bottom: 0.75rem;
+}
+.budget-overview-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+}
+.budget-overview-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.budget-overview-amounts {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.budget-overview-total {
+  font-size: 0.82rem;
+  color: var(--text3);
+}
+
 /* ── Presupuesto por categoría ── */
 .budget-row {
   padding: 0.55rem 0;

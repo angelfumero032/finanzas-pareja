@@ -348,6 +348,11 @@ export default function MesView() {
 
   const gastosCats = categorias.filter(c => c.tipo === 'gasto')
 
+  const totalPresupuestado = Object.values(presupuestoPorCat).reduce((s, v) => s + v, 0)
+  const totalGastadoConPresupuesto = gastosCats
+    .filter(c => presupuestoPorCat[c.id] > 0)
+    .reduce((s, c) => s + (gastoPorCat[c.id] ?? 0), 0)
+
   function catName(id) {
     return categorias.find(c => c.id === id)?.nombre ?? t(lang, 'no_category')
   }
@@ -442,6 +447,29 @@ export default function MesView() {
             {/* Por categoría (gastos) */}
             <section className="section">
               <h2 className="section-title">{t(lang, 'budget_section')}</h2>
+
+              {totalPresupuestado > 0 && (
+                <div className="budget-overview">
+                  <div className="budget-overview-row">
+                    <span className="budget-overview-label">{t(lang, 'budget_total')}</span>
+                    <span className="budget-overview-amounts">
+                      <span className="budget-spent">{fmt(totalGastadoConPresupuesto)}</span>
+                      <span className="budget-overview-total">/ {fmt(totalPresupuestado)}</span>
+                    </span>
+                  </div>
+                  <div className="budget-bar-track">
+                    <div
+                      className={`budget-bar-fill ${
+                        totalGastadoConPresupuesto > totalPresupuestado ? 'bar-over'
+                        : totalGastadoConPresupuesto / totalPresupuestado > 0.8 ? 'bar-warn'
+                        : 'bar-ok'
+                      }`}
+                      style={{ width: `${Math.min(100, totalGastadoConPresupuesto / totalPresupuestado * 100)}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+
               {gastosCats.length === 0
                 ? <p className="empty-text">Sin categorías de gasto.</p>
                 : gastosCats.map(cat => {
