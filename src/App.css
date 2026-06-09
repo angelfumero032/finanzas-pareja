@@ -394,6 +394,19 @@
   text-align: right;
 }
 
+.cat-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+  border-radius: 99px;
+  padding: 0.2rem 0.3rem 0.2rem 0.65rem;
+  font-size: 0.78rem;
+  font-weight: 500;
+  margin-bottom: 0.35rem;
+}
+
 /* ── Presupuesto: barra global ── */
 .budget-overview {
   background: var(--surface2);
@@ -432,6 +445,7 @@
   border-bottom: 1px solid var(--border);
 }
 .budget-row:last-child { border-bottom: none; }
+.budget-row-active { background: color-mix(in srgb, var(--accent) 5%, transparent); margin: 0 -0.75rem; padding-left: 0.75rem; padding-right: 0.75rem; border-radius: var(--r-sm); }
 
 .budget-row-top {
   display: flex;
@@ -450,6 +464,17 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+.budget-cat-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  transition: color 0.15s;
+}
+.budget-cat-btn:hover { color: var(--accent); }
 
 .budget-amounts {
   display: flex;

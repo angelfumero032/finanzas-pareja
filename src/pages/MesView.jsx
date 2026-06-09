@@ -37,6 +37,9 @@ export default function MesView() {
   // Filtro de tipo y búsqueda en lista de movimientos
   const [filtroTipo, setFiltroTipo] = useState('all')
   const [busqueda, setBusqueda] = useState('')
+  const [filtroCatId, setFiltroCatId] = useState(null)
+
+  const movListRef = useRef(null)
 
   // Edición inline de presupuesto
   const [editBudget, setEditBudget] = useState(null) // { catId }
@@ -99,8 +102,8 @@ export default function MesView() {
 
   useEffect(() => { loadMes() }, [loadMes])
 
-  // Limpiar búsqueda al cambiar de mes
-  useEffect(() => { setBusqueda(''); setFiltroTipo('all') }, [anio, mes])
+  // Limpiar filtros al cambiar de mes
+  useEffect(() => { setBusqueda(''); setFiltroTipo('all'); setFiltroCatId(null) }, [anio, mes])
 
   // ── Tendencia: últimos 6 meses ──
   const loadTrend = useCallback(async () => {
@@ -328,6 +331,7 @@ export default function MesView() {
 
   const movimientosFiltrados = movimientos
     .filter(m => filtroTipo === 'all' || m.tipo === filtroTipo)
+    .filter(m => !filtroCatId || m.categoria_id === filtroCatId)
     .filter(m => {
       if (!busqueda) return true
       const q = busqueda.toLowerCase()
@@ -339,7 +343,7 @@ export default function MesView() {
     })
 
   const totalFiltrado = movimientosFiltrados.reduce((s, m) => s + Number(m.importe), 0)
-  const hayFiltroActivo = filtroTipo !== 'all' || busqueda
+  const hayFiltroActivo = filtroTipo !== 'all' || busqueda || filtroCatId
 
   const gastoPorCat = {}
   movimientos.filter(m => m.tipo === 'gasto' && m.categoria_id).forEach(m => {
@@ -498,9 +502,18 @@ export default function MesView() {
                     const pct = Math.min(100, ratio * 100)
                     const barClass = ratio > 1 ? 'bar-over' : ratio > 0.8 ? 'bar-warn' : 'bar-ok'
                     return (
-                      <div key={cat.id} className="budget-row">
+                      <div key={cat.id} className={`budget-row${filtroCatId === cat.id ? ' budget-row-active' : ''}`}>
                         <div className="budget-row-top">
-                          <span className="budget-cat-name">{cat.nombre}</span>
+                          <button
+                            className="budget-cat-name budget-cat-btn"
+                            onClick={() => {
+                              const next = filtroCatId === cat.id ? null : cat.id
+                              setFiltroCatId(next)
+                              if (next) movListRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                            }}
+                          >
+                            {cat.nombre}
+                          </button>
                           <div className="budget-amounts">
                             <span className="budget-spent">{fmt(spent)}</span>
                             {editBudget?.catId === cat.id ? (
@@ -546,7 +559,7 @@ export default function MesView() {
             </section>
 
             {/* Movimientos */}
-            <section className="section">
+            <section className="section" ref={movListRef}>
               <div className="section-header">
                 <h2 className="section-title">{t(lang, 'movements_section')}</h2>
                 <div className="section-header-actions">
@@ -589,6 +602,12 @@ export default function MesView() {
                       <button className="search-clear" onClick={() => setBusqueda('')}>×</button>
                     )}
                   </div>
+                  {filtroCatId && (
+                    <div className="cat-filter-chip">
+                      <span>{catName(filtroCatId)}</span>
+                      <button className="search-clear" onClick={() => setFiltroCatId(null)}>×</button>
+                    </div>
+                  )}
                   {hayFiltroActivo && movimientosFiltrados.length > 0 && (
                     <p className="filter-summary">
                       {movimientosFiltrados.length} · {fmt(totalFiltrado)}
