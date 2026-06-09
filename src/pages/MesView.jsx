@@ -261,6 +261,7 @@ export default function MesView() {
       if (e.key === 'ArrowLeft') prevMes()
       if (e.key === 'ArrowRight' && !isCurrentMonth) nextMes()
       if (e.key === 'n' || e.key === 'N') { setEditMov(null); setModalOpen(true) }
+      if ((e.key === 't' || e.key === 'T') && !isCurrentMonth) { setAnio(todayDate.getFullYear()); setMes(todayDate.getMonth() + 1) }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -708,6 +709,12 @@ export default function MesView() {
                             )}
                           </div>
                           <span className="movement-cat">
+                            {m.categoria_id && catColorMap[m.categoria_id] && (
+                              <span
+                                className="movement-cat-dot"
+                                style={{ background: catColorMap[m.categoria_id] }}
+                              />
+                            )}
                             {catName(m.categoria_id)}{sub ? ` · ${sub}` : ''}
                           </span>
                           {m.nota && <span className="movement-nota">{m.nota}</span>}

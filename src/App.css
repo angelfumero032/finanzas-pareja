@@ -620,7 +620,8 @@
   border-radius: 99px;
   line-height: 1.4;
 }
-.movement-cat   { font-size: 0.88rem; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.movement-cat   { font-size: 0.88rem; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 0.35rem; }
+.movement-cat-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 .movement-nota  { font-size: 0.78rem; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .movement-amount { font-size: 0.95rem; font-weight: 700; flex-shrink: 0; }
