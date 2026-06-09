@@ -520,6 +520,13 @@ export default function MesView() {
           <div className={`summary-card balance-card ${balance >= 0 ? 'balance-pos' : 'balance-neg'}`}>
             <span className="summary-label">{t(lang, 'balance')}</span>
             <span className="summary-value">{balance >= 0 ? '+' : ''}{fmt(balance)}</span>
+            {totalIngresos > 0 && (
+              <span className={`summary-savings ${balance >= 0 ? 'delta-pos' : 'delta-neg'}`}>
+                {balance >= 0
+                  ? `${Math.round(balance / totalIngresos * 100)}% ${lang === 'es' ? 'ahorro' : 'saved'}`
+                  : lang === 'es' ? 'sin ahorro' : 'overspent'}
+              </span>
+            )}
           </div>
         </div>
 
