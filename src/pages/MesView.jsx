@@ -363,6 +363,7 @@ export default function MesView() {
       if (e.key === 'ArrowLeft') prevMes()
       if (e.key === 'ArrowRight' && !isCurrentMonth) nextMes()
       if (e.key === 'n' || e.key === 'N') { setEditMov(null); setModalOpen(true) }
+      if (e.key === 'i' || e.key === 'I') setShowImportModal(true)
       if ((e.key === 't' || e.key === 'T') && !isCurrentMonth) { setAnio(todayDate.getFullYear()); setMes(todayDate.getMonth() + 1) }
       if (e.key === 'c' || e.key === 'C') setShowCatsModal(true)
       if (e.key === '?') setShowHelp(h => !h)
@@ -533,6 +534,26 @@ export default function MesView() {
     const a = document.createElement('a')
     a.href = url
     a.download = `finanzas-${anio}-${String(mes).padStart(2, '0')}${hayFiltroActivo ? '-filtrado' : ''}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  // ── Exportar CSV anual ──
+  function exportarCSVAnio() {
+    if (!yearData) return
+    const header = ['mes', 'ingresos', 'gastos', 'balance'].join(',')
+    const rows = yearData.map((d, i) => [
+      MONTHS[lang][i],
+      Number(d.income).toFixed(2),
+      Number(d.expenses).toFixed(2),
+      Number(d.income - d.expenses).toFixed(2),
+    ].join(','))
+    const csv = [header, ...rows].join('\n')
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `finanzas-${anio}-resumen-anual.csv`
     a.click()
     URL.revokeObjectURL(url)
   }
@@ -858,12 +879,19 @@ export default function MesView() {
             <section className="section section-year">
               <div className="section-header">
                 <h2 className="section-title">{lang === 'es' ? `Año ${anio}` : `Year ${anio}`}</h2>
-                <button
-                  className="btn-sm btn-secondary"
-                  onClick={() => setShowYearView(v => !v)}
-                >
-                  {showYearView ? t(lang, 'year_hide') : t(lang, 'year_show')}
-                </button>
+                <div className="section-header-actions">
+                  {showYearView && yearData && (
+                    <button className="btn-sm btn-secondary" onClick={exportarCSVAnio}>
+                      {t(lang, 'export_csv')}
+                    </button>
+                  )}
+                  <button
+                    className="btn-sm btn-secondary"
+                    onClick={() => setShowYearView(v => !v)}
+                  >
+                    {showYearView ? t(lang, 'year_hide') : t(lang, 'year_show')}
+                  </button>
+                </div>
               </div>
               {showYearView && (
                 yearLoading ? (
@@ -1364,6 +1392,7 @@ export default function MesView() {
                 {[
                   ['←  →', lang === 'es' ? 'Mes anterior / siguiente' : 'Previous / next month'],
                   ['N', lang === 'es' ? 'Nuevo movimiento' : 'New movement'],
+                  ['I', lang === 'es' ? 'Importar CSV' : 'Import CSV'],
                   ['T', lang === 'es' ? 'Ir al mes actual' : 'Go to current month'],
                   ['C', lang === 'es' ? 'Gestionar categorías' : 'Manage categories'],
                   ['/', lang === 'es' ? 'Enfocar búsqueda' : 'Focus search'],

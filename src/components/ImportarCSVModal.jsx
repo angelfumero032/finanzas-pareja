@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { t, MONTHS } from '../i18n'
 
-function parseCSVRow(row) {
+function parseCSVRow(row, sep = ',') {
   const fields = []
   let cur = ''
   let inQ = false
@@ -11,7 +11,7 @@ function parseCSVRow(row) {
     if (ch === '"') {
       if (inQ && row[i + 1] === '"') { cur += '"'; i++ }
       else inQ = !inQ
-    } else if (ch === ',' && !inQ) {
+    } else if (ch === sep && !inQ) {
       fields.push(cur.trim()); cur = ''
     } else { cur += ch }
   }
@@ -19,11 +19,18 @@ function parseCSVRow(row) {
   return fields
 }
 
+function detectSep(headerLine) {
+  const commas = (headerLine.match(/,/g) ?? []).length
+  const semis = (headerLine.match(/;/g) ?? []).length
+  return semis > commas ? ';' : ','
+}
+
 function parseCSV(text, categorias) {
   const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(l => l.trim())
   if (lines.length < 2) return []
   const [headerLine, ...dataLines] = lines
-  const cols = parseCSVRow(headerLine).map(c => c.toLowerCase().replace(/[áàä]/g, 'a').replace(/[íìï]/g, 'i').replace(/[éèë]/g, 'e').replace(/[óòö]/g, 'o').replace(/[úùü]/g, 'u'))
+  const sep = detectSep(headerLine)
+  const cols = parseCSVRow(headerLine, sep).map(c => c.toLowerCase().replace(/[áàä]/g, 'a').replace(/[íìï]/g, 'i').replace(/[éèë]/g, 'e').replace(/[óòö]/g, 'o').replace(/[úùü]/g, 'u'))
   const idx = {
     fecha: cols.findIndex(c => ['fecha', 'date'].includes(c)),
     tipo: cols.findIndex(c => ['tipo', 'type'].includes(c)),
@@ -38,13 +45,16 @@ function parseCSV(text, categorias) {
 
   return dataLines.map((line, rowIdx) => {
     if (!line.trim()) return null
-    const vals = parseCSVRow(line)
+    const vals = parseCSVRow(line, sep)
     const get = (k) => idx[k] >= 0 ? (vals[idx[k]] ?? '').trim() : ''
     const fecha = get('fecha')
     const tipoRaw = get('tipo').toLowerCase()
     const tipo = ['gasto', 'expense', 'exp'].includes(tipoRaw) ? 'gasto'
       : ['ingreso', 'income', 'inc'].includes(tipoRaw) ? 'ingreso' : null
-    const importeStr = get('importe').replace(',', '.')
+    const rawImporte = get('importe')
+    const importeStr = sep === ';'
+      ? rawImporte.replace(/\./g, '').replace(',', '.')
+      : rawImporte.replace(',', '.')
     const importe = parseFloat(importeStr)
     const catNombre = get('categoria').toLowerCase()
     const catId = catByName[catNombre] ?? null
