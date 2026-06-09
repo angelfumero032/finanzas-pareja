@@ -43,11 +43,14 @@ function DonutChart({ slices, fmt, lang, onSelectCat, selectedCatId }) {
     }
   })
 
-  const displayActive = selectedCatId != null
+  const selectedIdx = selectedCatId != null
     ? segments.findIndex(s => s.catId === selectedCatId)
-    : active
+    : -1
+  const displayActive = selectedIdx >= 0 ? selectedIdx : active
 
-  const sel = displayActive !== null && displayActive !== -1 ? segments[displayActive] : null
+  // Hover overrides center text; selection drives opacity
+  const centerIdx = active !== null ? active : displayActive
+  const sel = centerIdx !== null && centerIdx !== -1 ? segments[centerIdx] : null
   const centerTop = sel
     ? (sel.name.length > 11 ? sel.name.slice(0, 10) + '…' : sel.name)
     : t(lang, 'total_expenses')

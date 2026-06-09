@@ -1279,6 +1279,19 @@ export default function MesView() {
                   })}
                 </div>
               )}
+              {movimientosFiltrados.length > 1 && (
+                <div className="movements-footer">
+                  <span className="movements-footer-count">{movimientosFiltrados.length}</span>
+                  {hayFiltroActivo ? (
+                    <span className="movements-footer-total">{fmt(totalFiltrado)}</span>
+                  ) : (
+                    <>
+                      {totalGastos > 0 && <span className="movements-footer-exp">−{fmt(totalGastos)}</span>}
+                      {totalIngresos > 0 && <span className="movements-footer-inc">+{fmt(totalIngresos)}</span>}
+                    </>
+                  )}
+                </div>
+              )}
             </section>
           </>
         )}

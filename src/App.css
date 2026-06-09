@@ -802,6 +802,20 @@ html, body { overscroll-behavior: none; }
 /* ── Lista de movimientos ── */
 .movements-list { display: flex; flex-direction: column; }
 
+.movements-footer {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.3rem 0.1rem;
+  border-top: 1.5px solid var(--border);
+  margin-top: 0.1rem;
+  font-size: 0.82rem;
+}
+.movements-footer-count { color: var(--text3); font-variant-numeric: tabular-nums; }
+.movements-footer-total { font-weight: 600; color: var(--text); margin-left: auto; }
+.movements-footer-exp { font-weight: 600; color: var(--expense); margin-left: auto; }
+.movements-footer-inc { font-weight: 600; color: var(--income); }
+
 .movement-item {
   display: flex;
   align-items: center;
