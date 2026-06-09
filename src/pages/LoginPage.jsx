@@ -3,8 +3,9 @@ import { supabase } from '../lib/supabaseClient'
 import { t } from '../i18n'
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('')
+  const [email, setEmail] = useState(() => localStorage.getItem('lastEmail') ?? '')
   const [password, setPassword] = useState('')
+  const [showPass, setShowPass] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -14,7 +15,11 @@ export default function LoginPage() {
     setError('')
     try {
       const { error } = await supabase.auth.signInWithPassword({ email, password })
-      if (error) setError(t('es', 'invalid_credentials'))
+      if (error) {
+        setError(t('es', 'invalid_credentials'))
+      } else {
+        localStorage.setItem('lastEmail', email)
+      }
     } catch {
       setError(t('es', 'invalid_credentials'))
     } finally {
@@ -43,15 +48,25 @@ export default function LoginPage() {
           </div>
           <div className="field">
             <label htmlFor="lp-pass">Contraseña</label>
-            <input
-              id="lp-pass"
-              type="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              required
-              placeholder="••••••••"
-            />
+            <div className="pass-wrap">
+              <input
+                id="lp-pass"
+                type={showPass ? 'text' : 'password'}
+                autoComplete="current-password"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                required
+                placeholder="••••••••"
+              />
+              <button
+                type="button"
+                className="pass-toggle"
+                onClick={() => setShowPass(p => !p)}
+                tabIndex={-1}
+              >
+                {showPass ? 'ocultar' : 'ver'}
+              </button>
+            </div>
           </div>
           {error && <p className="login-error">{error}</p>}
           <button type="submit" className="btn-primary btn-full" disabled={loading}>
