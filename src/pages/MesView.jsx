@@ -48,6 +48,7 @@ export default function MesView() {
 
   const movListRef = useRef(null)
   const searchRef = useRef(null)
+  const monthPickerRef = useRef(null)
   const touchX = useRef(null)
   const touchY = useRef(null)
 
@@ -575,7 +576,26 @@ export default function MesView() {
       {/* ── Cabecera ── */}
       <header className="app-header">
         <button className="btn-nav" onClick={prevMes} title={t(lang, 'prev_month')}>‹</button>
-        <h1 className="header-month">{MONTHS[lang][mes - 1]} {anio}</h1>
+        <h1
+          className="header-month"
+          onClick={() => monthPickerRef.current?.showPicker?.()}
+          title={lang === 'es' ? 'Ir a otro mes' : 'Jump to month'}
+          style={{ cursor: 'pointer' }}
+        >
+          {MONTHS[lang][mes - 1]} {anio}
+        </h1>
+        <input
+          ref={monthPickerRef}
+          type="month"
+          style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', width: 0, height: 0 }}
+          max={`${todayDate.getFullYear()}-${String(todayDate.getMonth() + 1).padStart(2, '0')}`}
+          value={`${anio}-${String(mes).padStart(2, '0')}`}
+          onChange={e => {
+            const [y, m] = e.target.value.split('-').map(Number)
+            if (!isNaN(y) && !isNaN(m)) { setAnio(y); setMes(m) }
+          }}
+          readOnly={false}
+        />
         <button className="btn-nav" onClick={nextMes} title={t(lang, 'next_month')} disabled={isCurrentMonth}>›</button>
 
         {!isCurrentMonth && (
