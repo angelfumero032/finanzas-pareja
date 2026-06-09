@@ -568,6 +568,7 @@
 /* ── Estado vacío / carga ── */
 .loading-row { text-align: center; padding: 2rem; color: var(--text2); }
 .empty-text  { color: var(--text2); font-size: 0.875rem; margin: 0.5rem 0; text-align: center; }
+.empty-filtered { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 0.5rem 0; }
 
 /* ── Lista de movimientos ── */
 .movements-list { display: flex; flex-direction: column; }

@@ -20,6 +20,8 @@ const T = {
     budget_section: 'Por categoría',
     movements_section: 'Movimientos',
     no_movements: 'Sin movimientos este mes.',
+    no_results: 'Sin resultados para este filtro.',
+    clear_filters: 'Borrar filtros',
     activity_title: 'Actividad',
     no_activity: 'Sin actividad reciente.',
     amount: 'Importe (€)',
@@ -48,6 +50,7 @@ const T = {
     monthly_trend: 'Tendencia 6 meses',
     export_csv: 'Exportar CSV',
     filter_all: 'Todos',
+    budget_total: 'Total presupuestado',
   },
   en: {
     app_name: 'Couple finances',
@@ -70,6 +73,8 @@ const T = {
     budget_section: 'By category',
     movements_section: 'Movements',
     no_movements: 'No movements this month.',
+    no_results: 'No results for this filter.',
+    clear_filters: 'Clear filters',
     activity_title: 'Activity',
     no_activity: 'No recent activity.',
     amount: 'Amount (€)',
@@ -98,6 +103,7 @@ const T = {
     monthly_trend: '6-month trend',
     export_csv: 'Export CSV',
     filter_all: 'All',
+    budget_total: 'Total budget',
   },
 }
 

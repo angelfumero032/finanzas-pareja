@@ -654,7 +654,19 @@ export default function MesView() {
               )}
 
               {movimientosFiltrados.length === 0 ? (
-                <p className="empty-text">{t(lang, 'no_movements')}</p>
+                <div className="empty-filtered">
+                  <p className="empty-text">
+                    {hayFiltroActivo ? t(lang, 'no_results') : t(lang, 'no_movements')}
+                  </p>
+                  {hayFiltroActivo && (
+                    <button
+                      className="btn-sm btn-secondary"
+                      onClick={() => { setFiltroTipo('all'); setBusqueda(''); setFiltroCatId(null) }}
+                    >
+                      {t(lang, 'clear_filters')}
+                    </button>
+                  )}
+                </div>
               ) : (
                 <div className="movements-list">
                   {movimientosFiltrados.map(m => {
