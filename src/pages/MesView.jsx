@@ -265,21 +265,23 @@ export default function MesView() {
     const d = new Date(anio, mes - 2, 1)
     const { data } = await supabase
       .from('movimientos')
-      .select('tipo, importe')
+      .select('tipo, importe, categoria_id')
       .eq('hogar_id', hogarId)
       .eq('anio', d.getFullYear())
       .eq('mes', d.getMonth() + 1)
     if (!data) return
-    setPrevTotals(
-      data.reduce(
-        (acc, m) => {
-          if (m.tipo === 'ingreso') acc.ingresos += Number(m.importe)
-          else acc.gastos += Number(m.importe)
-          return acc
-        },
-        { ingresos: 0, gastos: 0 }
-      )
+    const result = data.reduce(
+      (acc, m) => {
+        if (m.tipo === 'ingreso') acc.ingresos += Number(m.importe)
+        else {
+          acc.gastos += Number(m.importe)
+          if (m.categoria_id) acc.gastoPorCat[m.categoria_id] = (acc.gastoPorCat[m.categoria_id] ?? 0) + Number(m.importe)
+        }
+        return acc
+      },
+      { ingresos: 0, gastos: 0, gastoPorCat: {} }
     )
+    setPrevTotals(result)
   }, [hogarId, anio, mes])
 
   useEffect(() => { loadPrevMes() }, [loadPrevMes])
@@ -1313,6 +1315,8 @@ export default function MesView() {
                     const spent = gastoPorCat[cat.id] ?? 0
                     const spentPendiente = gastoPendientePorCat[cat.id] ?? 0
                     const budget = presupuestoPorCat[cat.id] ?? 0
+                    const prevSpent = prevTotals?.gastoPorCat?.[cat.id] ?? null
+                    const catDelta = prevSpent !== null && prevSpent > 0 ? spent - prevSpent : null
                     const ratio = budget > 0 ? spent / budget : 0
                     const pct = Math.min(100, ratio * 100)
                     const pendingPct = budget > 0 ? Math.min(100 - pct, spentPendiente / budget * 100) : 0
@@ -1342,6 +1346,14 @@ export default function MesView() {
                             {cat.nombre}
                             {(movCountByCat[cat.id] ?? 0) > 0 && (
                               <span className="budget-cat-count">{movCountByCat[cat.id]}</span>
+                            )}
+                            {catDelta !== null && Math.abs(catDelta) >= 5 && (
+                              <span
+                                className={`budget-cat-delta ${catDelta > 0 ? 'delta-neg' : 'delta-pos'}`}
+                                title={lang === 'es' ? `vs mes anterior: ${catDelta > 0 ? '+' : ''}${Math.round(catDelta)}€` : `vs prev month: ${catDelta > 0 ? '+' : ''}${Math.round(catDelta)}€`}
+                              >
+                                {catDelta > 0 ? '↑' : '↓'}{fmtK(Math.abs(catDelta))}
+                              </span>
                             )}
                           </button>
                           {subcategorias.some(s => s.categoria_id === cat.id && (gastoPorSubcat[s.id] ?? 0) > 0) && (
@@ -1409,6 +1421,17 @@ export default function MesView() {
                             </span>
                           </div>
                         )}
+                        {isCurrentMonth && budget > 0 && spent < budget && (() => {
+                          const daysLeft = new Date(anio, mes, 0).getDate() - todayDate.getDate()
+                          const remaining = budget - spent - spentPendiente
+                          if (daysLeft <= 0 || remaining <= 0) return null
+                          const daily = remaining / daysLeft
+                          return (
+                            <span className="budget-daily-hint">
+                              {fmt(daily)}/{lang === 'es' ? 'día' : 'day'} · {fmt(remaining)} {lang === 'es' ? 'restante' : 'left'}
+                            </span>
+                          )
+                        })()}
                         {expandedBudgetCats.has(cat.id) && (() => {
                           const subcats = subcategorias.filter(s => s.categoria_id === cat.id && (gastoPorSubcat[s.id] ?? 0) > 0)
                           if (subcats.length === 0) return null
