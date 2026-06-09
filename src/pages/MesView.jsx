@@ -7,6 +7,7 @@ import MovimientoModal from '../components/MovimientoModal'
 import ActivityPanel from '../components/ActivityPanel'
 import GraficasMes from '../components/GraficasMes'
 import CategoriasModal from '../components/CategoriasModal'
+import ImportarCSVModal from '../components/ImportarCSVModal'
 
 const CAT_PALETTE = [
   '#6366f1', '#f59e0b', '#10b981', '#ef4444',
@@ -64,6 +65,9 @@ export default function MesView() {
 
   // Category management modal
   const [showCatsModal, setShowCatsModal] = useState(false)
+
+  // CSV import modal
+  const [showImportModal, setShowImportModal] = useState(false)
 
   // Toast notifications (supports undo action)
   const [toast, setToast] = useState(null)
@@ -180,7 +184,7 @@ export default function MesView() {
 
   // Bloquear scroll del body cuando hay un panel/modal abierto (fix iOS)
   useEffect(() => {
-    const locked = modalOpen || showActivity || showHelp || showCatsModal
+    const locked = modalOpen || showActivity || showHelp || showCatsModal || showImportModal
     document.body.style.overflow = locked ? 'hidden' : ''
     return () => { document.body.style.overflow = '' }
   }, [modalOpen, showActivity, showHelp])
@@ -963,6 +967,20 @@ export default function MesView() {
                             </span>
                           </div>
                         )}
+                        {timePct > 0 && timePct < 0.99 && totalGastadoConPresupuesto > 0 && (
+                          <div className="budget-pace-row">
+                            <span className="budget-pace-day">
+                              {lang === 'es' ? 'Proyección fin mes' : 'Month-end forecast'}
+                            </span>
+                            <span className={`budget-pace-label ${(totalGastadoConPresupuesto / timePct) > totalPresupuestado ? 'pace-fast' : 'pace-ok'}`}>
+                              {fmt(totalGastadoConPresupuesto / timePct)}
+                              {' '}
+                              <span style={{ fontWeight: 400, opacity: 0.75 }}>
+                                ({Math.round(totalGastadoConPresupuesto / timePct / totalPresupuestado * 100)}%)
+                              </span>
+                            </span>
+                          </div>
+                        )}
                       </>
                     )}
                   </div>
@@ -1082,19 +1100,20 @@ export default function MesView() {
               <div className="section-header">
                 <h2 className="section-title">{t(lang, 'movements_section')}</h2>
                 <div className="section-header-actions">
+                  <button className="btn-sm btn-secondary" onClick={() => setShowImportModal(true)}>
+                    {lang === 'es' ? 'Importar' : 'Import'}
+                  </button>
                   {movimientos.length > 0 && (
-                    <>
-                      <button className="btn-sm btn-secondary" onClick={exportarCSV}>
-                        {t(lang, 'export_csv')}
-                      </button>
-                      <button
-                        className="btn-sm btn-primary"
-                        onClick={() => { setEditMov(null); setModalOpen(true) }}
-                      >
-                        {t(lang, 'add_movement')}
-                      </button>
-                    </>
+                    <button className="btn-sm btn-secondary" onClick={exportarCSV}>
+                      {t(lang, 'export_csv')}
+                    </button>
                   )}
+                  <button
+                    className="btn-sm btn-primary"
+                    onClick={() => { setEditMov(null); setModalOpen(true) }}
+                  >
+                    {t(lang, 'add_movement')}
+                  </button>
                 </div>
               </div>
 
@@ -1168,12 +1187,20 @@ export default function MesView() {
                       {t(lang, 'clear_filters')}
                     </button>
                   ) : (
-                    <button
-                      className="btn-sm btn-primary"
-                      onClick={() => { setEditMov(null); setModalOpen(true) }}
-                    >
-                      {t(lang, 'add_movement')}
-                    </button>
+                    <div className="empty-actions">
+                      <button
+                        className="btn-sm btn-primary"
+                        onClick={() => { setEditMov(null); setModalOpen(true) }}
+                      >
+                        {t(lang, 'add_movement')}
+                      </button>
+                      <button
+                        className="btn-sm btn-secondary"
+                        onClick={() => setShowImportModal(true)}
+                      >
+                        {lang === 'es' ? 'Importar CSV' : 'Import CSV'}
+                      </button>
+                    </div>
                   )}
                 </div>
               ) : (
@@ -1246,6 +1273,19 @@ export default function MesView() {
         lang={lang}
         hogarId={hogarId}
         onRefresh={loadStaticos}
+      />
+
+      {/* Modal importar CSV */}
+      <ImportarCSVModal
+        open={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        lang={lang}
+        hogarId={hogarId}
+        userId={profile?.id}
+        categorias={categorias}
+        anio={anio}
+        mes={mes}
+        onImported={() => { loadMes(); showToast(t(lang, 'saved_ok')) }}
       />
 
       {/* Modal movimiento */}
