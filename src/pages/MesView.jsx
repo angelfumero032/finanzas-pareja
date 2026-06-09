@@ -244,6 +244,27 @@ export default function MesView() {
     loadMes()
   }
 
+  // ── Exportar CSV del mes ──
+  function exportarCSV() {
+    const header = ['fecha', 'tipo', 'importe', 'categoria', 'subcategoria', 'nota'].join(',')
+    const rows = movimientos.map(m => [
+      m.fecha,
+      m.tipo,
+      Number(m.importe).toFixed(2),
+      `"${catName(m.categoria_id).replace(/"/g, '""')}"`,
+      `"${subcatName(m.subcategoria_id).replace(/"/g, '""')}"`,
+      `"${(m.nota || '').replace(/"/g, '""')}"`,
+    ].join(','))
+    const csv = [header, ...rows].join('\n')
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `finanzas-${anio}-${String(mes).padStart(2, '0')}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   // ── Cerrar sesión ──
   async function handleSignOut() {
     await supabase.auth.signOut()
@@ -401,12 +422,19 @@ export default function MesView() {
             <section className="section">
               <div className="section-header">
                 <h2 className="section-title">{t(lang, 'movements_section')}</h2>
-                <button
-                  className="btn-sm btn-primary"
-                  onClick={() => { setEditMov(null); setModalOpen(true) }}
-                >
-                  {t(lang, 'add_movement')}
-                </button>
+                <div className="section-header-actions">
+                  {movimientos.length > 0 && (
+                    <button className="btn-sm btn-secondary" onClick={exportarCSV}>
+                      {t(lang, 'export_csv')}
+                    </button>
+                  )}
+                  <button
+                    className="btn-sm btn-primary"
+                    onClick={() => { setEditMov(null); setModalOpen(true) }}
+                  >
+                    {t(lang, 'add_movement')}
+                  </button>
+                </div>
               </div>
 
               {movimientos.length === 0 ? (

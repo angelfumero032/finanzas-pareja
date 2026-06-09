@@ -318,6 +318,7 @@
   color: var(--text2);
 }
 .section-header .section-title { margin-bottom: 0; }
+.section-header-actions { display: flex; align-items: center; gap: 0.4rem; }
 
 /* ── Presupuesto por categoría ── */
 .budget-row {
