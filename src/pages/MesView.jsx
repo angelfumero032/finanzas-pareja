@@ -375,14 +375,20 @@ export default function MesView() {
   // ── Presupuesto: guardar desde el input inline ──
   async function handleSaveBudget(catId, rawValue) {
     const importe = Math.max(0, parseFloat(rawValue) || 0)
-    await supabase
-      .from('presupuestos')
-      .upsert(
-        { hogar_id: hogarId, categoria_id: catId, anio, mes, importe },
-        { onConflict: 'hogar_id,categoria_id,anio,mes' }
-      )
-    setEditBudget(null)
-    loadMes()
+    try {
+      const { error } = await supabase
+        .from('presupuestos')
+        .upsert(
+          { hogar_id: hogarId, categoria_id: catId, anio, mes, importe },
+          { onConflict: 'hogar_id,categoria_id,anio,mes' }
+        )
+      if (error) throw error
+      setEditBudget(null)
+      loadMes()
+    } catch {
+      showToast(t(lang, 'save_error'), 'error')
+      setEditBudget(null)
+    }
   }
 
   // ── Exportar CSV del mes ──
@@ -431,7 +437,8 @@ export default function MesView() {
         return (
           (catMap.get(m.categoria_id) ?? '').toLowerCase().includes(q) ||
           (subcatMap.get(m.subcategoria_id) ?? '').toLowerCase().includes(q) ||
-          (m.nota || '').toLowerCase().includes(q)
+          (m.nota || '').toLowerCase().includes(q) ||
+          String(Number(m.importe).toFixed(2)).includes(q)
         )
       })
     if (sortMovs === 'importe') {
@@ -850,15 +857,15 @@ export default function MesView() {
                         : (sortMovs === 'fecha' ? 'Sort by amount' : 'Sort by date')}
                     >
                       {sortMovs === 'fecha'
-                        ? t(lang, 'date').slice(0, 4) + ' ↓'
-                        : '€ ↓'}
+                        ? (lang === 'es' ? 'Fecha ↓' : 'Date ↓')
+                        : (lang === 'es' ? 'Importe ↓' : 'Amount ↓')}
                     </button>
                   </div>
                   <div className="search-wrap">
                     <input
                       className="search-input"
                       type="search"
-                      placeholder={lang === 'es' ? 'Buscar categoría, nota…' : 'Search category, note…'}
+                      placeholder={lang === 'es' ? 'Buscar categoría, importe, nota…' : 'Search category, amount, note…'}
                       value={busqueda}
                       onChange={e => setBusqueda(e.target.value)}
                     />
