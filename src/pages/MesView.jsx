@@ -524,7 +524,7 @@ export default function MesView() {
 
         {/* Resumen del mes */}
         <div className="summary-grid">
-          <div className="summary-card income-card">
+          <div className="summary-card income-card" aria-label={`${t(lang, 'total_income')}: ${fmt(totalIngresos)}`}>
             <span className="summary-label">{t(lang, 'total_income')}</span>
             <span className="summary-value">{fmt(totalIngresos)}</span>
             {deltaIngresos !== null && (
@@ -536,7 +536,7 @@ export default function MesView() {
               <span className="summary-count">{ingresosItems.length}</span>
             )}
           </div>
-          <div className="summary-card expense-card">
+          <div className="summary-card expense-card" aria-label={`${t(lang, 'total_expenses')}: ${fmt(totalGastos)}`}>
             <span className="summary-label">{t(lang, 'total_expenses')}</span>
             <span className="summary-value">{fmt(totalGastos)}</span>
             {deltaGastos !== null && (
@@ -548,7 +548,7 @@ export default function MesView() {
               <span className="summary-count">{gastosItems.length}</span>
             )}
           </div>
-          <div className={`summary-card balance-card ${balance >= 0 ? 'balance-pos' : 'balance-neg'}`}>
+          <div className={`summary-card balance-card ${balance >= 0 ? 'balance-pos' : 'balance-neg'}`} aria-label={`${t(lang, 'balance')}: ${fmt(balance)}`}>
             <span className="summary-label">{t(lang, 'balance')}</span>
             <span className="summary-value">{balance >= 0 ? '+' : ''}{fmt(balance)}</span>
             {totalIngresos > 0 && (

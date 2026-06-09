@@ -968,6 +968,9 @@ html, body { overscroll-behavior: none; }
 .trend-tooltip-label { color: var(--text2); font-size: 0.72rem; }
 .trend-tooltip-inc { color: var(--income); }
 .trend-tooltip-exp { color: var(--expense); }
+.trend-tooltip-net { font-weight: 700; }
+.trend-net-pos { color: var(--income); }
+.trend-net-neg { color: var(--expense); }
 
 .trend-legend-row {
   display: flex;

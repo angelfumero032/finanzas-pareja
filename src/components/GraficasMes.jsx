@@ -124,6 +124,11 @@ function TrendBars({ data, fmt, lang }) {
           {sel.expenses > 0 && (
             <span className="trend-tooltip-exp">▼ {fmt(sel.expenses)}</span>
           )}
+          {(sel.income > 0 || sel.expenses > 0) && (
+            <span className={`trend-tooltip-net ${sel.income - sel.expenses >= 0 ? 'trend-net-pos' : 'trend-net-neg'}`}>
+              = {fmt(sel.income - sel.expenses)}
+            </span>
+          )}
         </div>
       )}
       <div className="trend-chart">
