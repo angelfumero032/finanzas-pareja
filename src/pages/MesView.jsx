@@ -893,6 +893,19 @@ export default function MesView() {
     return result
   }, [movimientosFiltrados, sortMovs])
 
+  const runningBalance = useMemo(() => {
+    if (sortMovs !== 'fecha' || movimientosFiltrados.length === 0) return {}
+    const map = {}
+    let running = 0
+    // Process in reverse chronological order to compute forward balance
+    const sorted = [...movimientosFiltrados].reverse()
+    sorted.forEach(m => {
+      running += m.tipo === 'ingreso' ? Number(m.importe) : -Number(m.importe)
+      map[m.id] = running
+    })
+    return map
+  }, [movimientosFiltrados, sortMovs])
+
   const { gastoPorCat, gastoPendientePorCat, movCountByCat, gastosNoCategoria, gastoPorSubcat } = useMemo(() => {
     const gpc = {}
     const gpend = {}
@@ -2073,6 +2086,11 @@ export default function MesView() {
                           <span className={`movement-amount ${m.tipo === 'gasto' ? 'amount-expense' : 'amount-income'}${m.pendiente ? ' amount-pending' : ''}`}>
                             {m.tipo === 'gasto' ? '-' : '+'}{fmt(Number(m.importe))}
                           </span>
+                          {runningBalance[m.id] !== undefined && (filtroTipo === 'all') && (
+                            <span className={`movement-running-bal ${runningBalance[m.id] >= 0 ? 'amount-income' : 'amount-expense'}`}>
+                              {runningBalance[m.id] >= 0 ? '+' : ''}{fmt(runningBalance[m.id])}
+                            </span>
+                          )}
                         </div>
                       </button>
                       {m.pendiente && m.tipo === 'gasto' && (

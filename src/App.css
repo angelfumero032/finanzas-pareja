@@ -1144,6 +1144,7 @@ html, body { overscroll-behavior: none; }
 .movement-amount { font-size: 1rem; font-weight: 700; flex-shrink: 0; letter-spacing: -0.01em; }
 .amount-expense  { color: var(--expense); }
 .amount-income   { color: var(--income); }
+.movement-running-bal { font-size: 0.65rem; color: var(--text3); font-weight: 500; text-align: right; }
 
 /* ── Modal ── */
 .modal-overlay {
@@ -2219,8 +2220,9 @@ kbd {
 }
 .movement-right {
   display: flex;
-  align-items: center;
-  gap: 0.4rem;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.1rem;
   flex-shrink: 0;
 }
 .movement-pending-badge {
