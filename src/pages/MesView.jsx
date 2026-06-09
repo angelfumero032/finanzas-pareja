@@ -78,6 +78,9 @@ export default function MesView() {
     ),
   [categorias])
 
+  const catMap = useMemo(() => new Map(categorias.map(c => [c.id, c.nombre])), [categorias])
+  const subcatMap = useMemo(() => new Map(subcategorias.map(s => [s.id, s.nombre])), [subcategorias])
+
   // ── Carga de datos estáticos (categorías, subcategorías, perfiles del hogar) ──
   useEffect(() => {
     if (!hogarId) return
@@ -389,24 +392,29 @@ export default function MesView() {
   const deltaIngresos = prevTotals?.ingresos > 0 ? (totalIngresos - prevTotals.ingresos) / prevTotals.ingresos * 100 : null
   const deltaGastos   = prevTotals?.gastos   > 0 ? (totalGastos   - prevTotals.gastos)   / prevTotals.gastos   * 100 : null
 
-  const movimientosFiltrados = movimientos
-    .filter(m => filtroTipo === 'all' || m.tipo === filtroTipo)
-    .filter(m => !filtroCatId || m.categoria_id === filtroCatId)
-    .filter(m => {
-      if (!busqueda) return true
-      const q = busqueda.toLowerCase()
-      return (
-        catName(m.categoria_id).toLowerCase().includes(q) ||
-        subcatName(m.subcategoria_id).toLowerCase().includes(q) ||
-        (m.nota || '').toLowerCase().includes(q)
-      )
-    })
+  const movimientosFiltrados = useMemo(() => {
+    let list = movimientos
+      .filter(m => filtroTipo === 'all' || m.tipo === filtroTipo)
+      .filter(m => !filtroCatId || m.categoria_id === filtroCatId)
+      .filter(m => {
+        if (!busqueda) return true
+        const q = busqueda.toLowerCase()
+        return (
+          (catMap.get(m.categoria_id) ?? '').toLowerCase().includes(q) ||
+          (subcatMap.get(m.subcategoria_id) ?? '').toLowerCase().includes(q) ||
+          (m.nota || '').toLowerCase().includes(q)
+        )
+      })
+    if (sortMovs === 'importe') {
+      list = [...list].sort((a, b) => Number(b.importe) - Number(a.importe))
+    }
+    return list
+  }, [movimientos, filtroTipo, filtroCatId, busqueda, sortMovs, catMap, subcatMap])
 
-  if (sortMovs === 'importe') {
-    movimientosFiltrados.sort((a, b) => Number(b.importe) - Number(a.importe))
-  }
-
-  const totalFiltrado = movimientosFiltrados.reduce((s, m) => s + Number(m.importe), 0)
+  const totalFiltrado = useMemo(
+    () => movimientosFiltrados.reduce((s, m) => s + Number(m.importe), 0),
+    [movimientosFiltrados]
+  )
   const hayFiltroActivo = filtroTipo !== 'all' || busqueda || filtroCatId
 
   // Agrupar por fecha cuando el orden es temporal; lista plana cuando es por importe
@@ -451,12 +459,8 @@ export default function MesView() {
     .filter(c => presupuestoPorCat[c.id] > 0)
     .reduce((s, c) => s + (gastoPorCat[c.id] ?? 0), 0)
 
-  function catName(id) {
-    return categorias.find(c => c.id === id)?.nombre ?? t(lang, 'no_category')
-  }
-  function subcatName(id) {
-    return id ? (subcategorias.find(s => s.id === id)?.nombre ?? '') : ''
-  }
+  function catName(id) { return catMap.get(id) ?? t(lang, 'no_category') }
+  function subcatName(id) { return id ? (subcatMap.get(id) ?? '') : '' }
   function formatFecha(dateStr) {
     const todayStr = todayDate.toISOString().slice(0, 10)
     const yesterdayStr = new Date(todayDate.getFullYear(), todayDate.getMonth(), todayDate.getDate() - 1).toISOString().slice(0, 10)
