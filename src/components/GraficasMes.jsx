@@ -12,7 +12,7 @@ function polar(cx, cy, r, deg) {
   return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) }
 }
 
-function DonutChart({ slices, fmt, lang, onSelectCat }) {
+function DonutChart({ slices, fmt, lang, onSelectCat, selectedCatId }) {
   const [active, setActive] = useState(null)
   const total = slices.reduce((s, sl) => s + sl.value, 0)
   if (total === 0) return null
@@ -43,7 +43,11 @@ function DonutChart({ slices, fmt, lang, onSelectCat }) {
     }
   })
 
-  const sel = active !== null ? segments[active] : null
+  const displayActive = selectedCatId != null
+    ? segments.findIndex(s => s.catId === selectedCatId)
+    : active
+
+  const sel = displayActive !== null && displayActive !== -1 ? segments[displayActive] : null
   const centerTop = sel
     ? (sel.name.length > 11 ? sel.name.slice(0, 10) + '…' : sel.name)
     : t(lang, 'total_expenses')
@@ -62,7 +66,7 @@ function DonutChart({ slices, fmt, lang, onSelectCat }) {
             <path
               key={i} d={seg.d} fill={seg.color}
               stroke="var(--surface)" strokeWidth="2"
-              opacity={active === null || active === i ? 1 : 0.35}
+              opacity={displayActive === null || displayActive === -1 || displayActive === i ? 1 : 0.35}
               style={{ cursor: 'pointer', transition: 'opacity .15s' }}
               onMouseEnter={() => setActive(i)}
               onMouseLeave={() => setActive(null)}
@@ -86,7 +90,7 @@ function DonutChart({ slices, fmt, lang, onSelectCat }) {
         {segments.map((seg, i) => (
           <li
             key={i}
-            className={`legend-item${active === i ? ' legend-active' : ''}`}
+            className={`legend-item${displayActive === i ? ' legend-active' : ''}`}
             style={{ cursor: 'pointer' }}
             onMouseEnter={() => setActive(i)}
             onMouseLeave={() => setActive(null)}
@@ -165,7 +169,7 @@ function TrendBars({ data, fmt, lang }) {
   )
 }
 
-export default function GraficasMes({ lang, gastoPorCat, categorias, trendData, fmt, onSelectCat, catColors }) {
+export default function GraficasMes({ lang, gastoPorCat, categorias, trendData, fmt, onSelectCat, catColors, selectedCatId }) {
   const pieData = categorias
     .filter(c => c.tipo === 'gasto' && (gastoPorCat[c.id] ?? 0) > 0)
     .map((c, i) => ({
@@ -187,7 +191,7 @@ export default function GraficasMes({ lang, gastoPorCat, categorias, trendData, 
       {pieData.length > 0 && (
         <div className="chart-block">
           <p className="chart-subtitle">{t(lang, 'spending_by_category')}</p>
-          <DonutChart slices={pieData} fmt={fmt} lang={lang} onSelectCat={onSelectCat} />
+          <DonutChart slices={pieData} fmt={fmt} lang={lang} onSelectCat={onSelectCat} selectedCatId={selectedCatId} />
         </div>
       )}
 

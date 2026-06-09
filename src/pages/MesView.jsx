@@ -700,6 +700,7 @@ export default function MesView() {
               trendData={trendData}
               fmt={fmt}
               catColors={catColorMap}
+              selectedCatId={filtroCatId && filtroCatId !== 'nocat' ? filtroCatId : null}
               onSelectCat={catId => {
                 setFiltroCatId(catId)
                 setFiltroTipo(catId ? 'gasto' : 'all')
