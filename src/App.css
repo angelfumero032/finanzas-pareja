@@ -2439,6 +2439,22 @@ kbd {
   flex-shrink: 0;
 }
 
+/* ── Share summary button ── */
+.share-summary-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.78rem;
+  color: var(--text3);
+  padding: 0.1rem 0;
+  font-family: inherit;
+  align-self: flex-start;
+}
+.share-summary-btn:hover { color: var(--text2); }
+
 /* ── Planning (future month) banner ── */
 /* Budget setup prompt */
 .budget-setup-banner {

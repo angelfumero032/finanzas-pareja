@@ -1134,6 +1134,27 @@ export default function MesView() {
           </div>
         </div>
 
+        {/* Share month summary */}
+        {(totalIngresos > 0 || totalGastos > 0) && !loading && (
+          <button
+            className="share-summary-btn"
+            onClick={() => {
+              const monthLabel = `${MONTHS[lang][mes - 1]} ${anio}`
+              const lines = [monthLabel]
+              if (totalIngresos > 0) lines.push(`${t(lang, 'total_income')}: ${fmt(totalIngresos)}`)
+              if (totalGastos > 0) lines.push(`${t(lang, 'total_expenses')}: ${fmt(totalGastos)}`)
+              lines.push(`${t(lang, 'balance')}: ${balance >= 0 ? '+' : ''}${fmt(balance)}`)
+              if (totalPresupuestado > 0) lines.push(`${t(lang, 'budget_total')}: ${fmt(totalGastadoConPresupuesto)} / ${fmt(totalPresupuestado)}`)
+              if (monthNote) lines.push(`📝 ${monthNote}`)
+              navigator.clipboard?.writeText(lines.join('\n')).then(() => showToast(lang === 'es' ? 'Resumen copiado' : 'Summary copied'))
+            }}
+            title={lang === 'es' ? 'Copiar resumen al portapapeles' : 'Copy summary to clipboard'}
+          >
+            <span aria-hidden="true">📋</span>
+            {lang === 'es' ? 'Copiar resumen' : 'Copy summary'}
+          </button>
+        )}
+
         {/* Savings goal progress */}
         {totalIngresos > 0 && (
           <div className="savings-goal-row">
