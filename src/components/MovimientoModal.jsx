@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useLang } from '../context/LangContext'
 import { t } from '../i18n'
 
-export default function MovimientoModal({ open, onClose, onSave, onDelete, movimiento, categorias, subcategorias, hogarId, userId, defaultTipo = 'gasto', defaultCatId = null, gastoPorCat = {}, presupuestoPorCat = {} }) {
+export default function MovimientoModal({ open, onClose, onSave, onDelete, onDuplicate, movimiento, categorias, subcategorias, hogarId, userId, defaultTipo = 'gasto', defaultCatId = null, defaultImporte = '', defaultSubcatId = '', defaultNota = '', gastoPorCat = {}, presupuestoPorCat = {} }) {
   const { lang } = useLang()
   const todayStr = new Date().toISOString().slice(0, 10)
 
@@ -25,13 +25,13 @@ export default function MovimientoModal({ open, onClose, onSave, onDelete, movim
       setNota(movimiento.nota ?? '')
     } else {
       setTipo(defaultTipo)
-      setImporte('')
+      setImporte(defaultImporte || '')
       setFecha(todayStr)
       setCatId(defaultCatId || '')
-      setSubcatId('')
-      setNota('')
+      setSubcatId(defaultSubcatId || '')
+      setNota(defaultNota || '')
     }
-  }, [open, movimiento?.id, defaultTipo, defaultCatId])
+  }, [open, movimiento?.id, defaultTipo, defaultCatId, defaultImporte, defaultSubcatId, defaultNota])
 
   useEffect(() => {
     if (!open) return
@@ -217,13 +217,25 @@ export default function MovimientoModal({ open, onClose, onSave, onDelete, movim
 
           <div className="modal-actions">
             {movimiento && (
-              <button
-                type="button"
-                className="btn-danger"
-                onClick={() => onDelete(movimiento.id)}
-              >
-                {t(lang, 'delete_movement')}
-              </button>
+              <>
+                <button
+                  type="button"
+                  className="btn-danger"
+                  onClick={() => onDelete(movimiento.id)}
+                >
+                  {t(lang, 'delete_movement')}
+                </button>
+                {onDuplicate && (
+                  <button
+                    type="button"
+                    className="btn-secondary btn-sm"
+                    onClick={() => onDuplicate(movimiento)}
+                    title={t(lang, 'duplicate')}
+                  >
+                    {t(lang, 'duplicate')}
+                  </button>
+                )}
+              </>
             )}
             <button type="button" className="btn-secondary" onClick={onClose}>
               {t(lang, 'cancel')}

@@ -61,7 +61,7 @@ export default function MesView() {
   // Help overlay (atajos de teclado)
   const [showHelp, setShowHelp] = useState(false)
 
-  // Toast notifications
+  // Toast notifications (supports undo action)
   const [toast, setToast] = useState(null)
   const toastTimer = useRef(null)
   function showToast(msg, type = 'success') {
@@ -69,7 +69,32 @@ export default function MesView() {
     setToast({ msg, type })
     toastTimer.current = setTimeout(() => setToast(null), 2400)
   }
+  function showUndoToast(msg, onUndo) {
+    if (toastTimer.current) clearTimeout(toastTimer.current)
+    setToast({ msg, type: 'success', onUndo })
+    toastTimer.current = setTimeout(() => setToast(null), 5000)
+  }
   useEffect(() => () => { if (toastTimer.current) clearTimeout(toastTimer.current) }, [])
+
+  // Undo delete
+  const pendingDeleteIds = useRef(new Set())
+  const deleteTimer = useRef(null)
+  useEffect(() => () => { if (deleteTimer.current) clearTimeout(deleteTimer.current) }, [])
+
+  // Duplicate movement
+  const [duplicateData, setDuplicateData] = useState(null)
+  const [modalKey, setModalKey] = useState(0)
+
+  // Dark mode manual override (D key cycles system/dark/light)
+  const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'auto')
+  useEffect(() => {
+    const root = document.documentElement
+    if (theme === 'dark') root.setAttribute('data-theme', 'dark')
+    else if (theme === 'light') root.setAttribute('data-theme', 'light')
+    else root.removeAttribute('data-theme')
+    theme !== 'auto' ? localStorage.setItem('theme', theme) : localStorage.removeItem('theme')
+  }, [theme])
+  function cycleTheme() { setTheme(prev => prev === 'auto' ? 'dark' : prev === 'dark' ? 'light' : 'auto') }
 
   // Tendencia mensual (últimos 6 meses, sin etiquetas de idioma)
   const [rawTrend, setRawTrend] = useState([])
@@ -131,7 +156,7 @@ export default function MesView() {
           .eq('anio', anio)
           .eq('mes', mes),
       ])
-      if (movRes.data) setMovimientos(movRes.data)
+      if (movRes.data) setMovimientos(movRes.data.filter(m => !pendingDeleteIds.current.has(m.id)))
       if (preRes.data) setPresupuestos(preRes.data)
     } finally {
       setLoading(false)
@@ -293,6 +318,7 @@ export default function MesView() {
       if ((e.key === 't' || e.key === 'T') && !isCurrentMonth) { setAnio(todayDate.getFullYear()); setMes(todayDate.getMonth() + 1) }
       if (e.key === '?') setShowHelp(h => !h)
       if (e.key === '/' && searchRef.current) { e.preventDefault(); searchRef.current.focus() }
+      if (e.key === 'd' || e.key === 'D') cycleTheme()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -346,18 +372,48 @@ export default function MesView() {
     }
   }
 
-  async function handleDeleteMov(id) {
-    if (!window.confirm(t(lang, 'confirm_delete'))) return
-    try {
-      const { error } = await supabase.from('movimientos').delete().eq('id', id)
-      if (error) throw error
-      setModalOpen(false)
-      setEditMov(null)
-      setMovimientos(prev => prev.filter(m => m.id !== id))
-      showToast(t(lang, 'deleted_ok'))
-    } catch {
-      showToast(t(lang, 'save_error'), 'error')
-    }
+  function handleDeleteMov(id) {
+    const mov = movimientos.find(m => m.id === id)
+    if (!mov) return
+    setModalOpen(false)
+    setEditMov(null)
+    pendingDeleteIds.current.add(id)
+    setMovimientos(prev => prev.filter(m => m.id !== id))
+    if (deleteTimer.current) clearTimeout(deleteTimer.current)
+    showUndoToast(t(lang, 'deleted_ok'), () => {
+      if (deleteTimer.current) { clearTimeout(deleteTimer.current); deleteTimer.current = null }
+      pendingDeleteIds.current.delete(id)
+      setMovimientos(prev =>
+        [...prev, mov].sort((a, b) => b.fecha.localeCompare(a.fecha) || b.creado_en.localeCompare(a.creado_en))
+      )
+      showToast(t(lang, 'restored_ok'))
+    })
+    deleteTimer.current = setTimeout(async () => {
+      try {
+        const { error } = await supabase.from('movimientos').delete().eq('id', id)
+        if (error) throw error
+      } catch {
+        pendingDeleteIds.current.delete(id)
+        setMovimientos(prev =>
+          [...prev, mov].sort((a, b) => b.fecha.localeCompare(a.fecha) || b.creado_en.localeCompare(a.creado_en))
+        )
+        showToast(t(lang, 'save_error'), 'error')
+      } finally {
+        pendingDeleteIds.current.delete(id)
+      }
+    }, 5000)
+  }
+
+  function handleDuplicateMov(mov) {
+    setEditMov(null)
+    setDuplicateData({
+      tipo: mov.tipo,
+      importe: String(mov.importe),
+      catId: mov.categoria_id,
+      subcatId: mov.subcategoria_id ?? '',
+      nota: mov.nota ?? '',
+    })
+    setModalKey(k => k + 1)
   }
 
   // ── Presupuesto: copiar del mes anterior ──
@@ -541,6 +597,15 @@ export default function MesView() {
     () => gastosCats.filter(c => presupuestoPorCat[c.id] > 0).reduce((s, c) => s + (gastoPorCat[c.id] ?? 0), 0),
     [gastosCats, presupuestoPorCat, gastoPorCat]
   )
+
+  const dailyTotals = useMemo(() => {
+    if (sortMovs !== 'fecha') return {}
+    const totals = {}
+    movimientosFiltrados.forEach(m => {
+      totals[m.fecha] = (totals[m.fecha] ?? 0) + (m.tipo === 'gasto' ? -Number(m.importe) : Number(m.importe))
+    })
+    return totals
+  }, [movimientosFiltrados, sortMovs])
 
   function catName(id) { return catMap.get(id) ?? t(lang, 'no_category') }
   function subcatName(id) { return id ? (subcatMap.get(id) ?? '') : '' }
@@ -1001,9 +1066,15 @@ export default function MesView() {
                 <div className="movements-list">
                   {renderList.map((entry, idx) => {
                     if (entry.type === 'header') {
+                      const dt = dailyTotals[entry.date]
                       return (
                         <div key={`h-${entry.date}`} className="movement-date-header">
-                          {formatFecha(entry.date)}
+                          <span>{formatFecha(entry.date)}</span>
+                          {dt !== undefined && (
+                            <span className={`daily-total ${dt >= 0 ? 'amount-income' : 'amount-expense'}`}>
+                              {dt >= 0 ? '+' : ''}{fmt(dt)}
+                            </span>
+                          )}
                         </div>
                       )
                     }
@@ -1056,17 +1127,22 @@ export default function MesView() {
 
       {/* Modal movimiento */}
       <MovimientoModal
+        key={modalKey}
         open={modalOpen}
-        onClose={() => { setModalOpen(false); setEditMov(null); setQuickAddCatId(null) }}
+        onClose={() => { setModalOpen(false); setEditMov(null); setQuickAddCatId(null); setDuplicateData(null) }}
         onSave={handleSaveMov}
         onDelete={handleDeleteMov}
+        onDuplicate={editMov ? handleDuplicateMov : null}
         movimiento={editMov}
         categorias={categorias}
         subcategorias={subcategorias}
         hogarId={hogarId}
         userId={profile?.id}
-        defaultTipo={filtroTipo !== 'all' ? filtroTipo : 'gasto'}
-        defaultCatId={!editMov ? (quickAddCatId ?? (filtroTipo !== 'ingreso' && filtroCatId !== 'nocat' ? filtroCatId : null)) : null}
+        defaultTipo={duplicateData?.tipo ?? (filtroTipo !== 'all' ? filtroTipo : 'gasto')}
+        defaultCatId={!editMov ? (duplicateData?.catId ?? quickAddCatId ?? (filtroTipo !== 'ingreso' && filtroCatId !== 'nocat' ? filtroCatId : null)) : null}
+        defaultImporte={!editMov ? (duplicateData?.importe ?? '') : ''}
+        defaultSubcatId={!editMov ? (duplicateData?.subcatId ?? '') : ''}
+        defaultNota={!editMov ? (duplicateData?.nota ?? '') : ''}
         gastoPorCat={gastoPorCat}
         presupuestoPorCat={presupuestoPorCat}
       />
@@ -1097,6 +1173,7 @@ export default function MesView() {
                   ['T', lang === 'es' ? 'Ir al mes actual' : 'Go to current month'],
                   ['/', lang === 'es' ? 'Enfocar búsqueda' : 'Focus search'],
                   ['?', lang === 'es' ? 'Mostrar / ocultar atajos' : 'Show / hide shortcuts'],
+                  ['D', lang === 'es' ? 'Alternar tema oscuro/claro' : 'Toggle dark/light theme'],
                   ['Esc', lang === 'es' ? 'Cerrar modal' : 'Close modal'],
                 ].map(([key, desc]) => (
                   <tr key={key}>
@@ -1125,7 +1202,19 @@ export default function MesView() {
       {/* Toast */}
       {toast && (
         <div className={`toast${toast.type === 'error' ? ' toast-error' : ''}`} role="status" aria-live="polite">
-          {toast.msg}
+          {toast.onUndo ? (
+            <span className="toast-actions">
+              <span>{toast.msg}</span>
+              <button
+                className="toast-undo-btn"
+                onClick={() => {
+                  if (toastTimer.current) clearTimeout(toastTimer.current)
+                  setToast(null)
+                  toast.onUndo()
+                }}
+              >{t(lang, 'undo')}</button>
+            </span>
+          ) : toast.msg}
         </div>
       )}
     </div>
