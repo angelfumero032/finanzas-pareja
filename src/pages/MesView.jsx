@@ -39,6 +39,7 @@ export default function MesView() {
 
   // Tendencia mensual (últimos 6 meses, sin etiquetas de idioma)
   const [rawTrend, setRawTrend] = useState([])
+  const [prevTotals, setPrevTotals] = useState(null)
 
   const hogarId = profile?.hogar_id
 
@@ -128,6 +129,31 @@ export default function MesView() {
   }, [hogarId, anio, mes])
 
   useEffect(() => { loadTrend() }, [loadTrend])
+
+  // ── Totales mes anterior (para deltas en resumen) ──
+  const loadPrevMes = useCallback(async () => {
+    if (!hogarId) return
+    const d = new Date(anio, mes - 2, 1)
+    const { data } = await supabase
+      .from('movimientos')
+      .select('tipo, importe')
+      .eq('hogar_id', hogarId)
+      .eq('anio', d.getFullYear())
+      .eq('mes', d.getMonth() + 1)
+    if (!data) return
+    setPrevTotals(
+      data.reduce(
+        (acc, m) => {
+          if (m.tipo === 'ingreso') acc.ingresos += Number(m.importe)
+          else acc.gastos += Number(m.importe)
+          return acc
+        },
+        { ingresos: 0, gastos: 0 }
+      )
+    )
+  }, [hogarId, anio, mes])
+
+  useEffect(() => { loadPrevMes() }, [loadPrevMes])
 
   const trendData = useMemo(() =>
     rawTrend.map(d => ({
@@ -275,6 +301,9 @@ export default function MesView() {
   const totalIngresos = movimientos.filter(m => m.tipo === 'ingreso').reduce((s, m) => s + Number(m.importe), 0)
   const balance = totalIngresos - totalGastos
 
+  const deltaIngresos = prevTotals?.ingresos > 0 ? (totalIngresos - prevTotals.ingresos) / prevTotals.ingresos * 100 : null
+  const deltaGastos   = prevTotals?.gastos   > 0 ? (totalGastos   - prevTotals.gastos)   / prevTotals.gastos   * 100 : null
+
   const gastoPorCat = {}
   movimientos.filter(m => m.tipo === 'gasto' && m.categoria_id).forEach(m => {
     gastoPorCat[m.categoria_id] = (gastoPorCat[m.categoria_id] ?? 0) + Number(m.importe)
@@ -340,10 +369,20 @@ export default function MesView() {
           <div className="summary-card income-card">
             <span className="summary-label">{t(lang, 'total_income')}</span>
             <span className="summary-value">{fmt(totalIngresos)}</span>
+            {deltaIngresos !== null && (
+              <span className={`summary-delta ${deltaIngresos >= 0 ? 'delta-pos' : 'delta-muted'}`}>
+                {deltaIngresos >= 0 ? '▲' : '▼'} {Math.abs(deltaIngresos).toFixed(0)}%
+              </span>
+            )}
           </div>
           <div className="summary-card expense-card">
             <span className="summary-label">{t(lang, 'total_expenses')}</span>
             <span className="summary-value">{fmt(totalGastos)}</span>
+            {deltaGastos !== null && (
+              <span className={`summary-delta ${deltaGastos >= 0 ? 'delta-neg' : 'delta-pos'}`}>
+                {deltaGastos >= 0 ? '▲' : '▼'} {Math.abs(deltaGastos).toFixed(0)}%
+              </span>
+            )}
           </div>
           <div className={`summary-card balance-card ${balance >= 0 ? 'balance-pos' : 'balance-neg'}`}>
             <span className="summary-label">{t(lang, 'balance')}</span>

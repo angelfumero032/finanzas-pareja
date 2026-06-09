@@ -296,6 +296,11 @@
 .balance-pos  .summary-value { color: var(--income); }
 .balance-neg  .summary-value { color: var(--expense); }
 
+.summary-delta { font-size: 0.65rem; font-weight: 600; line-height: 1; }
+.delta-pos     { color: var(--income); }
+.delta-neg     { color: var(--expense); }
+.delta-muted   { color: var(--text3); }
+
 /* ── Secciones ── */
 .section {
   background: var(--surface);
