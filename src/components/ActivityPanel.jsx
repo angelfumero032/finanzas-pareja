@@ -16,7 +16,7 @@ function formatDay(dateStr, lang) {
     : `${monthAbbr} ${parseInt(d)}`
 }
 
-export default function ActivityPanel({ open, onClose, actividades, currentUserId, usuarios }) {
+export default function ActivityPanel({ open, onClose, actividades, currentUserId, usuarios, lastViewedAt }) {
   const { lang } = useLang()
 
   useEffect(() => {
@@ -61,15 +61,18 @@ export default function ActivityPanel({ open, onClose, actividades, currentUserI
             grouped.map(group => (
               <div key={group.day}>
                 <div className="activity-day-header">{formatDay(group.day, lang)}</div>
-                {group.items.map(a => (
-                  <div key={a.id} className="activity-item">
-                    <div className="activity-meta">
-                      <span className="activity-actor">{actorName(a.actor_id)}</span>
-                      <span className="activity-time">{timeAgo(a.creado_en, lang)}</span>
+                {group.items.map(a => {
+                  const isNew = lastViewedAt && a.actor_id !== currentUserId && a.creado_en > lastViewedAt
+                  return (
+                    <div key={a.id} className={`activity-item${isNew ? ' activity-item-new' : ''}`}>
+                      <div className="activity-meta">
+                        <span className="activity-actor">{actorName(a.actor_id)}</span>
+                        <span className="activity-time">{timeAgo(a.creado_en, lang)}</span>
+                      </div>
+                      <div className="activity-text">{a.resumen}</div>
                     </div>
-                    <div className="activity-text">{a.resumen}</div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             ))
           )}

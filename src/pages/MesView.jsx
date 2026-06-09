@@ -895,6 +895,7 @@ export default function MesView() {
         actividades={actividades}
         currentUserId={profile?.id}
         usuarios={usuarios}
+        lastViewedAt={profile?.actividad_vista_en}
       />
 
       {/* Help overlay: atajos de teclado */}
