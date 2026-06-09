@@ -1362,7 +1362,7 @@ export default function MesView() {
                                 type="number"
                                 min="0"
                                 step="0.01"
-                                defaultValue={budget > 0 ? budget : ''}
+                                defaultValue={budget > 0 ? budget : (spent > 0 ? Math.ceil(spent / 10) * 10 : '')}
                                 autoFocus
                                 placeholder="0"
                                 onFocus={e => e.target.select()}
@@ -1375,9 +1375,11 @@ export default function MesView() {
                             ) : (
                               <>
                                 <button
-                                  className="budget-limit-btn"
+                                  className={`budget-limit-btn${budget === 0 && spent > 0 ? ' budget-limit-btn-hint' : ''}`}
                                   onClick={() => setEditBudget({ catId: cat.id })}
-                                  title={t(lang, 'set_budget')}
+                                  title={budget === 0 && spent > 0
+                                    ? (lang === 'es' ? `Fijar presupuesto — sugerido: ${fmt(Math.ceil(spent / 10) * 10)}` : `Set budget — suggested: ${fmt(Math.ceil(spent / 10) * 10)}`)
+                                    : t(lang, 'set_budget')}
                                 >
                                   {budget > 0 ? `/ ${fmt(budget)}` : t(lang, 'no_budget')}
                                 </button>
@@ -1567,12 +1569,28 @@ export default function MesView() {
                     {hayFiltroActivo ? t(lang, 'no_results') : t(lang, 'no_movements')}
                   </p>
                   {hayFiltroActivo ? (
-                    <button
-                      className="btn-sm btn-secondary"
-                      onClick={() => { setFiltroTipo('all'); setBusqueda(''); setFiltroCatId(null); setFiltroFijo(null); setFiltroPendiente(false) }}
-                    >
-                      {t(lang, 'clear_filters')}
-                    </button>
+                    <div className="empty-actions">
+                      {busqueda.trim() && (
+                        <button
+                          className="btn-sm btn-primary"
+                          onClick={() => {
+                            setDuplicateData({ tipo: 'gasto', importe: '', catId: filtroCatId && filtroCatId !== 'nocat' ? filtroCatId : null, subcatId: '', nota: '', concepto: busqueda.trim() })
+                            setModalKey(k => k + 1)
+                            setEditMov(null)
+                            setBusqueda('')
+                            setModalOpen(true)
+                          }}
+                        >
+                          {lang === 'es' ? `+ Añadir "${busqueda.trim()}"` : `+ Add "${busqueda.trim()}"`}
+                        </button>
+                      )}
+                      <button
+                        className="btn-sm btn-secondary"
+                        onClick={() => { setFiltroTipo('all'); setBusqueda(''); setFiltroCatId(null); setFiltroFijo(null); setFiltroPendiente(false) }}
+                      >
+                        {t(lang, 'clear_filters')}
+                      </button>
+                    </div>
                   ) : (
                     <div className="empty-actions">
                       <button

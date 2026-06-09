@@ -716,6 +716,8 @@ html, body { overscroll-behavior: none; }
   text-underline-offset: 2px;
 }
 .budget-limit-btn:hover { color: var(--accent); }
+.budget-limit-btn-hint { color: var(--warn) !important; opacity: 0.75; }
+.budget-limit-btn-hint:hover { opacity: 1; color: var(--warn) !important; }
 
 .budget-inline-input {
   border: 1.5px solid var(--accent);
@@ -1743,6 +1745,7 @@ kbd {
 .import-row-err td { background: rgba(239,68,68,0.07); }
 .import-cell-err { color: var(--expense) !important; font-weight: 600; }
 .import-cat-warn { color: var(--warn); }
+.import-concepto { max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .import-result { display: flex; flex-direction: column; align-items: center; gap: 1rem; padding: 1.5rem 0; }
 .import-result-ok { color: var(--income); font-size: 1rem; margin: 0; text-align: center; }
 .import-result-err { color: var(--expense); font-size: 0.9rem; margin: 0; text-align: center; }

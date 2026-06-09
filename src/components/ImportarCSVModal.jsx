@@ -208,6 +208,7 @@ export default function ImportarCSVModal({ open, onClose, lang, hogarId, userId,
                       <tr>
                         <th>{lang === 'es' ? 'Fecha' : 'Date'}</th>
                         <th>{lang === 'es' ? 'Tipo' : 'Type'}</th>
+                        <th>{lang === 'es' ? 'Concepto' : 'Description'}</th>
                         <th>{lang === 'es' ? 'Importe' : 'Amount'}</th>
                         <th>{lang === 'es' ? 'Categoría' : 'Category'}</th>
                         <th>{lang === 'es' ? 'Nota' : 'Note'}</th>
@@ -218,9 +219,10 @@ export default function ImportarCSVModal({ open, onClose, lang, hogarId, userId,
                         <tr key={r.rowIdx} className={r.valid ? (r.catId ? '' : 'import-row-warn') : 'import-row-err'}>
                           <td className={r.errors.includes('fecha') ? 'import-cell-err' : ''}>{r.fecha || '—'}</td>
                           <td className={r.errors.includes('tipo') ? 'import-cell-err' : ''}>{r.tipo || '—'}</td>
+                          <td className="import-concepto">{r.concepto || <span style={{ opacity: 0.4 }}>—</span>}</td>
                           <td className={r.errors.includes('importe') ? 'import-cell-err' : ''}>{r.importe > 0 ? r.importe.toFixed(2) : '—'}</td>
                           <td>{r.catNombre ? (r.catId ? r.catNombre : <span className="import-cat-warn">{r.catNombre} ⚠</span>) : '—'}</td>
-                          <td>{r.nota || '—'}</td>
+                          <td>{r.nota || <span style={{ opacity: 0.4 }}>—</span>}</td>
                         </tr>
                       ))}
                     </tbody>
