@@ -29,7 +29,7 @@ function DonutChart({ slices, fmt, lang, onSelectCat, selectedCatId }) {
     const pct = sl.value / total
 
     if (sweep >= 359.98) {
-      return { fullCircle: true, color, name: sl.name, value: sl.value, pct }
+      return { fullCircle: true, color, name: sl.name, value: sl.value, pct, catId: sl.catId }
     }
 
     const a0 = polar(CX, CY, R, start)
@@ -39,7 +39,7 @@ function DonutChart({ slices, fmt, lang, onSelectCat, selectedCatId }) {
     const large = sweep > 180 ? 1 : 0
     return {
       d: `M${a0.x},${a0.y} A${R},${R} 0 ${large} 1 ${a1.x},${a1.y} L${b1.x},${b1.y} A${ri},${ri} 0 ${large} 0 ${b0.x},${b0.y} Z`,
-      color, name: sl.name, value: sl.value, pct,
+      color, name: sl.name, value: sl.value, pct, catId: sl.catId,
     }
   })
 
@@ -55,7 +55,7 @@ function DonutChart({ slices, fmt, lang, onSelectCat, selectedCatId }) {
 
   return (
     <div className="donut-wrap">
-      <svg viewBox="0 0 200 200" className="donut-svg" role="img">
+      <svg viewBox="0 0 200 200" className="donut-svg" aria-hidden="true">
         {segments.map((seg, i) =>
           seg.fullCircle ? (
             <g key={i}>
@@ -67,14 +67,7 @@ function DonutChart({ slices, fmt, lang, onSelectCat, selectedCatId }) {
               key={i} d={seg.d} fill={seg.color}
               stroke="var(--surface)" strokeWidth="2"
               opacity={displayActive === null || displayActive === -1 || displayActive === i ? 1 : 0.35}
-              style={{ cursor: 'pointer', transition: 'opacity .15s' }}
-              onMouseEnter={() => setActive(i)}
-              onMouseLeave={() => setActive(null)}
-              onClick={() => {
-                const next = active === i ? null : i
-                setActive(next)
-                onSelectCat?.(next !== null ? seg.catId : null)
-              }}
+              style={{ transition: 'opacity .15s' }}
             />
           )
         )}
@@ -86,24 +79,26 @@ function DonutChart({ slices, fmt, lang, onSelectCat, selectedCatId }) {
         </text>
       </svg>
 
-      <ul className="donut-legend">
+      <ul className="donut-legend" role="list">
         {segments.map((seg, i) => (
-          <li
-            key={i}
-            className={`legend-item${displayActive === i ? ' legend-active' : ''}`}
-            style={{ cursor: 'pointer' }}
-            onMouseEnter={() => setActive(i)}
-            onMouseLeave={() => setActive(null)}
-            onClick={() => {
-              const next = active === i ? null : i
-              setActive(next)
-              onSelectCat?.(next !== null ? seg.catId : null)
-            }}
-          >
-            <span className="legend-dot" style={{ background: seg.color }} />
-            <span className="legend-name">{seg.name}</span>
-            <span className="legend-val">{fmt(seg.value)}</span>
-            <span className="legend-pct">{(seg.pct * 100).toFixed(0)}%</span>
+          <li key={i} className="legend-item-wrap">
+            <button
+              className={`legend-item${displayActive === i ? ' legend-active' : ''}`}
+              onMouseEnter={() => setActive(i)}
+              onMouseLeave={() => setActive(null)}
+              onClick={() => {
+                const next = active === i ? null : i
+                setActive(next)
+                onSelectCat?.(next !== null ? seg.catId : null)
+              }}
+              aria-pressed={displayActive === i}
+              aria-label={`${seg.name}: ${fmt(seg.value)} (${(seg.pct * 100).toFixed(0)}%)`}
+            >
+              <span className="legend-dot" style={{ background: seg.color }} aria-hidden="true" />
+              <span className="legend-name">{seg.name}</span>
+              <span className="legend-val">{fmt(seg.value)}</span>
+              <span className="legend-pct">{(seg.pct * 100).toFixed(0)}%</span>
+            </button>
           </li>
         ))}
       </ul>
@@ -137,13 +132,14 @@ function TrendBars({ data, fmt, lang }) {
       )}
       <div className="trend-chart">
         {data.map((d, i) => (
-          <div
+          <button
             key={i}
             className={`trend-col${i === lastIdx ? ' trend-col-current' : ''}${activeCol === i ? ' trend-col-active' : ''}`}
             onClick={() => setActiveCol(activeCol === i ? null : i)}
-            style={{ cursor: 'pointer' }}
+            aria-pressed={activeCol === i}
+            aria-label={`${d.label}: ${t(lang, 'total_income')} ${fmt(d.income)}, ${t(lang, 'total_expenses')} ${fmt(d.expenses)}`}
           >
-            <div className="trend-bars-pair">
+            <div className="trend-bars-pair" aria-hidden="true">
               <div
                 className="trend-bar income-bar"
                 style={{ height: `${(d.income / maxVal) * 100}%` }}
@@ -153,8 +149,8 @@ function TrendBars({ data, fmt, lang }) {
                 style={{ height: `${(d.expenses / maxVal) * 100}%` }}
               />
             </div>
-            <span className="trend-label">{d.label}</span>
-          </div>
+            <span className="trend-label" aria-hidden="true">{d.label}</span>
+          </button>
         ))}
       </div>
       <div className="trend-legend-row">
