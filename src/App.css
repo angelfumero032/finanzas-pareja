@@ -601,6 +601,44 @@ html, body { overscroll-behavior: none; }
   margin-bottom: 0.35rem;
 }
 
+/* ── Category quick-filter chips ── */
+.cat-chips-row {
+  display: flex;
+  gap: 0.35rem;
+  overflow-x: auto;
+  padding-bottom: 0.2rem;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  margin-bottom: 0.25rem;
+}
+.cat-chips-row::-webkit-scrollbar { display: none; }
+.cat-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex-shrink: 0;
+  background: var(--surface2);
+  border: 1.5px solid var(--border);
+  border-radius: 99px;
+  padding: 0.22rem 0.6rem 0.22rem 0.45rem;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--text2);
+  cursor: pointer;
+  font-family: inherit;
+  transition: background .12s, color .12s, border-color .12s;
+  white-space: nowrap;
+}
+.cat-chip:hover { background: color-mix(in srgb, var(--chip-color) 12%, var(--surface2)); color: var(--text); border-color: var(--chip-color); }
+.cat-chip-active { background: color-mix(in srgb, var(--chip-color) 18%, var(--surface)); border-color: var(--chip-color); color: var(--text); }
+.cat-chip-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--chip-color);
+  flex-shrink: 0;
+}
+
 /* ── Presupuesto: barra global ── */
 .budget-overview {
   background: var(--surface2);
@@ -921,6 +959,39 @@ html, body { overscroll-behavior: none; }
 }
 .welcome-close:hover { background: var(--border); color: var(--text); }
 .welcome-dismiss { align-self: flex-start; }
+
+/* ── PWA install banner ── */
+.install-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: color-mix(in srgb, var(--accent) 9%, var(--surface));
+  border: 1.5px solid color-mix(in srgb, var(--accent) 30%, var(--border));
+  border-radius: var(--r);
+  padding: 0.65rem 0.75rem;
+  flex-wrap: wrap;
+}
+.install-banner-icon { font-size: 1.1rem; flex-shrink: 0; }
+.install-banner-text {
+  flex: 1;
+  font-size: 0.85rem;
+  color: var(--text2);
+  min-width: 0;
+}
+.install-banner-btn { flex-shrink: 0; }
+.install-banner-close {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text3);
+  font-size: 0.85rem;
+  padding: 0.15rem 0.3rem;
+  border-radius: 4px;
+  font-family: inherit;
+  line-height: 1;
+}
+.install-banner-close:hover { background: var(--border); color: var(--text); }
 
 /* ── Estado vacío / carga ── */
 .loading-row { text-align: center; padding: 2rem; color: var(--text2); }

@@ -128,6 +128,32 @@ export default function MesView() {
   const [welcomeDismissed, setWelcomeDismissed] = useState(() => !!localStorage.getItem('welcomeDismissed'))
   function dismissWelcome() { localStorage.setItem('welcomeDismissed', '1'); setWelcomeDismissed(true) }
 
+  // PWA install prompt
+  const [installPrompt, setInstallPrompt] = useState(null)
+  const [showInstallBanner, setShowInstallBanner] = useState(false)
+  useEffect(() => {
+    if (localStorage.getItem('install_dismissed')) return
+    const handler = (e) => {
+      e.preventDefault()
+      setInstallPrompt(e)
+      setShowInstallBanner(true)
+    }
+    window.addEventListener('beforeinstallprompt', handler)
+    return () => window.removeEventListener('beforeinstallprompt', handler)
+  }, [])
+  function handleInstall() {
+    if (!installPrompt) return
+    installPrompt.prompt()
+    installPrompt.userChoice.then(() => {
+      setInstallPrompt(null)
+      setShowInstallBanner(false)
+    })
+  }
+  function dismissInstall() {
+    localStorage.setItem('install_dismissed', '1')
+    setShowInstallBanner(false)
+  }
+
   // Dark mode manual override (D key cycles system/dark/light)
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'auto')
   useEffect(() => {
@@ -1292,6 +1318,21 @@ export default function MesView() {
           </div>
         )}
 
+        {showInstallBanner && (
+          <div className="install-banner" role="banner">
+            <span className="install-banner-icon" aria-hidden="true">📲</span>
+            <span className="install-banner-text">
+              {lang === 'es'
+                ? 'Instala la app en tu dispositivo para acceso rápido'
+                : 'Install this app on your device for quick access'}
+            </span>
+            <button className="install-banner-btn btn-sm btn-primary" onClick={handleInstall}>
+              {lang === 'es' ? 'Instalar' : 'Install'}
+            </button>
+            <button className="install-banner-close btn-icon" onClick={dismissInstall} aria-label={t(lang, 'close')}>✕</button>
+          </div>
+        )}
+
         {loading ? (
           <div className="skeleton-wrap" aria-hidden="true">
             <div className="skeleton-section">
@@ -1714,6 +1755,41 @@ export default function MesView() {
                       <button className="search-clear" onClick={() => setBusqueda('')}>×</button>
                     )}
                   </div>
+                  {(() => {
+                    // Quick-filter chips: categories present in current type-filtered, search-filtered movs
+                    const typeFiltered = movimientos.filter(m => {
+                      if (filtroTipo !== 'all' && m.tipo !== filtroTipo) return false
+                      if (busqueda) {
+                        const q = busqueda.toLowerCase()
+                        const name = catMap.get(m.categoria_id) ?? ''
+                        if (!m.concepto?.toLowerCase().includes(q) && !name.toLowerCase().includes(q) && !m.nota?.toLowerCase().includes(q)) return false
+                      }
+                      return true
+                    })
+                    const catsInView = [...new Set(typeFiltered.map(m => m.categoria_id ?? 'nocat'))]
+                    if (catsInView.length < 2) return null
+                    return (
+                      <div className="cat-chips-row" role="group" aria-label={t(lang, 'filter_by_category')}>
+                        {catsInView.map(cid => {
+                          const color = cid === 'nocat' ? 'var(--text3)' : (catColorMap[cid] ?? 'var(--accent)')
+                          const name = cid === 'nocat' ? t(lang, 'no_category') : (catMap.get(cid) ?? '?')
+                          const active = filtroCatId === cid
+                          return (
+                            <button
+                              key={cid}
+                              className={`cat-chip${active ? ' cat-chip-active' : ''}`}
+                              style={{ '--chip-color': color }}
+                              onClick={() => setFiltroCatId(active ? null : cid)}
+                              aria-pressed={active}
+                            >
+                              <span className="cat-chip-dot" aria-hidden="true" />
+                              {name}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    )
+                  })()}
                   {filtroCatId && (
                     <div className="cat-filter-chip">
                       <span>{filtroCatId === 'nocat' ? t(lang, 'no_category') : catName(filtroCatId)}</span>
