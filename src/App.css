@@ -484,6 +484,35 @@ html, body { overscroll-behavior: none; }
   color: var(--text3);
 }
 
+/* ── Presupuesto: pace indicator ── */
+.budget-time-marker {
+  position: absolute;
+  top: -2px;
+  width: 2px;
+  height: calc(100% + 4px);
+  background: var(--text3);
+  border-radius: 1px;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+.budget-pace-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0.3rem;
+}
+.budget-pace-day {
+  font-size: 0.72rem;
+  color: var(--text3);
+}
+.budget-pace-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+.pace-ok   { color: var(--income); }
+.pace-fast { color: var(--warn); }
+.pace-slow { color: var(--text3); }
+
 /* ── Presupuesto por categoría ── */
 .budget-row {
   padding: 0.55rem 0;

@@ -618,27 +618,58 @@ export default function MesView() {
                 )}
               </div>
 
-              {totalPresupuestado > 0 && (
-                <div className="budget-overview">
-                  <div className="budget-overview-row">
-                    <span className="budget-overview-label">{t(lang, 'budget_total')}</span>
-                    <span className="budget-overview-amounts">
-                      <span className="budget-spent">{fmt(totalGastadoConPresupuesto)}</span>
-                      <span className="budget-overview-total">/ {fmt(totalPresupuestado)}</span>
-                    </span>
+              {totalPresupuestado > 0 && (() => {
+                const daysInMonth = new Date(anio, mes, 0).getDate()
+                const daysElapsed = isCurrentMonth
+                  ? Math.max(1, todayDate.getDate())
+                  : daysInMonth
+                const timePct = daysElapsed / daysInMonth
+                const spendPct = totalGastadoConPresupuesto / totalPresupuestado
+                const paceRatio = timePct > 0 ? spendPct / timePct : 1
+                const paceLabel = paceRatio > 1.15
+                  ? (lang === 'es' ? '↑ acelerado' : '↑ fast')
+                  : paceRatio < 0.75
+                    ? (lang === 'es' ? '↓ controlado' : '↓ under')
+                    : (lang === 'es' ? '→ en ritmo' : '→ on track')
+                const paceCls = paceRatio > 1.15 ? 'pace-fast' : paceRatio < 0.75 ? 'pace-slow' : 'pace-ok'
+                return (
+                  <div className="budget-overview">
+                    <div className="budget-overview-row">
+                      <span className="budget-overview-label">{t(lang, 'budget_total')}</span>
+                      <span className="budget-overview-amounts">
+                        <span className="budget-spent">{fmt(totalGastadoConPresupuesto)}</span>
+                        <span className="budget-overview-total">/ {fmt(totalPresupuestado)}</span>
+                      </span>
+                    </div>
+                    <div className="budget-bar-track" style={{ position: 'relative' }}>
+                      <div
+                        className={`budget-bar-fill ${
+                          totalGastadoConPresupuesto > totalPresupuestado ? 'bar-over'
+                          : totalGastadoConPresupuesto / totalPresupuestado > 0.8 ? 'bar-warn'
+                          : 'bar-ok'
+                        }`}
+                        style={{ width: `${Math.min(100, spendPct * 100)}%` }}
+                      />
+                      {isCurrentMonth && (
+                        <div
+                          className="budget-time-marker"
+                          style={{ left: `${Math.min(100, timePct * 100)}%` }}
+                        />
+                      )}
+                    </div>
+                    {isCurrentMonth && (
+                      <div className="budget-pace-row">
+                        <span className="budget-pace-day">
+                          {lang === 'es'
+                            ? `Día ${todayDate.getDate()} de ${daysInMonth}`
+                            : `Day ${todayDate.getDate()} of ${daysInMonth}`}
+                        </span>
+                        <span className={`budget-pace-label ${paceCls}`}>{paceLabel}</span>
+                      </div>
+                    )}
                   </div>
-                  <div className="budget-bar-track">
-                    <div
-                      className={`budget-bar-fill ${
-                        totalGastadoConPresupuesto > totalPresupuestado ? 'bar-over'
-                        : totalGastadoConPresupuesto / totalPresupuestado > 0.8 ? 'bar-warn'
-                        : 'bar-ok'
-                      }`}
-                      style={{ width: `${Math.min(100, totalGastadoConPresupuesto / totalPresupuestado * 100)}%` }}
-                    />
-                  </div>
-                </div>
-              )}
+                )
+              })()}
 
               {gastosCats.length === 0
                 ? <p className="empty-text">{t(lang, 'no_expense_cats')}</p>
