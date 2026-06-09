@@ -1075,6 +1075,17 @@ html, body { overscroll-behavior: none; }
 .movement-item:last-child { border-bottom: none; }
 .movement-item:hover { background: var(--surface2); }
 
+/* Compact mode */
+.movements-compact .movement-item { padding: 0.35rem 0.4rem; }
+.movements-compact .movement-left { gap: 0; }
+.movements-compact .movement-meta { display: none; }
+.movements-compact .movement-nota { display: none; }
+.movements-compact .movement-fixed-badge { display: none; }
+.movements-compact .movement-title { font-size: 0.85rem; }
+.movements-compact .movement-cat { font-size: 0.72rem; }
+.movements-compact .movement-amount { font-size: 0.9rem; }
+.movements-compact .movement-date-header { padding: 0.2rem 0; font-size: 0.7rem; }
+
 .movement-left {
   display: flex;
   flex-direction: column;

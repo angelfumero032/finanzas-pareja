@@ -51,6 +51,7 @@ export default function MesView() {
   const [busqueda, setBusqueda] = useState('')
   const [filtroCatId, setFiltroCatId] = useState(null)
   const [sortMovs, setSortMovs] = useState(() => localStorage.getItem('sortMovs') ?? 'fecha')
+  const [compactMode, setCompactMode] = useState(() => localStorage.getItem('compactMode') === '1')
 
   const movListRef = useRef(null)
   const searchRef = useRef(null)
@@ -1829,6 +1830,13 @@ export default function MesView() {
                     >
                       {sortMovs === 'fecha' ? t(lang, 'sort_by_date') : t(lang, 'sort_by_amount')}
                     </button>
+                    <button
+                      className={`sort-btn${compactMode ? ' sort-btn-active' : ''}`}
+                      onClick={() => setCompactMode(v => { const next = !v; localStorage.setItem('compactMode', next ? '1' : ''); return next })}
+                      title={compactMode ? (lang === 'es' ? 'Vista normal' : 'Normal view') : (lang === 'es' ? 'Vista compacta' : 'Compact view')}
+                    >
+                      {compactMode ? '⊟' : '⊞'}
+                    </button>
                   </div>
                   {filtroPendiente && gastosPendientes.length > 0 && (
                     <div className="pending-actions-row">
@@ -1949,7 +1957,7 @@ export default function MesView() {
                   )}
                 </div>
               ) : (
-                <div className="movements-list">
+                <div className={`movements-list${compactMode ? ' movements-compact' : ''}`}>
                   {renderList.map((entry, idx) => {
                     if (entry.type === 'header') {
                       const dt = dailyTotals[entry.date]
