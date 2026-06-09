@@ -6,6 +6,7 @@ import { t, MONTHS } from '../i18n'
 import MovimientoModal from '../components/MovimientoModal'
 import ActivityPanel from '../components/ActivityPanel'
 import GraficasMes from '../components/GraficasMes'
+import CategoriasModal from '../components/CategoriasModal'
 
 const CAT_PALETTE = [
   '#6366f1', '#f59e0b', '#10b981', '#ef4444',
@@ -60,6 +61,9 @@ export default function MesView() {
 
   // Help overlay (atajos de teclado)
   const [showHelp, setShowHelp] = useState(false)
+
+  // Category management modal
+  const [showCatsModal, setShowCatsModal] = useState(false)
 
   // Toast notifications (supports undo action)
   const [toast, setToast] = useState(null)
@@ -122,7 +126,7 @@ export default function MesView() {
   const subcatMap = useMemo(() => new Map(subcategorias.map(s => [s.id, s.nombre])), [subcategorias])
 
   // ── Carga de datos estáticos (categorías, subcategorías, perfiles del hogar) ──
-  useEffect(() => {
+  const loadStaticos = useCallback(() => {
     if (!hogarId) return
     Promise.all([
       supabase.from('categorias').select('*').eq('hogar_id', hogarId).eq('archivada', false).order('tipo').order('orden'),
@@ -134,6 +138,7 @@ export default function MesView() {
       if (usrs.data) setUsuarios(usrs.data)
     })
   }, [hogarId])
+  useEffect(() => { loadStaticos() }, [loadStaticos])
 
   // ── Carga de datos del mes ──
   const loadMes = useCallback(async () => {
@@ -170,7 +175,7 @@ export default function MesView() {
 
   // Bloquear scroll del body cuando hay un panel/modal abierto (fix iOS)
   useEffect(() => {
-    const locked = modalOpen || showActivity || showHelp
+    const locked = modalOpen || showActivity || showHelp || showCatsModal
     document.body.style.overflow = locked ? 'hidden' : ''
     return () => { document.body.style.overflow = '' }
   }, [modalOpen, showActivity, showHelp])
@@ -799,9 +804,19 @@ export default function MesView() {
             <section className="section">
               <div className="section-header">
                 <h2 className="section-title">{t(lang, 'budget_section')}</h2>
-                <button className="btn-sm btn-secondary" onClick={handleCopyBudgetFromLastMonth}>
-                  {t(lang, 'copy_budget_prev')}
-                </button>
+                <div className="section-header-actions">
+                  <button className="btn-sm btn-secondary" onClick={handleCopyBudgetFromLastMonth}>
+                    {t(lang, 'copy_budget_prev')}
+                  </button>
+                  <button
+                    className="btn-icon"
+                    onClick={() => setShowCatsModal(true)}
+                    title={lang === 'es' ? 'Gestionar categorías' : 'Manage categories'}
+                    style={{ fontSize: '0.9rem' }}
+                  >
+                    ⚙
+                  </button>
+                </div>
               </div>
 
               {totalPresupuestado > 0 && (() => {
@@ -1126,6 +1141,15 @@ export default function MesView() {
           </>
         )}
       </main>
+
+      {/* Modal categorías */}
+      <CategoriasModal
+        open={showCatsModal}
+        onClose={() => setShowCatsModal(false)}
+        lang={lang}
+        hogarId={hogarId}
+        onRefresh={loadStaticos}
+      />
 
       {/* Modal movimiento */}
       <MovimientoModal
