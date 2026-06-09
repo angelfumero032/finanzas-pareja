@@ -316,6 +316,25 @@ export default function MesView() {
     setMovimientos(prev => prev.filter(m => m.id !== id))
   }
 
+  // ── Presupuesto: copiar del mes anterior ──
+  async function handleCopyBudgetFromLastMonth() {
+    const d = new Date(anio, mes - 2, 1)
+    const { data } = await supabase
+      .from('presupuestos')
+      .select('categoria_id, importe')
+      .eq('hogar_id', hogarId)
+      .eq('anio', d.getFullYear())
+      .eq('mes', d.getMonth() + 1)
+    if (!data || data.length === 0) return
+    await supabase
+      .from('presupuestos')
+      .upsert(
+        data.map(p => ({ hogar_id: hogarId, categoria_id: p.categoria_id, anio, mes, importe: p.importe })),
+        { onConflict: 'hogar_id,categoria_id,anio,mes' }
+      )
+    loadMes()
+  }
+
   // ── Presupuesto: guardar desde el input inline ──
   async function handleSaveBudget(catId, rawValue) {
     const importe = Math.max(0, parseFloat(rawValue) || 0)
@@ -415,6 +434,10 @@ export default function MesView() {
     return id ? (subcategorias.find(s => s.id === id)?.nombre ?? '') : ''
   }
   function formatFecha(dateStr) {
+    const todayStr = todayDate.toISOString().slice(0, 10)
+    const yesterdayStr = new Date(todayDate.getFullYear(), todayDate.getMonth(), todayDate.getDate() - 1).toISOString().slice(0, 10)
+    if (dateStr === todayStr) return t(lang, 'today')
+    if (dateStr === yesterdayStr) return t(lang, 'yesterday')
     const parts = dateStr.split('-')
     const day = parseInt(parts[2])
     const monthAbbr = MONTHS[lang][parseInt(parts[1]) - 1].slice(0, 3)
@@ -521,7 +544,14 @@ export default function MesView() {
 
             {/* Por categoría (gastos) */}
             <section className="section">
-              <h2 className="section-title">{t(lang, 'budget_section')}</h2>
+              <div className="section-header">
+                <h2 className="section-title">{t(lang, 'budget_section')}</h2>
+                {presupuestos.length === 0 && (
+                  <button className="btn-sm btn-secondary" onClick={handleCopyBudgetFromLastMonth}>
+                    {t(lang, 'copy_budget_prev')}
+                  </button>
+                )}
+              </div>
 
               {totalPresupuestado > 0 && (
                 <div className="budget-overview">
