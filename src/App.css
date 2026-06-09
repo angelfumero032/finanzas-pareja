@@ -1039,6 +1039,89 @@ html, body { overscroll-behavior: none; }
 }
 .cat-add-input:focus { border-color: var(--accent); background: var(--surface); }
 
+.cat-block { display: flex; flex-direction: column; }
+
+.cat-expand-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  width: 1.2rem;
+  flex-shrink: 0;
+  color: var(--text3);
+  font-size: 0.75rem;
+  line-height: 1;
+  transition: color 0.12s;
+}
+.cat-expand-btn:hover { color: var(--accent); }
+.cat-expand-arrow { display: inline-block; }
+
+.cat-row-btns { display: flex; align-items: center; gap: 0.25rem; }
+
+.cat-row-edit {
+  opacity: 0;
+  font-size: 0.78rem !important;
+  transition: opacity 0.12s;
+}
+.cat-row:hover .cat-row-edit { opacity: 1; }
+@media (hover: none) { .cat-row-edit { opacity: 1; } }
+.cat-row-edit:hover { background: color-mix(in srgb, var(--accent) 12%, transparent) !important; color: var(--accent) !important; border-color: var(--accent) !important; }
+
+.sub-block {
+  margin-left: 1.8rem;
+  border-left: 2px solid var(--border);
+  padding-left: 0.6rem;
+  padding-bottom: 0.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.sub-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid var(--border);
+}
+.sub-row:last-of-type { border-bottom: none; }
+.sub-row:hover { background: var(--surface2); }
+.sub-row:hover .cat-row-edit { opacity: 1; }
+
+.sub-row-name {
+  flex: 1;
+  font-size: 0.85rem;
+  color: var(--text2);
+}
+
+.sub-add-form {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 0.4rem;
+}
+
+.sub-archived {
+  font-size: 0.72rem;
+  color: var(--text3);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.3rem 0;
+}
+.sub-archived-item {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  padding: 0.1rem 0.5rem;
+  font-size: 0.72rem;
+  cursor: pointer;
+  color: var(--text3);
+  font-family: inherit;
+  transition: all 0.1s;
+}
+.sub-archived-item:hover { color: var(--income); border-color: var(--income); }
+
 .cats-archived-section { margin-top: 0.25rem; }
 .cats-archived-toggle {
   background: none;
