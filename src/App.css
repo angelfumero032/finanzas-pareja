@@ -793,6 +793,50 @@ html, body { overscroll-behavior: none; }
 .budget-subcat-amt { font-weight: 600; color: var(--text); flex-shrink: 0; }
 .budget-subcat-pct { color: var(--text3); flex-shrink: 0; min-width: 2.4rem; text-align: right; }
 
+/* ── Banner de bienvenida ── */
+.welcome-banner {
+  background: color-mix(in srgb, var(--accent) 7%, var(--surface));
+  border: 1.5px solid color-mix(in srgb, var(--accent) 25%, var(--border));
+  border-radius: var(--r);
+  padding: 1rem 1rem 0.85rem;
+  position: relative;
+}
+.welcome-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin: 0 0 0.6rem;
+  color: var(--text);
+}
+.welcome-steps {
+  margin: 0 0 0.75rem;
+  padding-left: 1.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.welcome-steps li {
+  font-size: 0.875rem;
+  color: var(--text2);
+  line-height: 1.4;
+}
+.welcome-steps strong { color: var(--text); }
+.welcome-close {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.6rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: var(--text3);
+  padding: 0.2rem 0.35rem;
+  border-radius: 4px;
+  line-height: 1;
+  font-family: inherit;
+}
+.welcome-close:hover { background: var(--border); color: var(--text); }
+.welcome-dismiss { align-self: flex-start; }
+
 /* ── Estado vacío / carga ── */
 .loading-row { text-align: center; padding: 2rem; color: var(--text2); }
 .empty-text  { color: var(--text2); font-size: 0.875rem; margin: 0.5rem 0; text-align: center; }

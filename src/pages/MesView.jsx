@@ -114,6 +114,10 @@ export default function MesView() {
   const [yearData, setYearData] = useState(null)
   const [yearLoading, setYearLoading] = useState(false)
 
+  // Welcome banner (shown once on empty current month)
+  const [welcomeDismissed, setWelcomeDismissed] = useState(() => !!localStorage.getItem('welcomeDismissed'))
+  function dismissWelcome() { localStorage.setItem('welcomeDismissed', '1'); setWelcomeDismissed(true) }
+
   // Dark mode manual override (D key cycles system/dark/light)
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'auto')
   useEffect(() => {
@@ -853,6 +857,32 @@ export default function MesView() {
                 <span className="by-user-pct">{Math.round(u.total / totalGastos * 100)}%</span>
               </div>
             ))}
+          </div>
+        )}
+
+        {!welcomeDismissed && isCurrentMonth && !loading && movimientos.length === 0 && (
+          <div className="welcome-banner">
+            <button className="welcome-close" onClick={dismissWelcome} aria-label="Close">✕</button>
+            <p className="welcome-title">
+              {lang === 'es' ? '👋 Bienvenidos' : '👋 Welcome'}
+            </p>
+            <ol className="welcome-steps">
+              <li>{lang === 'es'
+                ? <><strong>Fija presupuestos</strong> — pulsa "Sin presupuesto" en cada categoría</>
+                : <><strong>Set budgets</strong> — tap "No budget" next to each category</>
+              }</li>
+              <li>{lang === 'es'
+                ? <><strong>Añade un gasto</strong> — botón <strong>+</strong> abajo a la derecha</>
+                : <><strong>Add a transaction</strong> — tap the <strong>+</strong> button bottom-right</>
+              }</li>
+              <li>{lang === 'es'
+                ? <><strong>Invita a tu pareja</strong> — comparte esta URL y sus credenciales</>
+                : <><strong>Invite your partner</strong> — share this URL and their login</>
+              }</li>
+            </ol>
+            <button className="welcome-dismiss btn-sm btn-secondary" onClick={dismissWelcome}>
+              {lang === 'es' ? 'Entendido' : 'Got it'}
+            </button>
           </div>
         )}
 
