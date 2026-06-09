@@ -1073,6 +1073,31 @@ export default function MesView() {
           </div>
         )}
 
+        {/* Over-budget alert */}
+        {!loading && !isFutureMonth && (() => {
+          const overCats = gastosCats.filter(c => {
+            const b = presupuestoPorCat[c.id]
+            return b > 0 && (gastoPorCat[c.id] ?? 0) > b
+          })
+          if (overCats.length === 0) return null
+          return (
+            <div className="overbudget-alert">
+              <span className="overbudget-alert-icon">⚠</span>
+              <span className="overbudget-alert-text">
+                {overCats.map(c => c.nombre).join(' · ')}
+                {' — '}
+                {lang === 'es' ? 'sobre presupuesto' : 'over budget'}
+              </span>
+              <button
+                className="overbudget-alert-link"
+                onClick={() => { setFiltroCatId(overCats[0].id); setFiltroTipo('gasto') }}
+              >
+                {lang === 'es' ? 'ver' : 'view'}
+              </button>
+            </div>
+          )
+        })()}
+
         {/* Future month planning banner */}
         {isFutureMonth && !loading && (
           <div className="planning-banner">

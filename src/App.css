@@ -2069,6 +2069,31 @@ kbd {
 }
 .savings-rate-value.savings-negative { color: var(--expense); }
 
+/* ── Over-budget alert ── */
+.overbudget-alert {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.45rem;
+  background: rgba(248,113,113,0.08);
+  border: 1px solid rgba(248,113,113,0.25);
+  font-size: 0.78rem;
+}
+.overbudget-alert-icon { font-size: 0.85rem; flex-shrink: 0; }
+.overbudget-alert-text { flex: 1; color: var(--expense); }
+.overbudget-alert-link {
+  background: none;
+  border: none;
+  color: var(--expense);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+  flex-shrink: 0;
+}
+
 /* ── Planning (future month) banner ── */
 .planning-banner {
   display: flex;
