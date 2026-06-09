@@ -38,6 +38,7 @@ export default function MesView() {
   const [filtroTipo, setFiltroTipo] = useState('all')
   const [busqueda, setBusqueda] = useState('')
   const [filtroCatId, setFiltroCatId] = useState(null)
+  const [sortMovs, setSortMovs] = useState('fecha') // 'fecha' | 'importe'
 
   const movListRef = useRef(null)
   const touchX = useRef(null)
@@ -105,7 +106,7 @@ export default function MesView() {
   useEffect(() => { loadMes() }, [loadMes])
 
   // Limpiar filtros al cambiar de mes
-  useEffect(() => { setBusqueda(''); setFiltroTipo('all'); setFiltroCatId(null) }, [anio, mes])
+  useEffect(() => { setBusqueda(''); setFiltroTipo('all'); setFiltroCatId(null); setSortMovs('fecha') }, [anio, mes])
 
   // ── Tendencia: últimos 6 meses ──
   const loadTrend = useCallback(async () => {
@@ -360,6 +361,10 @@ export default function MesView() {
       )
     })
 
+  if (sortMovs === 'importe') {
+    movimientosFiltrados.sort((a, b) => Number(b.importe) - Number(a.importe))
+  }
+
   const totalFiltrado = movimientosFiltrados.reduce((s, m) => s + Number(m.importe), 0)
   const hayFiltroActivo = filtroTipo !== 'all' || busqueda || filtroCatId
 
@@ -525,7 +530,7 @@ export default function MesView() {
                     const pct = Math.min(100, ratio * 100)
                     const barClass = ratio > 1 ? 'bar-over' : ratio > 0.8 ? 'bar-warn' : 'bar-ok'
                     return (
-                      <div key={cat.id} className={`budget-row${filtroCatId === cat.id ? ' budget-row-active' : ''}`}>
+                      <div key={cat.id} className={`budget-row${filtroCatId === cat.id ? ' budget-row-active' : ''}${spent === 0 ? ' budget-row-zero' : ''}`}>
                         <div className="budget-row-top">
                           <button
                             className="budget-cat-name budget-cat-btn"
@@ -602,16 +607,25 @@ export default function MesView() {
 
               {movimientos.length > 0 && (
                 <>
-                  <div className="filter-tabs">
-                    {['all', 'gasto', 'ingreso'].map(tipo => (
-                      <button
-                        key={tipo}
-                        className={`filter-tab${filtroTipo === tipo ? ' filter-tab-active' : ''}`}
-                        onClick={() => setFiltroTipo(tipo)}
-                      >
-                        {tipo === 'all' ? t(lang, 'filter_all') : tipo === 'gasto' ? t(lang, 'expense') : t(lang, 'income')}
-                      </button>
-                    ))}
+                  <div className="filter-tabs-row">
+                    <div className="filter-tabs">
+                      {['all', 'gasto', 'ingreso'].map(tipo => (
+                        <button
+                          key={tipo}
+                          className={`filter-tab${filtroTipo === tipo ? ' filter-tab-active' : ''}`}
+                          onClick={() => setFiltroTipo(tipo)}
+                        >
+                          {tipo === 'all' ? t(lang, 'filter_all') : tipo === 'gasto' ? t(lang, 'expense') : t(lang, 'income')}
+                        </button>
+                      ))}
+                    </div>
+                    <button
+                      className={`sort-btn${sortMovs === 'importe' ? ' sort-btn-active' : ''}`}
+                      onClick={() => setSortMovs(s => s === 'fecha' ? 'importe' : 'fecha')}
+                      title={sortMovs === 'fecha' ? t(lang, 'amount') : t(lang, 'date')}
+                    >
+                      {sortMovs === 'fecha' ? '↕ €' : '↕ ' + t(lang, 'date').slice(0, 4)}
+                    </button>
                   </div>
                   <div className="search-wrap">
                     <input
