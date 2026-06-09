@@ -2549,6 +2549,20 @@ kbd {
   flex-shrink: 0;
 }
 
+/* ── Approaching budget alert ── */
+.approaching-alert {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.45rem;
+  background: rgba(245,158,11,0.08);
+  border: 1px solid rgba(245,158,11,0.25);
+  font-size: 0.78rem;
+}
+.approaching-alert-icon { font-size: 0.85rem; flex-shrink: 0; }
+.approaching-alert-text { flex: 1; color: color-mix(in srgb, var(--warning) 90%, #000); }
+
 /* ── Budget health score ── */
 .health-score-row {
   display: flex;

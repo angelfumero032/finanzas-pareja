@@ -1043,6 +1043,12 @@ export default function MesView() {
     const yesterdayStr = new Date(todayDate.getFullYear(), todayDate.getMonth(), todayDate.getDate() - 1).toISOString().slice(0, 10)
     if (dateStr === todayStr) return t(lang, 'today')
     if (dateStr === yesterdayStr) return t(lang, 'yesterday')
+    // Within last 5 days: show weekday name
+    const date = new Date(dateStr + 'T12:00:00')
+    const diffDays = (new Date(todayStr + 'T12:00:00') - date) / 86400000
+    if (diffDays > 0 && diffDays < 5) {
+      return date.toLocaleDateString(lang === 'es' ? 'es-ES' : 'en-GB', { weekday: 'long' })
+    }
     const parts = dateStr.split('-')
     const day = parseInt(parts[2])
     const monthAbbr = MONTHS[lang][parseInt(parts[1]) - 1].slice(0, 3)
@@ -1452,6 +1458,35 @@ export default function MesView() {
               <button
                 className="overbudget-alert-link"
                 onClick={() => { setFiltroCatId(overCats[0].id); setFiltroTipo('gasto') }}
+              >
+                {lang === 'es' ? 'ver' : 'view'}
+              </button>
+            </div>
+          )
+        })()}
+
+        {/* Approaching budget warning (current month, 75-99%) */}
+        {isCurrentMonth && !loading && (() => {
+          const approaching = gastosCats.filter(c => {
+            const b = presupuestoPorCat[c.id]
+            const spent = gastoPorCat[c.id] ?? 0
+            const ratio = b > 0 ? spent / b : 0
+            return ratio >= 0.75 && ratio < 1.0
+          })
+          if (approaching.length === 0) return null
+          return (
+            <div className="approaching-alert">
+              <span className="approaching-alert-icon">⚡</span>
+              <span className="approaching-alert-text">
+                {approaching.map(c => {
+                  const pct = Math.round((gastoPorCat[c.id] ?? 0) / presupuestoPorCat[c.id] * 100)
+                  return `${c.nombre} ${pct}%`
+                }).join(' · ')}
+                {' — '}{lang === 'es' ? 'cerca del límite' : 'near budget limit'}
+              </span>
+              <button
+                className="overbudget-alert-link"
+                onClick={() => { setFiltroCatId(approaching[0].id); setFiltroTipo('gasto') }}
               >
                 {lang === 'es' ? 'ver' : 'view'}
               </button>
