@@ -147,6 +147,19 @@ html, body { overscroll-behavior: none; }
 }
 .btn-secondary:hover { background: var(--border); }
 
+/* Focus-visible outlines for keyboard nav (WCAG 2.1 AA) */
+.btn-primary:focus-visible,
+.btn-secondary:focus-visible,
+.btn-danger:focus-visible,
+.btn-icon:focus-visible,
+.filter-tab:focus-visible,
+.movement-item:focus-visible,
+.year-cell:focus-visible,
+.budget-cat-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 .btn-danger {
   background: var(--expense-bg);
   color: var(--expense);
@@ -1208,8 +1221,8 @@ html, body { overscroll-behavior: none; }
   grid-template-columns: repeat(4, 1fr);
   gap: 0.4rem;
 }
-@media (max-width: 360px) {
-  .year-grid { grid-template-columns: repeat(3, 1fr); }
+@media (max-width: 420px) {
+  .year-grid { grid-template-columns: repeat(3, 1fr); gap: 0.3rem; }
 }
 
 .year-cell {

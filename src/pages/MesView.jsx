@@ -471,7 +471,7 @@ export default function MesView() {
         .eq('mes', d.getMonth() + 1)
       if (fetchErr) throw fetchErr
       if (!data || data.length === 0) {
-        showToast(lang === 'es' ? 'Sin presupuesto el mes anterior' : 'No budget last month')
+        showToast(t(lang, 'no_budget_prev'))
         return
       }
       const { error: upsertErr } = await supabase
@@ -850,7 +850,7 @@ export default function MesView() {
                   className="btn-sm btn-secondary"
                   onClick={() => setShowYearView(v => !v)}
                 >
-                  {showYearView ? (lang === 'es' ? 'Ocultar' : 'Hide') : (lang === 'es' ? 'Ver resumen' : 'Show summary')}
+                  {showYearView ? t(lang, 'year_hide') : t(lang, 'year_show')}
                 </button>
               </div>
               {showYearView && (
@@ -900,7 +900,7 @@ export default function MesView() {
                   <button
                     className="btn-icon"
                     onClick={() => setShowCatsModal(true)}
-                    title={lang === 'es' ? 'Gestionar categorías' : 'Manage categories'}
+                    title={t(lang, 'manage_categories')}
                     style={{ fontSize: '0.9rem' }}
                   >
                     ⚙
@@ -959,9 +959,7 @@ export default function MesView() {
                         </div>
                         {totalGastos > 0 && todayDate.getDate() > 0 && (
                           <div className="budget-pace-row">
-                            <span className="budget-pace-day">
-                              {lang === 'es' ? 'Media gasto/día' : 'Avg spend/day'}
-                            </span>
+                            <span className="budget-pace-day">{t(lang, 'avg_spend_day')}</span>
                             <span className="budget-pace-label pace-ok">
                               {fmt(totalGastos / todayDate.getDate())}
                             </span>
@@ -969,9 +967,7 @@ export default function MesView() {
                         )}
                         {timePct > 0 && timePct < 0.99 && totalGastadoConPresupuesto > 0 && (
                           <div className="budget-pace-row">
-                            <span className="budget-pace-day">
-                              {lang === 'es' ? 'Proyección fin mes' : 'Month-end forecast'}
-                            </span>
+                            <span className="budget-pace-day">{t(lang, 'forecast_eom')}</span>
                             <span className={`budget-pace-label ${(totalGastadoConPresupuesto / timePct) > totalPresupuestado ? 'pace-fast' : 'pace-ok'}`}>
                               {fmt(totalGastadoConPresupuesto / timePct)}
                               {' '}
@@ -1101,7 +1097,7 @@ export default function MesView() {
                 <h2 className="section-title">{t(lang, 'movements_section')}</h2>
                 <div className="section-header-actions">
                   <button className="btn-sm btn-secondary" onClick={() => setShowImportModal(true)}>
-                    {lang === 'es' ? 'Importar' : 'Import'}
+                    {t(lang, 'import_csv')}
                   </button>
                   {movimientos.length > 0 && (
                     <button className="btn-sm btn-secondary" onClick={exportarCSV}>
@@ -1138,13 +1134,9 @@ export default function MesView() {
                     <button
                       className={`sort-btn${sortMovs === 'importe' ? ' sort-btn-active' : ''}`}
                       onClick={() => setSortMovs(s => s === 'fecha' ? 'importe' : 'fecha')}
-                      title={lang === 'es'
-                        ? (sortMovs === 'fecha' ? 'Ordenar por importe' : 'Ordenar por fecha')
-                        : (sortMovs === 'fecha' ? 'Sort by amount' : 'Sort by date')}
+                      title={sortMovs === 'fecha' ? t(lang, 'sort_by_amount') : t(lang, 'sort_by_date')}
                     >
-                      {sortMovs === 'fecha'
-                        ? (lang === 'es' ? 'Fecha ↓' : 'Date ↓')
-                        : (lang === 'es' ? 'Importe ↓' : 'Amount ↓')}
+                      {sortMovs === 'fecha' ? t(lang, 'sort_by_date') : t(lang, 'sort_by_amount')}
                     </button>
                   </div>
                   <div className="search-wrap">
@@ -1152,7 +1144,8 @@ export default function MesView() {
                       ref={searchRef}
                       className="search-input"
                       type="search"
-                      placeholder={lang === 'es' ? 'Buscar categoría, importe, nota…' : 'Search category, amount, note…'}
+                      placeholder={t(lang, 'search_movements')}
+                      aria-label={t(lang, 'search_movements')}
                       value={busqueda}
                       onChange={e => setBusqueda(e.target.value)}
                     />
@@ -1198,7 +1191,7 @@ export default function MesView() {
                         className="btn-sm btn-secondary"
                         onClick={() => setShowImportModal(true)}
                       >
-                        {lang === 'es' ? 'Importar CSV' : 'Import CSV'}
+                        {t(lang, 'import_csv')}
                       </button>
                     </div>
                   )}
