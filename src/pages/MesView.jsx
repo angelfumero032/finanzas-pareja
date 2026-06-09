@@ -948,7 +948,7 @@ export default function MesView() {
         hogarId={hogarId}
         userId={profile?.id}
         defaultTipo={filtroTipo !== 'all' ? filtroTipo : 'gasto'}
-        defaultCatId={!editMov && filtroTipo !== 'ingreso' ? filtroCatId : null}
+        defaultCatId={!editMov && filtroTipo !== 'ingreso' && filtroCatId !== 'nocat' ? filtroCatId : null}
       />
 
       {/* Panel de actividad */}
