@@ -356,8 +356,10 @@ export default function MesView() {
   }
 
   // ── Resumen calculado ──
-  const totalGastos = movimientos.filter(m => m.tipo === 'gasto').reduce((s, m) => s + Number(m.importe), 0)
-  const totalIngresos = movimientos.filter(m => m.tipo === 'ingreso').reduce((s, m) => s + Number(m.importe), 0)
+  const gastosItems = movimientos.filter(m => m.tipo === 'gasto')
+  const ingresosItems = movimientos.filter(m => m.tipo === 'ingreso')
+  const totalGastos = gastosItems.reduce((s, m) => s + Number(m.importe), 0)
+  const totalIngresos = ingresosItems.reduce((s, m) => s + Number(m.importe), 0)
   const balance = totalIngresos - totalGastos
 
   const deltaIngresos = prevTotals?.ingresos > 0 ? (totalIngresos - prevTotals.ingresos) / prevTotals.ingresos * 100 : null
@@ -476,6 +478,9 @@ export default function MesView() {
                 {deltaIngresos >= 0 ? '▲' : '▼'} {Math.abs(deltaIngresos).toFixed(0)}%
               </span>
             )}
+            {ingresosItems.length > 0 && (
+              <span className="summary-count">{ingresosItems.length}</span>
+            )}
           </div>
           <div className="summary-card expense-card">
             <span className="summary-label">{t(lang, 'total_expenses')}</span>
@@ -484,6 +489,9 @@ export default function MesView() {
               <span className={`summary-delta ${deltaGastos >= 0 ? 'delta-neg' : 'delta-pos'}`}>
                 {deltaGastos >= 0 ? '▲' : '▼'} {Math.abs(deltaGastos).toFixed(0)}%
               </span>
+            )}
+            {gastosItems.length > 0 && (
+              <span className="summary-count">{gastosItems.length}</span>
             )}
           </div>
           <div className={`summary-card balance-card ${balance >= 0 ? 'balance-pos' : 'balance-neg'}`}>
