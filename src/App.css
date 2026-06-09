@@ -169,6 +169,9 @@ html, body { overscroll-behavior: none; }
   align-items: center;
   gap: 0.2rem;
   padding: 0.65rem 0.75rem;
+  padding-top: max(0.65rem, calc(env(safe-area-inset-top, 0px) + 0.3rem));
+  padding-left: max(0.75rem, env(safe-area-inset-left, 0px));
+  padding-right: max(0.75rem, env(safe-area-inset-right, 0px));
   background: var(--surface);
   border-bottom: 1px solid var(--border);
   position: sticky;
@@ -258,7 +261,7 @@ html, body { overscroll-behavior: none; }
   max-width: 680px;
   width: 100%;
   margin: 0 auto;
-  padding: 1rem 1rem 5rem;
+  padding: 1rem 1rem max(5rem, calc(env(safe-area-inset-bottom, 0px) + 4.5rem));
   display: flex;
   flex-direction: column;
   gap: 1rem;
@@ -906,8 +909,8 @@ html, body { overscroll-behavior: none; }
 /* ── FAB (Floating Action Button) ── */
 .fab {
   position: fixed;
-  bottom: 1.5rem;
-  right: 1.5rem;
+  bottom: max(1.5rem, calc(env(safe-area-inset-bottom, 0px) + 1rem));
+  right: max(1.5rem, calc(env(safe-area-inset-right, 0px) + 1rem));
   width: 3.25rem;
   height: 3.25rem;
   border-radius: 50%;
