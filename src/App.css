@@ -1566,6 +1566,37 @@ html, body { overscroll-behavior: none; }
 .year-totals-exp { color: var(--expense); }
 .year-totals-sep { color: var(--text3); }
 
+/* ── Insights grid ── */
+.insights-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+.insight-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 0.55rem 0.65rem;
+}
+.insight-card-wide { grid-column: 1 / -1; }
+.insight-icon { font-size: 0.9rem; }
+.insight-val { font-size: 1rem; font-weight: 700; color: var(--text); line-height: 1.1; }
+.insight-label { font-size: 0.72rem; color: var(--text2); line-height: 1.3; }
+.insight-split-bars {
+  display: flex;
+  width: 100%;
+  height: 5px;
+  border-radius: 3px;
+  overflow: hidden;
+  margin: 0.2rem 0 0.1rem;
+  gap: 1px;
+}
+.insight-split-bar { border-radius: 3px; transition: width .3s; }
+
 /* ── Gráficas ── */
 .chart-block { margin-bottom: 0; }
 .chart-block-sep { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); }

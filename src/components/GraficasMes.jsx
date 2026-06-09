@@ -180,7 +180,57 @@ function TrendBars({ data, fmt, lang }) {
   )
 }
 
-export default function GraficasMes({ lang, gastoPorCat, categorias, trendData, fmt, onSelectCat, catColors, selectedCatId }) {
+function InsightsBlock({ insights, fmt, lang, catMap }) {
+  if (!insights) return null
+  const { biggest, topDay, weekendTotal, weekdayTotal } = insights
+  const total = weekendTotal + weekdayTotal
+  const weekendPct = total > 0 ? Math.round(weekendTotal / total * 100) : 0
+  const weekdayPct = 100 - weekendPct
+
+  const topDayDate = topDay ? new Date(topDay[0] + 'T12:00:00') : null
+  const topDayLabel = topDayDate
+    ? topDayDate.toLocaleDateString(lang === 'es' ? 'es-ES' : 'en-GB', { day: 'numeric', month: 'short' })
+    : null
+
+  const biggestCatName = biggest?.categoria_id ? (catMap?.get(biggest.categoria_id) ?? '') : ''
+
+  return (
+    <div className="insights-grid">
+      {biggest && (
+        <div className="insight-card">
+          <span className="insight-icon" aria-hidden="true">🔝</span>
+          <span className="insight-val">{fmt(Number(biggest.importe))}</span>
+          <span className="insight-label">
+            {biggest.concepto || biggestCatName || (lang === 'es' ? 'mayor gasto' : 'top expense')}
+          </span>
+        </div>
+      )}
+      {topDay && topDay[1] > 0 && (
+        <div className="insight-card">
+          <span className="insight-icon" aria-hidden="true">📅</span>
+          <span className="insight-val">{fmt(topDay[1])}</span>
+          <span className="insight-label">{topDayLabel}</span>
+        </div>
+      )}
+      {total > 0 && (
+        <div className="insight-card insight-card-wide">
+          <span className="insight-icon" aria-hidden="true">📊</span>
+          <div className="insight-split-bars">
+            <div className="insight-split-bar" style={{ width: `${weekdayPct}%`, background: 'var(--accent)' }} />
+            <div className="insight-split-bar" style={{ width: `${weekendPct}%`, background: 'var(--expense)' }} />
+          </div>
+          <span className="insight-label">
+            {lang === 'es'
+              ? `L–V ${weekdayPct}% · F–D ${weekendPct}%`
+              : `Mon–Fri ${weekdayPct}% · Sat–Sun ${weekendPct}%`}
+          </span>
+        </div>
+      )}
+    </div>
+  )
+}
+
+export default function GraficasMes({ lang, gastoPorCat, categorias, trendData, fmt, onSelectCat, catColors, catMap, insights, selectedCatId }) {
   const pieData = categorias
     .filter(c => c.tipo === 'gasto' && (gastoPorCat[c.id] ?? 0) > 0)
     .map((c, i) => ({
@@ -193,21 +243,28 @@ export default function GraficasMes({ lang, gastoPorCat, categorias, trendData, 
 
   const hasTrend = trendData.some(d => d.income > 0 || d.expenses > 0)
 
-  if (pieData.length === 0 && !hasTrend) return null
+  if (pieData.length === 0 && !hasTrend && !insights) return null
 
   return (
     <section className="section section-charts">
       <h2 className="section-title">{t(lang, 'charts_section')}</h2>
 
-      {pieData.length > 0 && (
+      {insights && (
         <div className="chart-block">
+          <p className="chart-subtitle">{lang === 'es' ? 'Puntos clave' : 'Key insights'}</p>
+          <InsightsBlock insights={insights} fmt={fmt} lang={lang} catMap={catMap} />
+        </div>
+      )}
+
+      {pieData.length > 0 && (
+        <div className={`chart-block${insights ? ' chart-block-sep' : ''}`}>
           <p className="chart-subtitle">{t(lang, 'spending_by_category')}</p>
           <DonutChart slices={pieData} fmt={fmt} lang={lang} onSelectCat={onSelectCat} selectedCatId={selectedCatId} />
         </div>
       )}
 
       {hasTrend && (
-        <div className={`chart-block${pieData.length > 0 ? ' chart-block-sep' : ''}`}>
+        <div className={`chart-block${pieData.length > 0 || insights ? ' chart-block-sep' : ''}`}>
           <p className="chart-subtitle">{t(lang, 'monthly_trend')}</p>
           <TrendBars data={trendData} fmt={fmt} lang={lang} />
         </div>

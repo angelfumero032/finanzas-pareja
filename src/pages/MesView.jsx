@@ -932,6 +932,24 @@ export default function MesView() {
     return totals
   }, [movimientosFiltrados, sortMovs])
 
+  const spendingInsights = useMemo(() => {
+    if (gastosItems.length === 0) return null
+    // Biggest single expense
+    const biggest = [...gastosItems].sort((a, b) => Number(b.importe) - Number(a.importe))[0]
+    // Most expensive day
+    const byDay = {}
+    gastosItems.forEach(m => { byDay[m.fecha] = (byDay[m.fecha] ?? 0) + Number(m.importe) })
+    const topDay = Object.entries(byDay).sort((a, b) => b[1] - a[1])[0]
+    // Weekend vs weekday split
+    let weekendTotal = 0, weekdayTotal = 0
+    gastosItems.forEach(m => {
+      const dow = new Date(m.fecha + 'T12:00:00').getDay()
+      if (dow === 0 || dow === 6) weekendTotal += Number(m.importe)
+      else weekdayTotal += Number(m.importe)
+    })
+    return { biggest, topDay, weekendTotal, weekdayTotal }
+  }, [gastosItems])
+
   function fmtK(n) {
     if (n >= 10000) return `${(n / 1000).toFixed(0)}k€`
     if (n >= 1000) return `${(n / 1000).toFixed(1)}k€`
@@ -1960,6 +1978,8 @@ export default function MesView() {
               trendData={trendData}
               fmt={fmt}
               catColors={catColorMap}
+              catMap={catMap}
+              insights={spendingInsights}
               selectedCatId={filtroCatId && filtroCatId !== 'nocat' ? filtroCatId : null}
               onSelectCat={catId => {
                 setFiltroCatId(catId)
