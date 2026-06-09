@@ -1369,6 +1369,12 @@ html, body { overscroll-behavior: none; }
   color: var(--text2);
 }
 .year-cell-current .year-cell-month { color: var(--accent); }
+.year-cell-inc {
+  font-size: 0.68rem;
+  font-weight: 500;
+  color: var(--income);
+  opacity: 0.75;
+}
 .year-cell-exp {
   font-size: 0.78rem;
   font-weight: 600;
@@ -1380,6 +1386,23 @@ html, body { overscroll-behavior: none; }
 }
 .year-bal-pos { color: var(--income); }
 .year-bal-neg { color: var(--expense); }
+
+/* ── Year totals summary row ── */
+.year-totals-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.6rem;
+  background: var(--surface2);
+  border-radius: 0.4rem;
+  margin-bottom: 0.55rem;
+  font-size: 0.78rem;
+  flex-wrap: wrap;
+}
+.year-totals-item { font-weight: 600; }
+.year-totals-inc { color: var(--income); }
+.year-totals-exp { color: var(--expense); }
+.year-totals-sep { color: var(--text3); }
 
 /* ── Gráficas ── */
 .chart-block { margin-bottom: 0; }

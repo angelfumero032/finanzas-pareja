@@ -562,6 +562,43 @@ export default function MesView() {
     }
   }
 
+  // ── Presupuesto: aplicar al resto del año ──
+  async function handleApplyBudgetToYear() {
+    if (presupuestos.length === 0) return
+    const remaining = []
+    for (let m = mes + 1; m <= 12; m++) {
+      remaining.push({ anio, mes: m })
+    }
+    if (remaining.length === 0) {
+      showToast(lang === 'es' ? 'Ya es diciembre' : 'Already December')
+      return
+    }
+    const confirmed = window.confirm(
+      lang === 'es'
+        ? `¿Copiar el presupuesto de ${MONTHS.es[mes - 1]} a los ${remaining.length} meses restantes del año?`
+        : `Copy ${MONTHS.en[mes - 1]}'s budget to the remaining ${remaining.length} months of the year?`
+    )
+    if (!confirmed) return
+    try {
+      const rows = presupuestos.flatMap(p =>
+        remaining.map(rm => ({
+          hogar_id: hogarId,
+          categoria_id: p.categoria_id,
+          anio: rm.anio,
+          mes: rm.mes,
+          importe: p.importe,
+        }))
+      )
+      const { error } = await supabase
+        .from('presupuestos')
+        .upsert(rows, { onConflict: 'hogar_id,categoria_id,anio,mes' })
+      if (error) throw error
+      showToast(lang === 'es' ? `Presupuesto copiado a ${remaining.length} meses` : `Budget copied to ${remaining.length} months`)
+    } catch {
+      showToast(t(lang, 'save_error'), 'error')
+    }
+  }
+
   // ── Presupuesto: copiar del mes anterior ──
   async function handleCopyBudgetFromLastMonth() {
     const d = new Date(anio, mes - 2, 1)
@@ -1132,6 +1169,15 @@ export default function MesView() {
                   <button className="btn-sm btn-secondary" onClick={handleCopyBudgetFromLastMonth}>
                     {t(lang, 'copy_budget_prev')}
                   </button>
+                  {presupuestos.length > 0 && mes < 12 && (
+                    <button
+                      className="btn-sm btn-secondary"
+                      onClick={handleApplyBudgetToYear}
+                      title={lang === 'es' ? 'Copiar este presupuesto a todos los meses restantes del año' : 'Copy this budget to all remaining months of the year'}
+                    >
+                      {lang === 'es' ? '→ año' : '→ year'}
+                    </button>
+                  )}
                   {gastosCats.some(c => (gastoPorCat[c.id] ?? 0) === 0 && !(presupuestoPorCat[c.id] > 0)) && (
                     <button
                       className={`btn-sm btn-secondary${hideZeroCats ? ' btn-secondary-active' : ''}`}
@@ -1660,6 +1706,24 @@ export default function MesView() {
                 yearLoading ? (
                   <div className="loading-row">{t(lang, 'loading')}</div>
                 ) : yearData ? (
+                  <>
+                  {(() => {
+                    const yearIncome = yearData.reduce((s, d) => s + d.income, 0)
+                    const yearExpenses = yearData.reduce((s, d) => s + d.expenses, 0)
+                    const yearBalance = yearIncome - yearExpenses
+                    const hasData = yearIncome > 0 || yearExpenses > 0
+                    return hasData ? (
+                      <div className="year-totals-row">
+                        <span className="year-totals-item year-totals-inc">+{fmtK(yearIncome)}</span>
+                        <span className="year-totals-sep">·</span>
+                        <span className="year-totals-item year-totals-exp">−{fmtK(yearExpenses)}</span>
+                        <span className="year-totals-sep">·</span>
+                        <span className={`year-totals-item ${yearBalance >= 0 ? 'year-bal-pos' : 'year-bal-neg'}`}>
+                          {yearBalance >= 0 ? '+' : ''}{fmtK(yearBalance)}
+                        </span>
+                      </div>
+                    ) : null
+                  })()}
                   <div className="year-grid">
                     {yearData.map((d, i) => {
                       const monthBalance = d.income - d.expenses
@@ -1669,7 +1733,6 @@ export default function MesView() {
                         ? i + 1 > todayDate.getMonth() + 1
                         : anio > todayDate.getFullYear()
                       const isSelectedMonth = i + 1 === mes
-                      // Projected fixed costs for future months
                       const plantillaTotal = isFutureCell
                         ? plantillas.filter(p => p.activa).reduce((s, p) => s + Number(p.importe), 0)
                         : 0
@@ -1678,11 +1741,14 @@ export default function MesView() {
                           key={i}
                           className={`year-cell${isCurrent ? ' year-cell-current' : ''}${isSelectedMonth && !isCurrent ? ' year-cell-selected' : ''}${isEmpty && !isFutureCell ? ' year-cell-empty' : ''}${isFutureCell ? ' year-cell-future' : ''}`}
                           onClick={() => setMes(i + 1)}
-                          title={MONTHS[lang][i]}
+                          title={`${MONTHS[lang][i]}${!isEmpty ? ` · ${lang === 'es' ? 'ingresos' : 'income'}: ${fmtK(d.income)}` : ''}`}
                         >
                           <span className="year-cell-month">{MONTHS[lang][i].slice(0, 3)}</span>
                           {!isEmpty ? (
                             <>
+                              {d.income > 0 && (
+                                <span className="year-cell-inc">{fmtK(d.income)}</span>
+                              )}
                               <span className="year-cell-exp">{fmtK(d.expenses)}</span>
                               <span className={`year-cell-bal ${monthBalance >= 0 ? 'year-bal-pos' : 'year-bal-neg'}`}>
                                 {monthBalance >= 0 ? '+' : ''}{fmtK(monthBalance)}
@@ -1695,6 +1761,7 @@ export default function MesView() {
                       )
                     })}
                   </div>
+                  </>
                 ) : null
               )}
             </section>
