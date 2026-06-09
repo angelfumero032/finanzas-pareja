@@ -86,6 +86,18 @@ export default function MovimientoModal({
     return all
   }, [catName, catId, recentConceptos])
 
+  // Category prediction from concepto — find the most-used cat for this concepto
+  const suggestedCatId = useMemo(() => {
+    if (!concepto.trim() || catId || tipo !== 'gasto') return null
+    const q = concepto.trim().toLowerCase()
+    const freq = {}
+    recentConceptos
+      .filter(r => r.concepto?.toLowerCase().includes(q) || q.includes(r.concepto?.toLowerCase() ?? ''))
+      .forEach(r => { if (r.categoria_id) freq[r.categoria_id] = (freq[r.categoria_id] ?? 0) + 1 })
+    const best = Object.entries(freq).sort((a, b) => b[1] - a[1])[0]
+    return best ? best[0] : null
+  }, [concepto, catId, tipo, recentConceptos])
+
   // Chips: top-6 más frecuentes para la categoría seleccionada
   const chips = useMemo(() => {
     const freq = {}
@@ -290,6 +302,19 @@ export default function MovimientoModal({
                 <option key={c.id} value={c.id}>{c.nombre}</option>
               ))}
             </select>
+            {suggestedCatId && (() => {
+              const cat = catsFiltradas.find(c => c.id === suggestedCatId)
+              if (!cat) return null
+              return (
+                <button
+                  type="button"
+                  className="cat-suggest-chip"
+                  onClick={() => { setCatId(suggestedCatId); setSubcatId('') }}
+                >
+                  {lang === 'es' ? `← ${cat.nombre}` : `← ${cat.nombre}`}
+                </button>
+              )
+            })()}
             {tipo === 'gasto' && catId && (() => {
               const spent = gastoPorCat[catId] ?? 0
               const budget = presupuestoPorCat[catId] ?? 0

@@ -975,6 +975,21 @@ html, body { overscroll-behavior: none; }
 .concepto-chip { font-size: 0.78rem; padding: 0.2rem 0.6rem; border-radius: 999px; border: 1px solid var(--border); background: var(--surface2); color: var(--text2); cursor: pointer; white-space: nowrap; transition: background 0.15s, color 0.15s; }
 .concepto-chip:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
 .concepto-chip-active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.cat-suggest-chip {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 0.35rem;
+  font-size: 0.78rem;
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  border: 1px dashed var(--accent);
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s;
+}
+.cat-suggest-chip:hover { background: var(--accent); color: #fff; }
 
 .movement-amount { font-size: 1rem; font-weight: 700; flex-shrink: 0; letter-spacing: -0.01em; }
 .amount-expense  { color: var(--expense); }
