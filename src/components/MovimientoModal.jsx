@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useLang } from '../context/LangContext'
 import { t } from '../i18n'
 
-export default function MovimientoModal({ open, onClose, onSave, onDelete, movimiento, categorias, subcategorias, hogarId, userId, defaultTipo = 'gasto' }) {
+export default function MovimientoModal({ open, onClose, onSave, onDelete, movimiento, categorias, subcategorias, hogarId, userId, defaultTipo = 'gasto', defaultCatId = null }) {
   const { lang } = useLang()
   const todayStr = new Date().toISOString().slice(0, 10)
 
@@ -27,11 +27,11 @@ export default function MovimientoModal({ open, onClose, onSave, onDelete, movim
       setTipo(defaultTipo)
       setImporte('')
       setFecha(todayStr)
-      setCatId('')
+      setCatId(defaultCatId || '')
       setSubcatId('')
       setNota('')
     }
-  }, [open, movimiento?.id, defaultTipo])
+  }, [open, movimiento?.id, defaultTipo, defaultCatId])
 
   useEffect(() => {
     if (!open) return

@@ -728,15 +728,19 @@ export default function MesView() {
                 <>
                   <div className="filter-tabs-row">
                     <div className="filter-tabs">
-                      {['all', 'gasto', 'ingreso'].map(tipo => (
-                        <button
-                          key={tipo}
-                          className={`filter-tab${filtroTipo === tipo ? ' filter-tab-active' : ''}`}
-                          onClick={() => setFiltroTipo(tipo)}
-                        >
-                          {tipo === 'all' ? t(lang, 'filter_all') : tipo === 'gasto' ? t(lang, 'expense') : t(lang, 'income')}
-                        </button>
-                      ))}
+                      {['all', 'gasto', 'ingreso'].map(tipo => {
+                        const count = tipo === 'all' ? movimientos.length : movimientos.filter(m => m.tipo === tipo).length
+                        return (
+                          <button
+                            key={tipo}
+                            className={`filter-tab${filtroTipo === tipo ? ' filter-tab-active' : ''}`}
+                            onClick={() => setFiltroTipo(tipo)}
+                          >
+                            {tipo === 'all' ? t(lang, 'filter_all') : tipo === 'gasto' ? t(lang, 'expense') : t(lang, 'income')}
+                            {count > 0 && <span className="tab-count">{count}</span>}
+                          </button>
+                        )
+                      })}
                     </div>
                     <button
                       className={`sort-btn${sortMovs === 'importe' ? ' sort-btn-active' : ''}`}
@@ -855,6 +859,7 @@ export default function MesView() {
         hogarId={hogarId}
         userId={profile?.id}
         defaultTipo={filtroTipo !== 'all' ? filtroTipo : 'gasto'}
+        defaultCatId={!editMov && filtroTipo !== 'ingreso' ? filtroCatId : null}
       />
 
       {/* Panel de actividad */}

@@ -384,6 +384,17 @@ html, body { overscroll-behavior: none; }
   border-color: var(--accent);
   color: #fff;
 }
+.tab-count {
+  display: inline-block;
+  font-size: 0.62rem;
+  font-weight: 700;
+  background: color-mix(in srgb, currentColor 18%, transparent);
+  border-radius: 99px;
+  padding: 0 4px;
+  line-height: 1.5;
+  margin-left: 3px;
+  vertical-align: middle;
+}
 
 /* ── Búsqueda en movimientos ── */
 .search-wrap {
