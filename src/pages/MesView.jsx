@@ -183,7 +183,7 @@ export default function MesView() {
   useEffect(() => { loadMes() }, [loadMes])
 
   // Limpiar filtros al cambiar de mes
-  useEffect(() => { setBusqueda(''); setFiltroTipo('all'); setFiltroCatId(null); setSortMovs('fecha') }, [anio, mes])
+  useEffect(() => { setBusqueda(''); setFiltroTipo('all'); setFiltroCatId(null) }, [anio, mes])
 
   // Bloquear scroll del body cuando hay un panel/modal abierto (fix iOS)
   useEffect(() => {
