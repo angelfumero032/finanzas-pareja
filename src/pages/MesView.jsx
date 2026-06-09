@@ -221,15 +221,29 @@ export default function MesView() {
   }, [hogarId, profile?.id])
 
   // ── Navegación de mes ──
-  function prevMes() {
+  const prevMes = useCallback(() => {
     if (mes === 1) { setAnio(a => a - 1); setMes(12) }
     else setMes(m => m - 1)
-  }
-  function nextMes() {
+  }, [mes])
+
+  const nextMes = useCallback(() => {
     if (mes === 12) { setAnio(a => a + 1); setMes(1) }
     else setMes(m => m + 1)
-  }
+  }, [mes])
+
   const isCurrentMonth = anio === todayDate.getFullYear() && mes === todayDate.getMonth() + 1
+
+  // Teclado: ← → para navegar entre meses
+  useEffect(() => {
+    function onKey(e) {
+      if (['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target.tagName)) return
+      if (modalOpen || showActivity) return
+      if (e.key === 'ArrowLeft') prevMes()
+      if (e.key === 'ArrowRight' && !isCurrentMonth) nextMes()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [modalOpen, showActivity, isCurrentMonth, prevMes, nextMes])
 
   // ── Actividad: abrir panel + marcar como leído ──
   async function handleOpenActivity() {
