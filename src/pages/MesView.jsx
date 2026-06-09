@@ -902,16 +902,18 @@ export default function MesView() {
                 <h2 className="section-title">{t(lang, 'movements_section')}</h2>
                 <div className="section-header-actions">
                   {movimientos.length > 0 && (
-                    <button className="btn-sm btn-secondary" onClick={exportarCSV}>
-                      {t(lang, 'export_csv')}
-                    </button>
+                    <>
+                      <button className="btn-sm btn-secondary" onClick={exportarCSV}>
+                        {t(lang, 'export_csv')}
+                      </button>
+                      <button
+                        className="btn-sm btn-primary"
+                        onClick={() => { setEditMov(null); setModalOpen(true) }}
+                      >
+                        {t(lang, 'add_movement')}
+                      </button>
+                    </>
                   )}
-                  <button
-                    className="btn-sm btn-primary"
-                    onClick={() => { setEditMov(null); setModalOpen(true) }}
-                  >
-                    {t(lang, 'add_movement')}
-                  </button>
                 </div>
               </div>
 
