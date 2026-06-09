@@ -532,10 +532,14 @@ export default function MesView() {
       }),
   [categorias, gastoPorCat, presupuestoPorCat])
 
-  const totalPresupuestado = Object.values(presupuestoPorCat).reduce((s, v) => s + v, 0)
-  const totalGastadoConPresupuesto = gastosCats
-    .filter(c => presupuestoPorCat[c.id] > 0)
-    .reduce((s, c) => s + (gastoPorCat[c.id] ?? 0), 0)
+  const totalPresupuestado = useMemo(
+    () => Object.values(presupuestoPorCat).reduce((s, v) => s + v, 0),
+    [presupuestoPorCat]
+  )
+  const totalGastadoConPresupuesto = useMemo(
+    () => gastosCats.filter(c => presupuestoPorCat[c.id] > 0).reduce((s, c) => s + (gastoPorCat[c.id] ?? 0), 0),
+    [gastosCats, presupuestoPorCat, gastoPorCat]
+  )
 
   function catName(id) { return catMap.get(id) ?? t(lang, 'no_category') }
   function subcatName(id) { return id ? (subcatMap.get(id) ?? '') : '' }
