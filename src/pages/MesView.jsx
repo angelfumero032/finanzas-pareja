@@ -80,6 +80,9 @@ export default function MesView() {
   // Budget section: hide zero-spend no-budget categories
   const [hideZeroCats, setHideZeroCats] = useState(false)
 
+  // Budget category search
+  const [budgetSearch, setBudgetSearch] = useState('')
+
   // Budget subcategory expansion
   const [expandedBudgetCats, setExpandedBudgetCats] = useState(new Set())
   function toggleBudgetCat(catId) {
@@ -1652,10 +1655,26 @@ export default function MesView() {
                 )
               })()}
 
+              {gastosCats.length > 6 && (
+                <div className="budget-search-wrap">
+                  <input
+                    className="budget-search-input"
+                    type="search"
+                    placeholder={lang === 'es' ? 'Buscar categoría…' : 'Search category…'}
+                    value={budgetSearch}
+                    onChange={e => setBudgetSearch(e.target.value)}
+                  />
+                  {budgetSearch && (
+                    <button className="search-clear" onClick={() => setBudgetSearch('')}>×</button>
+                  )}
+                </div>
+              )}
+
               {gastosCats.length === 0
                 ? <p className="empty-text">{t(lang, 'no_expense_cats')}</p>
                 : gastosCats
                     .filter(cat => !hideZeroCats || (gastoPorCat[cat.id] ?? 0) > 0 || presupuestoPorCat[cat.id] > 0)
+                    .filter(cat => !budgetSearch || cat.nombre.toLowerCase().includes(budgetSearch.toLowerCase()))
                     .map(cat => {
                     const spent = gastoPorCat[cat.id] ?? 0
                     const spentPendiente = gastoPendientePorCat[cat.id] ?? 0
