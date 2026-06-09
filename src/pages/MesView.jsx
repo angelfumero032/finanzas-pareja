@@ -402,7 +402,7 @@ export default function MesView() {
   const movimientosFiltrados = useMemo(() => {
     let list = movimientos
       .filter(m => filtroTipo === 'all' || m.tipo === filtroTipo)
-      .filter(m => !filtroCatId || m.categoria_id === filtroCatId)
+      .filter(m => !filtroCatId || (filtroCatId === 'nocat' ? !m.categoria_id : m.categoria_id === filtroCatId))
       .filter(m => {
         if (!busqueda) return true
         const q = busqueda.toLowerCase()
@@ -443,9 +443,14 @@ export default function MesView() {
 
   const gastoPorCat = {}
   const movCountByCat = {}
-  movimientos.filter(m => m.tipo === 'gasto' && m.categoria_id).forEach(m => {
-    gastoPorCat[m.categoria_id] = (gastoPorCat[m.categoria_id] ?? 0) + Number(m.importe)
-    movCountByCat[m.categoria_id] = (movCountByCat[m.categoria_id] ?? 0) + 1
+  let gastosNoCategoria = 0
+  movimientos.filter(m => m.tipo === 'gasto').forEach(m => {
+    if (m.categoria_id) {
+      gastoPorCat[m.categoria_id] = (gastoPorCat[m.categoria_id] ?? 0) + Number(m.importe)
+      movCountByCat[m.categoria_id] = (movCountByCat[m.categoria_id] ?? 0) + 1
+    } else {
+      gastosNoCategoria += Number(m.importe)
+    }
   })
   const presupuestoPorCat = Object.fromEntries(presupuestos.map(p => [p.categoria_id, Number(p.importe)]))
 
@@ -756,6 +761,26 @@ export default function MesView() {
                     )
                   })
               }
+              {gastosNoCategoria > 0 && (
+                <div className="budget-row budget-row-nocat">
+                  <div className="budget-row-top">
+                    <button
+                      className="budget-cat-name budget-cat-btn"
+                      onClick={() => {
+                        const next = filtroCatId === 'nocat' ? null : 'nocat'
+                        setFiltroCatId(next)
+                        if (next) movListRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                      }}
+                    >
+                      <span className="budget-cat-dot" style={{ background: 'var(--text3)' }} />
+                      {t(lang, 'no_category')}
+                    </button>
+                    <div className="budget-amounts">
+                      <span className="budget-spent">{fmt(gastosNoCategoria)}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </section>
 
             {/* Movimientos */}
@@ -821,7 +846,7 @@ export default function MesView() {
                   </div>
                   {filtroCatId && (
                     <div className="cat-filter-chip">
-                      <span>{catName(filtroCatId)}</span>
+                      <span>{filtroCatId === 'nocat' ? t(lang, 'no_category') : catName(filtroCatId)}</span>
                       <button className="search-clear" onClick={() => setFiltroCatId(null)}>×</button>
                     </div>
                   )}

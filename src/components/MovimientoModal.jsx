@@ -139,6 +139,21 @@ export default function MovimientoModal({ open, onClose, onSave, onDelete, movim
               required
               max={todayStr}
             />
+            <div className="quick-amounts">
+              {[
+                { label: t(lang, 'today'), value: todayStr },
+                { label: t(lang, 'yesterday'), value: new Date(new Date(todayStr).getTime() - 86400000).toISOString().slice(0, 10) },
+              ].map(({ label, value }) => (
+                <button
+                  key={value}
+                  type="button"
+                  className={`quick-amount-btn${fecha === value ? ' quick-amount-active' : ''}`}
+                  onClick={() => setFecha(value)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="field">
