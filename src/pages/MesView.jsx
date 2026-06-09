@@ -844,13 +844,21 @@ export default function MesView() {
                                 }}
                               />
                             ) : (
-                              <button
-                                className="budget-limit-btn"
-                                onClick={() => setEditBudget({ catId: cat.id })}
-                                title={t(lang, 'set_budget')}
-                              >
-                                {budget > 0 ? `/ ${fmt(budget)}` : t(lang, 'no_budget')}
-                              </button>
+                              <>
+                                <button
+                                  className="budget-limit-btn"
+                                  onClick={() => setEditBudget({ catId: cat.id })}
+                                  title={t(lang, 'set_budget')}
+                                >
+                                  {budget > 0 ? `/ ${fmt(budget)}` : t(lang, 'no_budget')}
+                                </button>
+                                <button
+                                  className="budget-add-btn"
+                                  onClick={e => { e.stopPropagation(); setEditMov(null); setQuickAddCatId(cat.id); setModalOpen(true) }}
+                                  title={`${t(lang, 'new_movement')} — ${cat.nombre}`}
+                                  aria-label={`${t(lang, 'new_movement')} — ${cat.nombre}`}
+                                >+</button>
+                              </>
                             )}
                           </div>
                         </div>
