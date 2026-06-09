@@ -347,7 +347,17 @@ export default function MesView() {
   })
   const presupuestoPorCat = Object.fromEntries(presupuestos.map(p => [p.categoria_id, Number(p.importe)]))
 
-  const gastosCats = categorias.filter(c => c.tipo === 'gasto')
+  const gastosCats = categorias
+    .filter(c => c.tipo === 'gasto')
+    .sort((a, b) => {
+      const ra = presupuestoPorCat[a.id] > 0 ? (gastoPorCat[a.id] ?? 0) / presupuestoPorCat[a.id] : -1
+      const rb = presupuestoPorCat[b.id] > 0 ? (gastoPorCat[b.id] ?? 0) / presupuestoPorCat[b.id] : -1
+      if (ra >= 1 && rb < 1) return -1  // over-budget first
+      if (rb >= 1 && ra < 1) return 1
+      const spentA = gastoPorCat[a.id] ?? 0
+      const spentB = gastoPorCat[b.id] ?? 0
+      return rb - ra || spentB - spentA  // then by % used desc, then by amount desc
+    })
 
   const totalPresupuestado = Object.values(presupuestoPorCat).reduce((s, v) => s + v, 0)
   const totalGastadoConPresupuesto = gastosCats
