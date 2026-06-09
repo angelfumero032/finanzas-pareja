@@ -29,6 +29,9 @@
   -webkit-font-smoothing: antialiased;
 }
 
+* { box-sizing: border-box; }
+html, body { overscroll-behavior: none; }
+
 /* ── Splash / loading ── */
 .splash {
   display: flex;
@@ -388,7 +391,7 @@
   border: 1.5px solid var(--border);
   border-radius: var(--r-sm);
   padding: 0.42rem 2rem 0.42rem 0.7rem;
-  font-size: 0.85rem;
+  font-size: 1rem;
   font-family: inherit;
   color: var(--text);
   background: var(--surface2);
@@ -541,7 +544,7 @@
   border: 1.5px solid var(--accent);
   border-radius: 4px;
   padding: 0.15rem 0.4rem;
-  font-size: 0.85rem;
+  font-size: 1rem;
   width: 72px;
   text-align: right;
   outline: none;
