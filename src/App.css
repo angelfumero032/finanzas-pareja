@@ -1296,6 +1296,7 @@ html, body { overscroll-behavior: none; }
   flex-direction: column;
   gap: 2px;
 }
+.legend-item-wrap { list-style: none; }
 
 .legend-item {
   display: flex;
@@ -1306,8 +1307,14 @@ html, body { overscroll-behavior: none; }
   cursor: pointer;
   transition: background 0.12s;
   user-select: none;
+  width: 100%;
+  background: none;
+  border: none;
+  font-family: inherit;
+  text-align: left;
 }
 .legend-item:hover, .legend-active { background: var(--surface2); }
+.legend-item:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 .legend-dot {
   width: 9px;
