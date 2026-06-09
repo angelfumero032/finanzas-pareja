@@ -1081,6 +1081,16 @@ export default function MesView() {
                               <span className="budget-cat-count">{movCountByCat[cat.id]}</span>
                             )}
                           </button>
+                          {subcategorias.some(s => s.categoria_id === cat.id && (gastoPorSubcat[s.id] ?? 0) > 0) && (
+                            <button
+                              className="budget-expand-btn"
+                              onClick={e => { e.stopPropagation(); toggleBudgetCat(cat.id) }}
+                              aria-label={expandedBudgetCats.has(cat.id) ? 'Colapsar subcategorías' : 'Expandir subcategorías'}
+                              aria-expanded={expandedBudgetCats.has(cat.id)}
+                            >
+                              {expandedBudgetCats.has(cat.id) ? '▾' : '▸'}
+                            </button>
+                          )}
                           <div className="budget-amounts">
                             <span className="budget-spent">{fmt(spent)}</span>
                             {editBudget?.catId === cat.id ? (
@@ -1128,6 +1138,25 @@ export default function MesView() {
                             </span>
                           </div>
                         )}
+                        {expandedBudgetCats.has(cat.id) && (() => {
+                          const subcats = subcategorias.filter(s => s.categoria_id === cat.id && (gastoPorSubcat[s.id] ?? 0) > 0)
+                          if (subcats.length === 0) return null
+                          return (
+                            <div className="budget-subcats">
+                              {subcats.sort((a, b) => (gastoPorSubcat[b.id] ?? 0) - (gastoPorSubcat[a.id] ?? 0)).map(s => {
+                                const subSpent = gastoPorSubcat[s.id] ?? 0
+                                const subPct = spent > 0 ? Math.round(subSpent / spent * 100) : 0
+                                return (
+                                  <div key={s.id} className="budget-subcat-row">
+                                    <span className="budget-subcat-name">{s.nombre}</span>
+                                    <span className="budget-subcat-amt">{fmt(subSpent)}</span>
+                                    <span className="budget-subcat-pct">{subPct}%</span>
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          )
+                        })()}
                       </div>
                     )
                   })
