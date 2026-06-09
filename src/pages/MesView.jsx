@@ -56,6 +56,15 @@ export default function MesView() {
   // Help overlay (atajos de teclado)
   const [showHelp, setShowHelp] = useState(false)
 
+  // Toast notifications
+  const [toast, setToast] = useState(null)
+  const toastTimer = useRef(null)
+  function showToast(msg, type = 'success') {
+    if (toastTimer.current) clearTimeout(toastTimer.current)
+    setToast({ msg, type })
+    toastTimer.current = setTimeout(() => setToast(null), 2400)
+  }
+
   // Tendencia mensual (últimos 6 meses, sin etiquetas de idioma)
   const [rawTrend, setRawTrend] = useState([])
   const [prevTotals, setPrevTotals] = useState(null)
@@ -312,23 +321,36 @@ export default function MesView() {
 
   // ── CRUD movimientos ──
   async function handleSaveMov(data) {
-    if (editMov?.id) {
-      const { hogar_id, creado_por, ...fields } = data
-      await supabase.from('movimientos').update(fields).eq('id', editMov.id)
-    } else {
-      await supabase.from('movimientos').insert(data)
+    try {
+      if (editMov?.id) {
+        const { hogar_id, creado_por, ...fields } = data
+        const { error } = await supabase.from('movimientos').update(fields).eq('id', editMov.id)
+        if (error) throw error
+      } else {
+        const { error } = await supabase.from('movimientos').insert(data)
+        if (error) throw error
+      }
+      setModalOpen(false)
+      setEditMov(null)
+      showToast(t(lang, 'saved_ok'))
+      loadMes()
+    } catch {
+      showToast(t(lang, 'save_error'), 'error')
     }
-    setModalOpen(false)
-    setEditMov(null)
-    loadMes()
   }
 
   async function handleDeleteMov(id) {
     if (!window.confirm(t(lang, 'confirm_delete'))) return
-    await supabase.from('movimientos').delete().eq('id', id)
-    setModalOpen(false)
-    setEditMov(null)
-    setMovimientos(prev => prev.filter(m => m.id !== id))
+    try {
+      const { error } = await supabase.from('movimientos').delete().eq('id', id)
+      if (error) throw error
+      setModalOpen(false)
+      setEditMov(null)
+      setMovimientos(prev => prev.filter(m => m.id !== id))
+      showToast(t(lang, 'deleted_ok'))
+    } catch {
+      showToast(t(lang, 'save_error'), 'error')
+    }
   }
 
   // ── Presupuesto: copiar del mes anterior ──
@@ -1000,6 +1022,13 @@ export default function MesView() {
       >
         +
       </button>
+
+      {/* Toast */}
+      {toast && (
+        <div className={`toast${toast.type === 'error' ? ' toast-error' : ''}`} role="status" aria-live="polite">
+          {toast.msg}
+        </div>
+      )}
     </div>
   )
 }

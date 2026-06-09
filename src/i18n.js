@@ -57,6 +57,9 @@ const T = {
     export_csv: 'Exportar CSV',
     filter_all: 'Todos',
     budget_total: 'Total presupuestado',
+    saved_ok: 'Guardado ✓',
+    deleted_ok: 'Eliminado ✓',
+    save_error: 'Error al guardar',
   },
   en: {
     app_name: 'Couple finances',
@@ -116,6 +119,9 @@ const T = {
     export_csv: 'Export CSV',
     filter_all: 'All',
     budget_total: 'Total budget',
+    saved_ok: 'Saved ✓',
+    deleted_ok: 'Deleted ✓',
+    save_error: 'Error saving',
   },
 }
 
