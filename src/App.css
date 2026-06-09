@@ -2450,6 +2450,31 @@ kbd {
   flex-shrink: 0;
 }
 
+/* ── Budget health score ── */
+.health-score-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.4rem 0;
+}
+.health-score-grade {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 6px;
+  font-size: 1.1rem;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+.grade-a { background: color-mix(in srgb, var(--income) 15%, transparent); color: var(--income); }
+.grade-b { background: color-mix(in srgb, #84cc16 15%, transparent); color: #65a30d; }
+.grade-c { background: color-mix(in srgb, var(--warning) 15%, transparent); color: color-mix(in srgb, var(--warning) 80%, #000); }
+.grade-d { background: color-mix(in srgb, var(--expense) 10%, transparent); color: var(--expense); }
+.grade-f { background: color-mix(in srgb, var(--expense) 18%, transparent); color: var(--expense); font-size: 1.3rem; }
+.health-score-label { font-size: 0.8rem; color: var(--text2); }
+
 /* ── Share summary button ── */
 .share-summary-btn {
   display: inline-flex;

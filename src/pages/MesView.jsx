@@ -971,6 +971,23 @@ export default function MesView() {
     return { biggest, topDay, weekendTotal, weekdayTotal }
   }, [gastosItems])
 
+  const budgetHealthScore = useMemo(() => {
+    const budgeted = gastosCats.filter(c => presupuestoPorCat[c.id] > 0)
+    if (budgeted.length === 0 || isCurrentMonth) return null
+    const overCount = budgeted.filter(c => (gastoPorCat[c.id] ?? 0) > presupuestoPorCat[c.id]).length
+    const ratio = totalPresupuestado > 0 ? totalGastadoConPresupuesto / totalPresupuestado : null
+    if (ratio === null) return null
+    const overPct = overCount / budgeted.length
+    // Grade: A = under 90%, no over. B = 90-100%, ≤1 over. C = 0-10% over total, ≤2 cats. D/F = more
+    let grade, cls
+    if (ratio <= 0.9 && overCount === 0) { grade = 'A'; cls = 'grade-a' }
+    else if (ratio <= 1.0 && overPct <= 0.15) { grade = 'B'; cls = 'grade-b' }
+    else if (ratio <= 1.1 && overPct <= 0.3) { grade = 'C'; cls = 'grade-c' }
+    else if (ratio <= 1.25) { grade = 'D'; cls = 'grade-d' }
+    else { grade = 'F'; cls = 'grade-f' }
+    return { grade, cls, ratio, overCount, total: budgeted.length }
+  }, [gastosCats, gastoPorCat, presupuestoPorCat, totalPresupuestado, totalGastadoConPresupuesto, isCurrentMonth])
+
   function fmtK(n) {
     if (n >= 10000) return `${(n / 1000).toFixed(0)}k€`
     if (n >= 1000) return `${(n / 1000).toFixed(1)}k€`
@@ -1154,6 +1171,21 @@ export default function MesView() {
             <span aria-hidden="true">📋</span>
             {lang === 'es' ? 'Copiar resumen' : 'Copy summary'}
           </button>
+        )}
+
+        {/* Budget health score (past months only) */}
+        {budgetHealthScore && (
+          <div className="health-score-row">
+            <span className={`health-score-grade ${budgetHealthScore.cls}`}>{budgetHealthScore.grade}</span>
+            <span className="health-score-label">
+              {lang === 'es' ? 'Salud del presupuesto' : 'Budget health'}
+              {' · '}
+              {Math.round(budgetHealthScore.ratio * 100)}%
+              {budgetHealthScore.overCount > 0 && (
+                <> · {budgetHealthScore.overCount}/{budgetHealthScore.total} {lang === 'es' ? 'cat. sobrepasadas' : 'cats over'}</>
+              )}
+            </span>
+          </div>
         )}
 
         {/* Savings goal progress */}
