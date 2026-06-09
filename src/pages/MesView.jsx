@@ -370,6 +370,14 @@ export default function MesView() {
   function subcatName(id) {
     return id ? (subcategorias.find(s => s.id === id)?.nombre ?? '') : ''
   }
+  function formatFecha(dateStr) {
+    const parts = dateStr.split('-')
+    const day = parseInt(parts[2])
+    const monthAbbr = MONTHS[lang][parseInt(parts[1]) - 1].slice(0, 3)
+    return lang === 'es'
+      ? `${day} ${monthAbbr.toLowerCase()}`
+      : `${monthAbbr} ${day}`
+  }
 
   // ── Guardia: perfil no cargado ──
   if (!profile) {
@@ -522,8 +530,13 @@ export default function MesView() {
                           </div>
                         </div>
                         {budget > 0 && (
-                          <div className="budget-bar-track">
-                            <div className={`budget-bar-fill ${barClass}`} style={{ width: `${pct}%` }} />
+                          <div className="budget-bar-wrap">
+                            <div className="budget-bar-track">
+                              <div className={`budget-bar-fill ${barClass}`} style={{ width: `${pct}%` }} />
+                            </div>
+                            <span className={`budget-bar-pct ${barClass === 'bar-over' ? 'pct-over' : barClass === 'bar-warn' ? 'pct-warn' : 'pct-ok'}`}>
+                              {Math.round(ratio * 100)}%
+                            </span>
                           </div>
                         )}
                       </div>
@@ -598,7 +611,7 @@ export default function MesView() {
                       >
                         <div className="movement-left">
                           <div className="movement-meta">
-                            <span className="movement-date">{m.fecha}</span>
+                            <span className="movement-date" title={m.fecha}>{formatFecha(m.fecha)}</span>
                             {usuarios.length > 1 && m.creado_por && (
                               <span className="movement-creator">
                                 {m.creado_por === profile?.id
