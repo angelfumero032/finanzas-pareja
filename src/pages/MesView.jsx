@@ -466,7 +466,7 @@ export default function MesView() {
       </header>
 
       {/* ── Contenido ── */}
-      <main className="app-content">
+      <main className={`app-content${loading ? ' app-loading' : ''}`}>
 
         {/* Resumen del mes */}
         <div className="summary-grid">
