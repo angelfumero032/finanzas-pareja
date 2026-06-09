@@ -2369,6 +2369,51 @@ kbd {
   font-family: inherit;
 }
 
+/* ── Month note ── */
+.month-note-wrap { margin: 0.15rem 0; }
+.month-note-form { display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap; }
+.month-note-input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.3rem 0.5rem;
+  border: 1.5px solid var(--accent);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.85rem;
+  font-family: inherit;
+}
+.month-note-input:focus { outline: none; }
+.month-note-display {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.2rem 0;
+  font-family: inherit;
+  text-align: left;
+  width: 100%;
+}
+.month-note-icon { font-size: 0.85rem; flex-shrink: 0; }
+.month-note-text { flex: 1; font-size: 0.85rem; color: var(--text2); font-style: italic; }
+.month-note-edit-hint { font-size: 0.72rem; color: var(--text3); flex-shrink: 0; }
+.month-note-display:hover .month-note-text { color: var(--text); }
+.month-note-add-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.79rem;
+  color: var(--text3);
+  padding: 0.15rem 0;
+  font-family: inherit;
+}
+.month-note-add-btn:hover { color: var(--text2); }
+
 /* ── Over-budget alert ── */
 .overbudget-alert {
   display: flex;

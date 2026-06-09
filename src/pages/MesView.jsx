@@ -192,6 +192,23 @@ export default function MesView() {
     setEditingGoal(false)
   }
 
+  // Month notes (per device, per household, per month)
+  const monthNoteKey = hogarId ? `month_note_${hogarId}_${anio}_${mes}` : null
+  const [monthNote, setMonthNote] = useState('')
+  const [editingNote, setEditingNote] = useState(false)
+  useEffect(() => {
+    if (!monthNoteKey) return
+    setMonthNote(localStorage.getItem(monthNoteKey) ?? '')
+    setEditingNote(false)
+  }, [monthNoteKey])
+  function saveMonthNote(val) {
+    const v = val.trim()
+    if (v) localStorage.setItem(monthNoteKey, v)
+    else localStorage.removeItem(monthNoteKey)
+    setMonthNote(v)
+    setEditingNote(false)
+  }
+
   const fmt = useMemo(() => {
     const f = new Intl.NumberFormat(lang === 'es' ? 'es-ES' : 'en-GB', {
       style: 'currency',
@@ -1245,6 +1262,46 @@ export default function MesView() {
                 <span className="by-user-pct">{Math.round(u.total / totalGastos * 100)}%</span>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Month note */}
+        {!loading && monthNoteKey && (
+          <div className="month-note-wrap">
+            {editingNote ? (
+              <form
+                className="month-note-form"
+                onSubmit={e => { e.preventDefault(); saveMonthNote(e.target.elements.note.value) }}
+              >
+                <input
+                  name="note"
+                  type="text"
+                  className="month-note-input"
+                  defaultValue={monthNote}
+                  autoFocus
+                  maxLength={80}
+                  placeholder={lang === 'es' ? 'Nota del mes…' : 'Month note…'}
+                  onKeyDown={e => { if (e.key === 'Escape') setEditingNote(false) }}
+                />
+                <button type="submit" className="btn-sm btn-primary">{lang === 'es' ? 'OK' : 'OK'}</button>
+                <button type="button" className="btn-sm btn-secondary" onClick={() => setEditingNote(false)}>{t(lang, 'cancel')}</button>
+                {monthNote && (
+                  <button type="button" className="btn-sm btn-secondary" onClick={() => saveMonthNote('')}>
+                    {lang === 'es' ? 'Borrar' : 'Clear'}
+                  </button>
+                )}
+              </form>
+            ) : monthNote ? (
+              <button className="month-note-display" onClick={() => setEditingNote(true)}>
+                <span className="month-note-icon" aria-hidden="true">📝</span>
+                <span className="month-note-text">{monthNote}</span>
+                <span className="month-note-edit-hint">{lang === 'es' ? 'editar' : 'edit'}</span>
+              </button>
+            ) : (
+              <button className="month-note-add-btn" onClick={() => setEditingNote(true)}>
+                <span aria-hidden="true">+</span> {lang === 'es' ? 'Nota del mes' : 'Add month note'}
+              </button>
+            )}
           </div>
         )}
 
