@@ -626,6 +626,9 @@ html, body { overscroll-behavior: none; }
   color: #fff;
   border-color: var(--accent);
 }
+@media (hover: none) {
+  .budget-add-btn { opacity: 1; }
+}
 
 .budget-spent { font-size: 0.875rem; font-weight: 600; color: var(--text); }
 

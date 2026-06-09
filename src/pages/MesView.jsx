@@ -67,6 +67,7 @@ export default function MesView() {
     setToast({ msg, type })
     toastTimer.current = setTimeout(() => setToast(null), 2400)
   }
+  useEffect(() => () => { if (toastTimer.current) clearTimeout(toastTimer.current) }, [])
 
   // Tendencia mensual (últimos 6 meses, sin etiquetas de idioma)
   const [rawTrend, setRawTrend] = useState([])
@@ -655,11 +656,9 @@ export default function MesView() {
             <section className="section">
               <div className="section-header">
                 <h2 className="section-title">{t(lang, 'budget_section')}</h2>
-                {presupuestos.length === 0 && (
-                  <button className="btn-sm btn-secondary" onClick={handleCopyBudgetFromLastMonth}>
-                    {t(lang, 'copy_budget_prev')}
-                  </button>
-                )}
+                <button className="btn-sm btn-secondary" onClick={handleCopyBudgetFromLastMonth}>
+                  {t(lang, 'copy_budget_prev')}
+                </button>
               </div>
 
               {totalPresupuestado > 0 && (() => {
