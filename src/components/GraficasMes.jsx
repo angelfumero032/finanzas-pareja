@@ -109,12 +109,13 @@ function DonutChart({ slices, fmt, lang, onSelectCat }) {
 
 function TrendBars({ data, fmt, lang }) {
   const maxVal = Math.max(...data.flatMap(d => [d.income, d.expenses]), 1)
+  const lastIdx = data.length - 1
 
   return (
     <div className="trend-wrap">
       <div className="trend-chart">
         {data.map((d, i) => (
-          <div key={i} className="trend-col">
+          <div key={i} className={`trend-col${i === lastIdx ? ' trend-col-current' : ''}`}>
             <div className="trend-bars-pair">
               <div
                 className="trend-bar income-bar"

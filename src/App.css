@@ -850,6 +850,16 @@
   line-height: 1;
   flex-shrink: 0;
 }
+.trend-col-current .trend-label {
+  color: var(--text2);
+  font-weight: 700;
+}
+.trend-col-current .trend-bar {
+  opacity: 1;
+}
+.trend-chart .trend-col:not(.trend-col-current) .trend-bar {
+  opacity: 0.6;
+}
 
 .trend-legend-row {
   display: flex;
