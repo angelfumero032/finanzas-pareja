@@ -33,6 +33,13 @@ export default function MovimientoModal({ open, onClose, onSave, onDelete, movim
     }
   }, [open, movimiento?.id])
 
+  useEffect(() => {
+    if (!open) return
+    function onKey(e) { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [open, onClose])
+
   const catsFiltradas = categorias.filter(c => c.tipo === tipo)
   const subcatsFiltradas = subcategorias.filter(s => s.categoria_id === catId)
 
@@ -47,17 +54,20 @@ export default function MovimientoModal({ open, onClose, onSave, onDelete, movim
     const imp = parseFloat(importe)
     if (!imp || imp <= 0) return
     setSaving(true)
-    await onSave({
-      tipo,
-      importe: imp,
-      fecha,
-      categoria_id: catId || null,
-      subcategoria_id: subcatId || null,
-      nota: nota.trim() || null,
-      hogar_id: hogarId,
-      creado_por: userId,
-    })
-    setSaving(false)
+    try {
+      await onSave({
+        tipo,
+        importe: imp,
+        fecha,
+        categoria_id: catId || null,
+        subcategoria_id: subcatId || null,
+        nota: nota.trim() || null,
+        hogar_id: hogarId,
+        creado_por: userId,
+      })
+    } finally {
+      setSaving(false)
+    }
   }
 
   if (!open) return null
@@ -156,7 +166,6 @@ export default function MovimientoModal({ open, onClose, onSave, onDelete, movim
               value={nota}
               onChange={e => setNota(e.target.value)}
               maxLength={120}
-              placeholder="Opcional"
             />
           </div>
 

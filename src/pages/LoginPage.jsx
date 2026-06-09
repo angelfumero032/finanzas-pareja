@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { t } from '../i18n'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -11,9 +12,14 @@ export default function LoginPage() {
     e.preventDefault()
     setLoading(true)
     setError('')
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) setError(error.message)
-    setLoading(false)
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email, password })
+      if (error) setError(t('es', 'invalid_credentials'))
+    } catch {
+      setError(t('es', 'invalid_credentials'))
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (

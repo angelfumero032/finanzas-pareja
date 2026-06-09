@@ -1,8 +1,16 @@
+import { useEffect } from 'react'
 import { useLang } from '../context/LangContext'
 import { t, timeAgo } from '../i18n'
 
 export default function ActivityPanel({ open, onClose, actividades, currentUserId, usuarios }) {
   const { lang } = useLang()
+
+  useEffect(() => {
+    if (!open) return
+    function onKey(e) { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [open, onClose])
 
   function actorName(actorId) {
     if (!actorId) return '—'
