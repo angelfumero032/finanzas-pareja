@@ -1016,6 +1016,8 @@ export default function MesView() {
         userId={profile?.id}
         defaultTipo={filtroTipo !== 'all' ? filtroTipo : 'gasto'}
         defaultCatId={!editMov ? (quickAddCatId ?? (filtroTipo !== 'ingreso' && filtroCatId !== 'nocat' ? filtroCatId : null)) : null}
+        gastoPorCat={gastoPorCat}
+        presupuestoPorCat={presupuestoPorCat}
       />
 
       {/* Panel de actividad */}

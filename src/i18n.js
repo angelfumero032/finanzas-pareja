@@ -60,6 +60,8 @@ const T = {
     saved_ok: 'Guardado ✓',
     deleted_ok: 'Eliminado ✓',
     save_error: 'Error al guardar',
+    budget_remaining: 'restante',
+    budget_over: 'sobre presupuesto',
   },
   en: {
     app_name: 'Couple finances',
@@ -122,6 +124,8 @@ const T = {
     saved_ok: 'Saved ✓',
     deleted_ok: 'Deleted ✓',
     save_error: 'Error saving',
+    budget_remaining: 'remaining',
+    budget_over: 'over budget',
   },
 }
 

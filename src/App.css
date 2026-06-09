@@ -919,6 +919,16 @@ html, body { overscroll-behavior: none; }
   color: var(--accent);
 }
 
+.budget-hint {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.2rem 0;
+}
+.budget-hint-ok   { color: var(--income); }
+.budget-hint-warn { color: var(--warn); }
+.budget-hint-over { color: var(--expense); }
+
 .modal-actions {
   display: flex;
   gap: 0.5rem;

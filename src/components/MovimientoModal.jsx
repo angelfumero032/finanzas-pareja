@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useLang } from '../context/LangContext'
 import { t } from '../i18n'
 
-export default function MovimientoModal({ open, onClose, onSave, onDelete, movimiento, categorias, subcategorias, hogarId, userId, defaultTipo = 'gasto', defaultCatId = null }) {
+export default function MovimientoModal({ open, onClose, onSave, onDelete, movimiento, categorias, subcategorias, hogarId, userId, defaultTipo = 'gasto', defaultCatId = null, gastoPorCat = {}, presupuestoPorCat = {} }) {
   const { lang } = useLang()
   const todayStr = new Date().toISOString().slice(0, 10)
 
@@ -168,6 +168,24 @@ export default function MovimientoModal({ open, onClose, onSave, onDelete, movim
                 <option key={c.id} value={c.id}>{c.nombre}</option>
               ))}
             </select>
+            {tipo === 'gasto' && catId && (() => {
+              const spent = gastoPorCat[catId] ?? 0
+              const budget = presupuestoPorCat[catId] ?? 0
+              if (budget <= 0) return null
+              const editAdjust = movimiento?.categoria_id === catId ? Number(movimiento.importe ?? 0) : 0
+              const effectiveSpent = spent - editAdjust
+              const remaining = budget - effectiveSpent
+              const ratio = effectiveSpent / budget
+              const cls = ratio > 1 ? 'budget-hint-over' : ratio > 0.8 ? 'budget-hint-warn' : 'budget-hint-ok'
+              const fmtAmt = n => Number(n).toFixed(2).replace(/\.?0+$/, '')
+              return (
+                <p className={`budget-hint ${cls}`}>
+                  {remaining >= 0
+                    ? `${Math.round(ratio * 100)}% · ${fmtAmt(remaining)}€ ${t(lang, 'budget_remaining')}`
+                    : `+${fmtAmt(Math.abs(remaining))}€ ${t(lang, 'budget_over')}`}
+                </p>
+              )
+            })()}
           </div>
 
           {subcatsFiltradas.length > 0 && (
