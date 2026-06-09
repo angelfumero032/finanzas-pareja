@@ -525,6 +525,18 @@ html, body { overscroll-behavior: none; }
 }
 .budget-cat-btn:hover { color: var(--accent); }
 
+.budget-cat-count {
+  font-size: 0.62rem;
+  font-weight: 600;
+  color: var(--text3);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  padding: 0 5px;
+  line-height: 1.6;
+  flex-shrink: 0;
+}
+
 .budget-cat-dot {
   width: 9px;
   height: 9px;

@@ -427,8 +427,10 @@ export default function MesView() {
   }, [movimientosFiltrados, sortMovs])
 
   const gastoPorCat = {}
+  const movCountByCat = {}
   movimientos.filter(m => m.tipo === 'gasto' && m.categoria_id).forEach(m => {
     gastoPorCat[m.categoria_id] = (gastoPorCat[m.categoria_id] ?? 0) + Number(m.importe)
+    movCountByCat[m.categoria_id] = (movCountByCat[m.categoria_id] ?? 0) + 1
   })
   const presupuestoPorCat = Object.fromEntries(presupuestos.map(p => [p.categoria_id, Number(p.importe)]))
 
@@ -665,6 +667,9 @@ export default function MesView() {
                               style={{ background: catColorMap[cat.id] ?? '#94a3b8' }}
                             />
                             {cat.nombre}
+                            {(movCountByCat[cat.id] ?? 0) > 0 && (
+                              <span className="budget-cat-count">{movCountByCat[cat.id]}</span>
+                            )}
                           </button>
                           <div className="budget-amounts">
                             <span className="budget-spent">{fmt(spent)}</span>
