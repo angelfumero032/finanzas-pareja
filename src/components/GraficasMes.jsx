@@ -108,24 +108,40 @@ function DonutChart({ slices, fmt, lang, onSelectCat }) {
 }
 
 function TrendBars({ data, fmt, lang }) {
+  const [activeCol, setActiveCol] = useState(null)
   const maxVal = Math.max(...data.flatMap(d => [d.income, d.expenses]), 1)
   const lastIdx = data.length - 1
+  const sel = activeCol !== null ? data[activeCol] : null
 
   return (
     <div className="trend-wrap">
+      {sel && (
+        <div className="trend-tooltip">
+          <span className="trend-tooltip-label">{sel.label}</span>
+          {sel.income > 0 && (
+            <span className="trend-tooltip-inc">▲ {fmt(sel.income)}</span>
+          )}
+          {sel.expenses > 0 && (
+            <span className="trend-tooltip-exp">▼ {fmt(sel.expenses)}</span>
+          )}
+        </div>
+      )}
       <div className="trend-chart">
         {data.map((d, i) => (
-          <div key={i} className={`trend-col${i === lastIdx ? ' trend-col-current' : ''}`}>
+          <div
+            key={i}
+            className={`trend-col${i === lastIdx ? ' trend-col-current' : ''}${activeCol === i ? ' trend-col-active' : ''}`}
+            onClick={() => setActiveCol(activeCol === i ? null : i)}
+            style={{ cursor: 'pointer' }}
+          >
             <div className="trend-bars-pair">
               <div
                 className="trend-bar income-bar"
                 style={{ height: `${(d.income / maxVal) * 100}%` }}
-                title={`${t(lang, 'total_income')}: ${fmt(d.income)}`}
               />
               <div
                 className="trend-bar expense-bar"
                 style={{ height: `${(d.expenses / maxVal) * 100}%` }}
-                title={`${t(lang, 'total_expenses')}: ${fmt(d.expenses)}`}
               />
             </div>
             <span className="trend-label">{d.label}</span>
