@@ -69,6 +69,16 @@ export default function MesView() {
   // Budget section: hide zero-spend no-budget categories
   const [hideZeroCats, setHideZeroCats] = useState(false)
 
+  // Budget subcategory expansion
+  const [expandedBudgetCats, setExpandedBudgetCats] = useState(new Set())
+  function toggleBudgetCat(catId) {
+    setExpandedBudgetCats(prev => {
+      const next = new Set(prev)
+      next.has(catId) ? next.delete(catId) : next.add(catId)
+      return next
+    })
+  }
+
   // CSV import modal
   const [showImportModal, setShowImportModal] = useState(false)
 
@@ -631,9 +641,10 @@ export default function MesView() {
     return result
   }, [movimientosFiltrados, sortMovs])
 
-  const { gastoPorCat, movCountByCat, gastosNoCategoria } = useMemo(() => {
+  const { gastoPorCat, movCountByCat, gastosNoCategoria, gastoPorSubcat } = useMemo(() => {
     const gpc = {}
     const mbc = {}
+    const gps = {}
     let gnc = 0
     movimientos.filter(m => m.tipo === 'gasto').forEach(m => {
       if (m.categoria_id) {
@@ -642,8 +653,11 @@ export default function MesView() {
       } else {
         gnc += Number(m.importe)
       }
+      if (m.subcategoria_id) {
+        gps[m.subcategoria_id] = (gps[m.subcategoria_id] ?? 0) + Number(m.importe)
+      }
     })
-    return { gastoPorCat: gpc, movCountByCat: mbc, gastosNoCategoria: gnc }
+    return { gastoPorCat: gpc, movCountByCat: mbc, gastosNoCategoria: gnc, gastoPorSubcat: gps }
   }, [movimientos])
 
   const presupuestoPorCat = useMemo(
