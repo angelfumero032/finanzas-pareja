@@ -76,10 +76,10 @@ export default function MesView() {
   }
   useEffect(() => () => { if (toastTimer.current) clearTimeout(toastTimer.current) }, [])
 
-  // Undo delete
+  // Undo delete (Map allows concurrent pending deletes)
   const pendingDeleteIds = useRef(new Set())
-  const deleteTimer = useRef(null)
-  useEffect(() => () => { if (deleteTimer.current) clearTimeout(deleteTimer.current) }, [])
+  const pendingDeleteTimers = useRef(new Map())
+  useEffect(() => () => { pendingDeleteTimers.current.forEach(clearTimeout) }, [])
 
   // Duplicate movement
   const [duplicateData, setDuplicateData] = useState(null)
@@ -379,16 +379,17 @@ export default function MesView() {
     setEditMov(null)
     pendingDeleteIds.current.add(id)
     setMovimientos(prev => prev.filter(m => m.id !== id))
-    if (deleteTimer.current) clearTimeout(deleteTimer.current)
     showUndoToast(t(lang, 'deleted_ok'), () => {
-      if (deleteTimer.current) { clearTimeout(deleteTimer.current); deleteTimer.current = null }
+      const t2 = pendingDeleteTimers.current.get(id)
+      if (t2) { clearTimeout(t2); pendingDeleteTimers.current.delete(id) }
       pendingDeleteIds.current.delete(id)
       setMovimientos(prev =>
         [...prev, mov].sort((a, b) => b.fecha.localeCompare(a.fecha) || b.creado_en.localeCompare(a.creado_en))
       )
       showToast(t(lang, 'restored_ok'))
     })
-    deleteTimer.current = setTimeout(async () => {
+    const timer = setTimeout(async () => {
+      pendingDeleteTimers.current.delete(id)
       try {
         const { error } = await supabase.from('movimientos').delete().eq('id', id)
         if (error) throw error
@@ -402,6 +403,7 @@ export default function MesView() {
         pendingDeleteIds.current.delete(id)
       }
     }, 5000)
+    pendingDeleteTimers.current.set(id, timer)
   }
 
   function handleDuplicateMov(mov) {
