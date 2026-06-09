@@ -8,6 +8,7 @@ import ActivityPanel from '../components/ActivityPanel'
 import GraficasMes from '../components/GraficasMes'
 import CategoriasModal from '../components/CategoriasModal'
 import ImportarCSVModal from '../components/ImportarCSVModal'
+import PlantillasModal from '../components/PlantillasModal'
 
 const CAT_PALETTE = [
   '#6366f1', '#f59e0b', '#10b981', '#ef4444',
@@ -67,6 +68,12 @@ export default function MesView() {
 
   // Category management modal
   const [showCatsModal, setShowCatsModal] = useState(false)
+
+  // Recurring templates modal
+  const [showPlantillasModal, setShowPlantillasModal] = useState(false)
+
+  // Plantillas fijas (for "load templates" button)
+  const [plantillas, setPlantillas] = useState([])
 
   // Budget section: hide zero-spend no-budget categories
   const [hideZeroCats, setHideZeroCats] = useState(false)
@@ -165,11 +172,13 @@ export default function MesView() {
       supabase.from('subcategorias').select('*').eq('hogar_id', hogarId).eq('archivada', false).order('orden'),
       supabase.from('usuarios').select('id, nombre').eq('hogar_id', hogarId),
       supabase.from('movimientos').select('concepto, categoria_id').eq('hogar_id', hogarId).not('concepto', 'is', null).gte('fecha', since60d).limit(200),
-    ]).then(([cats, subcats, usrs, recentC]) => {
+      supabase.from('plantillas_fijas').select('*').eq('hogar_id', hogarId).order('orden').order('creado_en'),
+    ]).then(([cats, subcats, usrs, recentC, plantillasRes]) => {
       if (cats.data) setCategorias(cats.data)
       if (subcats.data) setSubcategorias(subcats.data)
       if (usrs.data) setUsuarios(usrs.data)
       if (recentC.data) setRecentConceptos(recentC.data)
+      if (plantillasRes.data) setPlantillas(plantillasRes.data)
     })
   }, [hogarId])
   useEffect(() => { loadStaticos() }, [loadStaticos])
@@ -209,10 +218,10 @@ export default function MesView() {
 
   // Bloquear scroll del body cuando hay un panel/modal abierto (fix iOS)
   useEffect(() => {
-    const locked = modalOpen || showActivity || showHelp || showCatsModal || showImportModal
+    const locked = modalOpen || showActivity || showHelp || showCatsModal || showImportModal || showPlantillasModal
     document.body.style.overflow = locked ? 'hidden' : ''
     return () => { document.body.style.overflow = '' }
-  }, [modalOpen, showActivity, showHelp])
+  }, [modalOpen, showActivity, showHelp, showCatsModal, showImportModal, showPlantillasModal])
 
   // ── Tendencia: últimos 6 meses ──
   const loadTrend = useCallback(async () => {
@@ -375,6 +384,7 @@ export default function MesView() {
   }, [mes])
 
   const isCurrentMonth = anio === todayDate.getFullYear() && mes === todayDate.getMonth() + 1
+  const isFutureMonth = anio > todayDate.getFullYear() || (anio === todayDate.getFullYear() && mes > todayDate.getMonth() + 1)
 
   // Teclado: ← → navegar meses, n → añadir movimiento
   useEffect(() => {
@@ -383,11 +393,12 @@ export default function MesView() {
       if (['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target.tagName)) return
       if (modalOpen || showActivity || showHelp) return
       if (e.key === 'ArrowLeft') prevMes()
-      if (e.key === 'ArrowRight' && !isCurrentMonth) nextMes()
+      if (e.key === 'ArrowRight') nextMes()
       if (e.key === 'n' || e.key === 'N') { setEditMov(null); setModalOpen(true) }
       if (e.key === 'i' || e.key === 'I') setShowImportModal(true)
-      if ((e.key === 't' || e.key === 'T') && !isCurrentMonth) { setAnio(todayDate.getFullYear()); setMes(todayDate.getMonth() + 1) }
+      if (e.key === 't' || e.key === 'T') { setAnio(todayDate.getFullYear()); setMes(todayDate.getMonth() + 1) }
       if (e.key === 'c' || e.key === 'C') setShowCatsModal(true)
+      if (e.key === 'r' || e.key === 'R') setShowPlantillasModal(true)
       if (e.key === '?') setShowHelp(h => !h)
       if (e.key === '/' && searchRef.current) { e.preventDefault(); searchRef.current.focus() }
       if (e.key === 'd' || e.key === 'D') cycleTheme()
@@ -408,7 +419,7 @@ export default function MesView() {
     touchX.current = null
     if (Math.abs(dx) > 72 && Math.abs(dx) > Math.abs(dy) * 2) {
       if (dx > 0) prevMes()
-      else if (!isCurrentMonth) nextMes()
+      else nextMes()
     }
   }
 
@@ -489,6 +500,48 @@ export default function MesView() {
       concepto: mov.concepto ?? '',
     })
     setModalKey(k => k + 1)
+  }
+
+  // ── Cargar plantillas fijas como gastos pendientes ──
+  async function handleLoadPlantillas() {
+    if (plantillasNoGeneradas.length === 0) { showToast(t(lang, 'no_templates')); return }
+    try {
+      const rows = plantillasNoGeneradas.map(p => {
+        const dia = Math.min(p.dia_mes ?? 1, new Date(anio, mes, 0).getDate())
+        const fecha = `${anio}-${String(mes).padStart(2, '0')}-${String(dia).padStart(2, '0')}`
+        return {
+          hogar_id: hogarId,
+          tipo: 'gasto',
+          importe: p.importe,
+          fecha,
+          categoria_id: p.categoria_id ?? null,
+          subcategoria_id: p.subcategoria_id ?? null,
+          concepto: p.nombre,
+          nota: p.nota ?? null,
+          es_fijo: true,
+          pendiente: true,
+          creado_por: profile?.id ?? null,
+        }
+      })
+      const { error } = await supabase.from('movimientos').insert(rows)
+      if (error) throw error
+      loadMes()
+      showToast(tFmt(lang, 'templates_loaded', { n: rows.length }))
+    } catch {
+      showToast(t(lang, 'save_error'), 'error')
+    }
+  }
+
+  // ── Marcar gasto pendiente como pagado ──
+  async function handleMarkPaid(id) {
+    try {
+      const { error } = await supabase.from('movimientos').update({ pendiente: false }).eq('id', id)
+      if (error) throw error
+      setMovimientos(prev => prev.map(m => m.id === id ? { ...m, pendiente: false } : m))
+      showToast(t(lang, 'saved_ok'))
+    } catch {
+      showToast(t(lang, 'save_error'), 'error')
+    }
   }
 
   // ── Presupuesto: copiar del mes anterior ──
@@ -599,6 +652,36 @@ export default function MesView() {
 
   const totalFijos = useMemo(() => gastosFijos.reduce((s, m) => s + Number(m.importe), 0), [gastosFijos])
   const totalVariables = useMemo(() => gastosVariables.reduce((s, m) => s + Number(m.importe), 0), [gastosVariables])
+
+  const { gastosPendientes, gastosRealizados, totalPendiente } = useMemo(() => {
+    const pend = gastosItems.filter(m => m.pendiente)
+    const real = gastosItems.filter(m => !m.pendiente)
+    return {
+      gastosPendientes: pend,
+      gastosRealizados: real,
+      totalPendiente: pend.reduce((s, m) => s + Number(m.importe), 0),
+    }
+  }, [gastosItems])
+
+  const savingsRate = totalIngresos > 0
+    ? Math.round((balance / totalIngresos) * 100)
+    : null
+
+  // Which active plantillas are not yet in this month's movements
+  const plantillasNoGeneradas = useMemo(() => {
+    const activasIds = plantillas.filter(p => p.activa).map(p => p.id)
+    if (activasIds.length === 0) return []
+    // A template is "loaded" if there's a movement in this month with matching concepto OR categoria_id
+    // We use a simple heuristic: a template is present if any fijo movement in this month
+    // has the same categoria_id and importe (approximate match)
+    const fijosDelMes = gastosItems.filter(m => m.es_fijo)
+    return plantillas.filter(p => p.activa).filter(p => {
+      return !fijosDelMes.some(m =>
+        m.categoria_id === p.categoria_id &&
+        Math.abs(Number(m.importe) - Number(p.importe)) < 0.01
+      )
+    })
+  }, [plantillas, gastosItems])
 
   const deltaIngresos = prevTotals?.ingresos > 0 ? (totalIngresos - prevTotals.ingresos) / prevTotals.ingresos * 100 : null
   const deltaGastos   = prevTotals?.gastos   > 0 ? (totalGastos   - prevTotals.gastos)   / prevTotals.gastos   * 100 : null
@@ -769,7 +852,7 @@ export default function MesView() {
           ref={monthPickerRef}
           type="month"
           style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', width: 0, height: 0 }}
-          max={`${todayDate.getFullYear()}-${String(todayDate.getMonth() + 1).padStart(2, '0')}`}
+          max={`${todayDate.getFullYear() + 2}-12`}
           value={`${anio}-${String(mes).padStart(2, '0')}`}
           onChange={e => {
             const [y, m] = e.target.value.split('-').map(Number)
@@ -777,7 +860,7 @@ export default function MesView() {
           }}
           readOnly={false}
         />
-        <button className="btn-nav" onClick={nextMes} title={t(lang, 'next_month')} disabled={isCurrentMonth}>›</button>
+        <button className="btn-nav" onClick={nextMes} title={t(lang, 'next_month')}>›</button>
 
         {!isCurrentMonth && (
           <button
@@ -787,8 +870,24 @@ export default function MesView() {
             {t(lang, 'today')}
           </button>
         )}
+        {isFutureMonth && (
+          <span className="future-month-badge" title={t(lang, 'planning_mode')}>
+            {lang === 'es' ? 'Planif.' : 'Plan'}
+          </span>
+        )}
 
         <div className="header-actions">
+          <button
+            className={`btn-icon${plantillasNoGeneradas.length > 0 ? ' btn-icon-pulse' : ''}`}
+            onClick={() => setShowPlantillasModal(true)}
+            title={t(lang, 'manage_templates')}
+            aria-label={t(lang, 'manage_templates')}
+          >
+            ↺
+            {plantillasNoGeneradas.length > 0 && (
+              <span className="campana-badge">{plantillasNoGeneradas.length}</span>
+            )}
+          </button>
           <button className="campana-btn" onClick={handleOpenActivity} title={t(lang, 'activity_title')}>
             🔔
             {unread > 0 && (
@@ -840,11 +939,16 @@ export default function MesView() {
           <div className={`summary-card balance-card ${balance >= 0 ? 'balance-pos' : 'balance-neg'}`} aria-label={`${t(lang, 'balance')}: ${fmt(balance)}`}>
             <span className="summary-label">{t(lang, 'balance')}</span>
             <span className="summary-value">{balance >= 0 ? '+' : ''}{fmt(balance)}</span>
-            {totalIngresos > 0 && (
+            {totalIngresos > 0 && savingsRate !== null && (
               <span className={`summary-savings ${balance >= 0 ? 'delta-pos' : 'delta-neg'}`}>
                 {balance >= 0
-                  ? `${Math.round(balance / totalIngresos * 100)}% ${t(lang, 'saved')}`
+                  ? `${savingsRate}% ${t(lang, 'saved')}`
                   : t(lang, 'overspent')}
+              </span>
+            )}
+            {totalPendiente > 0 && (
+              <span className="summary-pending-hint">
+                {lang === 'es' ? `+ ${fmt(totalPendiente)} pte.` : `+ ${fmt(totalPendiente)} pending`}
               </span>
             )}
           </div>
@@ -891,6 +995,43 @@ export default function MesView() {
                 <span className="by-user-pct">{Math.round(u.total / totalGastos * 100)}%</span>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Future month planning banner */}
+        {isFutureMonth && !loading && (
+          <div className="planning-banner">
+            <span className="planning-banner-icon">📅</span>
+            <div className="planning-banner-text">
+              <strong>{t(lang, 'planning_mode')}</strong>
+              <span>{lang === 'es'
+                ? 'Añade gastos planificados y establece presupuestos para preparar el mes.'
+                : 'Add planned expenses and set budgets to prepare for this month.'}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Load templates banner */}
+        {!loading && plantillasNoGeneradas.length > 0 && (
+          <div className="templates-banner">
+            <div className="templates-banner-info">
+              <span className="templates-banner-title">
+                {lang === 'es'
+                  ? `${plantillasNoGeneradas.length} gasto(s) fijo(s) sin cargar`
+                  : `${plantillasNoGeneradas.length} recurring expense(s) not yet loaded`}
+              </span>
+              <span className="templates-banner-names">
+                {plantillasNoGeneradas.slice(0, 3).map(p => p.nombre).join(', ')}
+                {plantillasNoGeneradas.length > 3 && `… +${plantillasNoGeneradas.length - 3}`}
+              </span>
+            </div>
+            <button
+              className="btn-sm btn-primary templates-banner-btn"
+              onClick={handleLoadPlantillas}
+            >
+              {t(lang, 'load_templates')}
+            </button>
           </div>
         )}
 
@@ -1325,9 +1466,12 @@ export default function MesView() {
                     const m = entry.m
                     const sub = subcatName(m.subcategoria_id)
                     return (
-                      <button
+                      <div
                         key={m.id}
-                        className="movement-item"
+                        className={`movement-item-wrap${m.pendiente ? ' movement-item-wrap-pending' : ''}`}
+                      >
+                      <button
+                        className={`movement-item${m.pendiente ? ' movement-item-pending' : ''}`}
                         onClick={() => { setEditMov(m); setModalOpen(true) }}
                       >
                         <div className="movement-left">
@@ -1364,10 +1508,25 @@ export default function MesView() {
                           )}
                           {m.nota && <span className="movement-nota">{m.nota}</span>}
                         </div>
-                        <span className={`movement-amount ${m.tipo === 'gasto' ? 'amount-expense' : 'amount-income'}`}>
-                          {m.tipo === 'gasto' ? '-' : '+'}{fmt(Number(m.importe))}
-                        </span>
+                        <div className="movement-right">
+                          {m.pendiente && (
+                            <span className="movement-pending-badge">{t(lang, 'pending_badge')}</span>
+                          )}
+                          <span className={`movement-amount ${m.tipo === 'gasto' ? 'amount-expense' : 'amount-income'}${m.pendiente ? ' amount-pending' : ''}`}>
+                            {m.tipo === 'gasto' ? '-' : '+'}{fmt(Number(m.importe))}
+                          </span>
+                        </div>
                       </button>
+                      {m.pendiente && m.tipo === 'gasto' && (
+                        <button
+                          className="mark-paid-btn"
+                          onClick={e => { e.stopPropagation(); handleMarkPaid(m.id) }}
+                          title={t(lang, 'mark_paid')}
+                        >
+                          {lang === 'es' ? '✓ Pagado' : '✓ Paid'}
+                        </button>
+                      )}
+                      </div>
                     )
                   })}
                 </div>
@@ -1380,6 +1539,11 @@ export default function MesView() {
                   ) : (
                     <>
                       {totalGastos > 0 && <span className="movements-footer-exp">−{fmt(totalGastos)}</span>}
+                      {totalPendiente > 0 && (
+                        <span className="movements-footer-pending">
+                          {lang === 'es' ? `(${fmt(totalPendiente)} pte.)` : `(${fmt(totalPendiente)} pend.)`}
+                        </span>
+                      )}
                       {totalIngresos > 0 && <span className="movements-footer-inc">+{fmt(totalIngresos)}</span>}
                     </>
                   )}
@@ -1426,28 +1590,35 @@ export default function MesView() {
                 ) : yearData ? (
                   <div className="year-grid">
                     {yearData.map((d, i) => {
-                      const balance = d.income - d.expenses
-                      const isCurrent = i + 1 === mes && anio === todayDate.getFullYear()
+                      const monthBalance = d.income - d.expenses
+                      const isCurrent = i + 1 === todayDate.getMonth() + 1 && anio === todayDate.getFullYear()
                       const isEmpty = d.income === 0 && d.expenses === 0
-                      const isFuture = anio === todayDate.getFullYear()
+                      const isFutureCell = anio === todayDate.getFullYear()
                         ? i + 1 > todayDate.getMonth() + 1
                         : anio > todayDate.getFullYear()
+                      const isSelectedMonth = i + 1 === mes
+                      // Projected fixed costs for future months
+                      const plantillaTotal = isFutureCell
+                        ? plantillas.filter(p => p.activa).reduce((s, p) => s + Number(p.importe), 0)
+                        : 0
                       return (
                         <button
                           key={i}
-                          className={`year-cell${isCurrent ? ' year-cell-current' : ''}${isEmpty ? ' year-cell-empty' : ''}${isFuture ? ' year-cell-future' : ''}`}
+                          className={`year-cell${isCurrent ? ' year-cell-current' : ''}${isSelectedMonth && !isCurrent ? ' year-cell-selected' : ''}${isEmpty && !isFutureCell ? ' year-cell-empty' : ''}${isFutureCell ? ' year-cell-future' : ''}`}
                           onClick={() => setMes(i + 1)}
                           title={MONTHS[lang][i]}
                         >
                           <span className="year-cell-month">{MONTHS[lang][i].slice(0, 3)}</span>
-                          {!isEmpty && (
+                          {!isEmpty ? (
                             <>
                               <span className="year-cell-exp">{fmtK(d.expenses)}</span>
-                              <span className={`year-cell-bal ${balance >= 0 ? 'year-bal-pos' : 'year-bal-neg'}`}>
-                                {balance >= 0 ? '+' : ''}{fmtK(balance)}
+                              <span className={`year-cell-bal ${monthBalance >= 0 ? 'year-bal-pos' : 'year-bal-neg'}`}>
+                                {monthBalance >= 0 ? '+' : ''}{fmtK(monthBalance)}
                               </span>
                             </>
-                          )}
+                          ) : isFutureCell && plantillaTotal > 0 ? (
+                            <span className="year-cell-projected">{fmtK(plantillaTotal)}</span>
+                          ) : null}
                         </button>
                       )
                     })}
@@ -1458,6 +1629,17 @@ export default function MesView() {
           </>
         )}
       </main>
+
+      {/* Modal plantillas fijas */}
+      <PlantillasModal
+        open={showPlantillasModal}
+        onClose={() => setShowPlantillasModal(false)}
+        lang={lang}
+        hogarId={hogarId}
+        categorias={categorias}
+        subcategorias={subcategorias}
+        onRefresh={loadStaticos}
+      />
 
       {/* Modal categorías */}
       <CategoriasModal
@@ -1531,6 +1713,7 @@ export default function MesView() {
                   ['I', lang === 'es' ? 'Importar CSV' : 'Import CSV'],
                   ['T', lang === 'es' ? 'Ir al mes actual' : 'Go to current month'],
                   ['C', lang === 'es' ? 'Gestionar categorías' : 'Manage categories'],
+                  ['R', lang === 'es' ? 'Gastos fijos recurrentes' : 'Recurring templates'],
                   ['/', lang === 'es' ? 'Enfocar búsqueda' : 'Focus search'],
                   ['?', lang === 'es' ? 'Mostrar / ocultar atajos' : 'Show / hide shortcuts'],
                   ['D', lang === 'es' ? 'Alternar tema oscuro/claro' : 'Toggle dark/light theme'],
@@ -1549,12 +1732,12 @@ export default function MesView() {
 
       {/* FAB añadir movimiento */}
       <button
-        className={`fab${modalOpen || showActivity || showHelp || showCatsModal || showImportModal ? ' fab-hidden' : ''}`}
+        className={`fab${modalOpen || showActivity || showHelp || showCatsModal || showImportModal || showPlantillasModal ? ' fab-hidden' : ''}`}
         onClick={() => { setEditMov(null); setModalOpen(true) }}
         title={t(lang, 'new_movement')}
         aria-label={t(lang, 'new_movement')}
-        aria-hidden={modalOpen || showActivity || showHelp || showCatsModal || showImportModal}
-        tabIndex={modalOpen || showActivity || showHelp || showCatsModal || showImportModal ? -1 : 0}
+        aria-hidden={modalOpen || showActivity || showHelp || showCatsModal || showImportModal || showPlantillasModal}
+        tabIndex={modalOpen || showActivity || showHelp || showCatsModal || showImportModal || showPlantillasModal ? -1 : 0}
       >
         +
       </button>

@@ -1866,6 +1866,400 @@ kbd {
 }
 .cat-add-row .cat-add-input { flex: 1; }
 
+/* ── Expense toggles (fijo + pendiente) ── */
+.expense-toggles {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  margin-top: 0.25rem;
+}
+.fixed-toggle-track-pending {
+  background: #d97706;
+}
+.fixed-toggle-input.fixed-toggle-pending:checked + .fixed-toggle-track-pending {
+  background: #d97706;
+}
+
+/* ── Movement item wrap (pending support) ── */
+.movement-item-wrap {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+}
+.movement-item-wrap .movement-item {
+  flex: 1;
+  border-radius: 0.5rem 0 0 0.5rem;
+}
+.movement-item-wrap-pending .movement-item {
+  border: 1.5px dashed var(--border);
+  opacity: 0.82;
+}
+.movement-item-pending {
+  border-left: 3px solid #d97706 !important;
+}
+.movement-right {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+.movement-pending-badge {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: #d97706;
+  background: rgba(217,119,6,0.12);
+  border-radius: 0.25rem;
+  padding: 0.1rem 0.35rem;
+  white-space: nowrap;
+}
+.amount-pending {
+  font-style: italic;
+  color: var(--text2);
+}
+.mark-paid-btn {
+  display: flex;
+  align-items: center;
+  padding: 0 0.65rem;
+  border: none;
+  background: rgba(34,197,94,0.14);
+  color: #16a34a;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 0 0.5rem 0.5rem 0;
+  border-left: 1px solid var(--border);
+  transition: background 0.15s;
+  white-space: nowrap;
+  min-height: 2.6rem;
+}
+.mark-paid-btn:hover { background: rgba(34,197,94,0.25); }
+
+/* ── Movements footer pending ── */
+.movements-footer-pending {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.55rem 0.75rem;
+  margin-top: 0.5rem;
+  border-radius: 0.5rem;
+  background: rgba(217,119,6,0.08);
+  border: 1px solid rgba(217,119,6,0.2);
+}
+.movements-footer-pending-label {
+  font-size: 0.8rem;
+  color: #d97706;
+  font-weight: 500;
+}
+.movements-footer-pending-amount {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #d97706;
+}
+.btn-mark-all-paid {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 0.375rem;
+  border: 1px solid rgba(34,197,94,0.4);
+  background: rgba(34,197,94,0.1);
+  color: #16a34a;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background 0.15s;
+}
+.btn-mark-all-paid:hover { background: rgba(34,197,94,0.2); }
+
+/* ── Summary pending hint ── */
+.summary-pending-hint {
+  font-size: 0.75rem;
+  color: #d97706;
+  text-align: right;
+  margin-top: 0.2rem;
+  font-style: italic;
+}
+
+/* ── Savings rate ── */
+.savings-rate-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.45rem 0.75rem;
+  border-radius: 0.5rem;
+  background: var(--income-bg);
+  margin-top: 0.4rem;
+}
+.savings-rate-label {
+  font-size: 0.8rem;
+  color: var(--text2);
+}
+.savings-rate-value {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--income);
+}
+.savings-rate-value.savings-negative { color: var(--expense); }
+
+/* ── Planning (future month) banner ── */
+.planning-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.6rem 0.85rem;
+  border-radius: 0.5rem;
+  background: rgba(139,92,246,0.1);
+  border: 1px solid rgba(139,92,246,0.25);
+  font-size: 0.8rem;
+  color: #7c3aed;
+  font-weight: 500;
+}
+.planning-banner-icon { font-size: 1rem; }
+
+/* ── Templates banner ── */
+.templates-banner {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 0.5rem;
+  background: rgba(217,119,6,0.07);
+  border: 1px solid rgba(217,119,6,0.2);
+}
+.templates-banner-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.templates-banner-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #d97706;
+}
+.templates-banner-names {
+  font-size: 0.75rem;
+  color: var(--text2);
+}
+.templates-banner-btn {
+  font-size: 0.78rem;
+  padding: 0.3rem 0.7rem;
+  border-radius: 0.375rem;
+  border: 1px solid rgba(217,119,6,0.4);
+  background: rgba(217,119,6,0.12);
+  color: #d97706;
+  cursor: pointer;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+.templates-banner-btn:hover { background: rgba(217,119,6,0.22); }
+
+/* ── Future month badge ── */
+.future-month-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: #7c3aed;
+  background: rgba(139,92,246,0.12);
+  border-radius: 0.25rem;
+  padding: 0.1rem 0.4rem;
+  margin-left: 0.4rem;
+  vertical-align: middle;
+}
+
+/* ── Templates-trigger icon pulse ── */
+.btn-icon-pulse {
+  position: relative;
+}
+.btn-icon-pulse::after {
+  content: '';
+  position: absolute;
+  top: 2px; right: 2px;
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: #d97706;
+  animation: pulse-dot 1.8s ease-in-out infinite;
+}
+@keyframes pulse-dot {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.45); opacity: 0.7; }
+}
+
+/* ── Year view enhancements ── */
+.year-cell-selected {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.year-cell-projected {
+  background: linear-gradient(135deg, var(--surface) 60%, rgba(139,92,246,0.07));
+}
+.year-projected-label {
+  font-size: 0.65rem;
+  color: #7c3aed;
+  font-style: italic;
+}
+
+/* ── Plantillas modal ── */
+.plantillas-modal-card {
+  max-width: 520px;
+  max-height: 88vh;
+  overflow-y: auto;
+}
+.plantillas-desc {
+  font-size: 0.82rem;
+  color: var(--text2);
+  margin: 0 0 0.75rem;
+}
+.plantillas-total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.45rem 0.75rem;
+  background: var(--income-bg);
+  border-radius: 0.45rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.82rem;
+  color: var(--text2);
+}
+.plantillas-total strong {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--income);
+}
+.plantillas-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+}
+.plantilla-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.6rem;
+  border-radius: 0.45rem;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  transition: opacity 0.15s;
+}
+.plantilla-row-inactive {
+  opacity: 0.52;
+}
+.plantilla-info { flex: 1; min-width: 0; }
+.plantilla-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.plantilla-nombre {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.plantilla-importe {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--expense);
+  flex-shrink: 0;
+}
+.plantilla-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.6rem;
+  margin-top: 0.2rem;
+}
+.plantilla-cat, .plantilla-dia, .plantilla-nota {
+  font-size: 0.72rem;
+  color: var(--text2);
+}
+.plantilla-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex-shrink: 0;
+}
+.plantilla-toggle-btn {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  border: 1.5px solid var(--border);
+  background: transparent;
+  color: var(--text2);
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+.plantilla-toggle-btn.plantilla-active {
+  border-color: var(--income);
+  color: var(--income);
+  background: var(--income-bg);
+}
+.plantilla-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  flex: 1;
+}
+.plantilla-edit-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+}
+.plantilla-edit-input {
+  flex: 1;
+  min-width: 80px;
+  padding: 0.4rem 0.6rem;
+  border-radius: 0.375rem;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.82rem;
+}
+.plantilla-edit-input:focus { outline: none; border-color: var(--accent); }
+.plantilla-edit-imp {
+  max-width: 90px;
+}
+.plantilla-edit-select {
+  flex: 1;
+  min-width: 100px;
+  padding: 0.4rem 0.55rem;
+  border-radius: 0.375rem;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.82rem;
+}
+.plantilla-edit-select:focus { outline: none; border-color: var(--accent); }
+.plantilla-edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.4rem;
+  margin-top: 0.15rem;
+}
+.plantilla-add-section {
+  border-top: 1px solid var(--border);
+  padding-top: 0.85rem;
+  margin-top: 0.25rem;
+}
+.plantilla-add-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text2);
+  margin: 0 0 0.55rem;
+}
+.plantilla-add-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
 /* ── Modo oscuro ── */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {

@@ -23,6 +23,7 @@ export default function MovimientoModal({
   const [subcatId, setSubcatId] = useState('')
   const [nota, setNota] = useState('')
   const [esFijo, setEsFijo] = useState(false)
+  const [pendiente, setPendiente] = useState(false)
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
@@ -36,6 +37,7 @@ export default function MovimientoModal({
       setSubcatId(movimiento.subcategoria_id ?? '')
       setNota(movimiento.nota ?? '')
       setEsFijo(movimiento.es_fijo ?? false)
+      setPendiente(movimiento.pendiente ?? false)
     } else {
       setTipo(defaultTipo)
       setImporte(defaultImporte || '')
@@ -45,6 +47,7 @@ export default function MovimientoModal({
       setSubcatId(defaultSubcatId || '')
       setNota(defaultNota || '')
       setEsFijo(false)
+      setPendiente(false)
     }
   }, [open, movimiento?.id, defaultTipo, defaultCatId, defaultImporte, defaultSubcatId, defaultNota, defaultConcepto])
 
@@ -109,6 +112,7 @@ export default function MovimientoModal({
         hogar_id: hogarId,
         creado_por: userId,
         es_fijo: tipo === 'gasto' ? esFijo : false,
+        pendiente: tipo === 'gasto' ? pendiente : false,
       }
       // concepto solo si hay valor — evita error si la migración aún no se aplicó
       if (concepto.trim()) payload.concepto = concepto.trim()
@@ -307,27 +311,48 @@ export default function MovimientoModal({
             />
           </div>
 
-          {/* Fixed/recurring toggle — only for expenses */}
+          {/* Toggles row — only for expenses */}
           {tipo === 'gasto' && (
-            <label className="fixed-toggle-label">
-              <input
-                type="checkbox"
-                checked={esFijo}
-                onChange={e => setEsFijo(e.target.checked)}
-                className="fixed-toggle-input"
-              />
-              <span className="fixed-toggle-track">
-                <span className="fixed-toggle-knob" />
-              </span>
-              <span className="fixed-toggle-text">
-                {t(lang, 'mark_fixed')}
-                <span className="fixed-toggle-hint">
-                  {lang === 'es'
-                    ? ' (alquiler, suscripciones, seguros…)'
-                    : ' (rent, subscriptions, insurance…)'}
+            <div className="expense-toggles">
+              <label className="fixed-toggle-label">
+                <input
+                  type="checkbox"
+                  checked={esFijo}
+                  onChange={e => { setEsFijo(e.target.checked); if (e.target.checked) setPendiente(false) }}
+                  className="fixed-toggle-input"
+                />
+                <span className="fixed-toggle-track">
+                  <span className="fixed-toggle-knob" />
                 </span>
-              </span>
-            </label>
+                <span className="fixed-toggle-text">
+                  {t(lang, 'mark_fixed')}
+                  <span className="fixed-toggle-hint">
+                    {lang === 'es'
+                      ? ' (alquiler, suscripciones, seguros…)'
+                      : ' (rent, subscriptions, insurance…)'}
+                  </span>
+                </span>
+              </label>
+              <label className="fixed-toggle-label">
+                <input
+                  type="checkbox"
+                  checked={pendiente}
+                  onChange={e => setPendiente(e.target.checked)}
+                  className="fixed-toggle-input fixed-toggle-pending"
+                />
+                <span className="fixed-toggle-track fixed-toggle-track-pending">
+                  <span className="fixed-toggle-knob" />
+                </span>
+                <span className="fixed-toggle-text">
+                  {t(lang, 'mark_pending')}
+                  <span className="fixed-toggle-hint">
+                    {lang === 'es'
+                      ? ' (previsto pero aún no cargado)'
+                      : ' (planned but not yet charged)'}
+                  </span>
+                </span>
+              </label>
+            </div>
           )}
 
           <div className="modal-actions">
