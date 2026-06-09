@@ -387,6 +387,13 @@
 }
 .search-clear:hover { color: var(--text); }
 
+.filter-summary {
+  font-size: 0.75rem;
+  color: var(--text2);
+  margin: -0.2rem 0 0.4rem;
+  text-align: right;
+}
+
 /* ── Presupuesto por categoría ── */
 .budget-row {
   padding: 0.55rem 0;

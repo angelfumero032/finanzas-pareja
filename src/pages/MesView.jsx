@@ -323,6 +323,9 @@ export default function MesView() {
       )
     })
 
+  const totalFiltrado = movimientosFiltrados.reduce((s, m) => s + Number(m.importe), 0)
+  const hayFiltroActivo = filtroTipo !== 'all' || busqueda
+
   const gastoPorCat = {}
   movimientos.filter(m => m.tipo === 'gasto' && m.categoria_id).forEach(m => {
     gastoPorCat[m.categoria_id] = (gastoPorCat[m.categoria_id] ?? 0) + Number(m.importe)
@@ -520,6 +523,11 @@ export default function MesView() {
                       <button className="search-clear" onClick={() => setBusqueda('')}>×</button>
                     )}
                   </div>
+                  {hayFiltroActivo && movimientosFiltrados.length > 0 && (
+                    <p className="filter-summary">
+                      {movimientosFiltrados.length} · {fmt(totalFiltrado)}
+                    </p>
+                  )}
                 </>
               )}
 
@@ -566,6 +574,7 @@ export default function MesView() {
         subcategorias={subcategorias}
         hogarId={hogarId}
         userId={profile?.id}
+        defaultTipo={filtroTipo !== 'all' ? filtroTipo : 'gasto'}
       />
 
       {/* Panel de actividad */}
