@@ -233,13 +233,14 @@ export default function MesView() {
 
   const isCurrentMonth = anio === todayDate.getFullYear() && mes === todayDate.getMonth() + 1
 
-  // Teclado: ← → para navegar entre meses
+  // Teclado: ← → navegar meses, n → añadir movimiento
   useEffect(() => {
     function onKey(e) {
       if (['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target.tagName)) return
       if (modalOpen || showActivity) return
       if (e.key === 'ArrowLeft') prevMes()
       if (e.key === 'ArrowRight' && !isCurrentMonth) nextMes()
+      if (e.key === 'n' || e.key === 'N') { setEditMov(null); setModalOpen(true) }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -636,6 +637,18 @@ export default function MesView() {
         currentUserId={profile?.id}
         usuarios={usuarios}
       />
+
+      {/* FAB añadir movimiento */}
+      {!modalOpen && !showActivity && (
+        <button
+          className="fab"
+          onClick={() => { setEditMov(null); setModalOpen(true) }}
+          title={t(lang, 'new_movement')}
+          aria-label={t(lang, 'new_movement')}
+        >
+          +
+        </button>
+      )}
     </div>
   )
 }
