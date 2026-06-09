@@ -1,10 +1,10 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 
-const LangContext = createContext({ lang: 'es', setLang: () => {} })
+const LangContext = createContext({ lang: 'en', setLang: () => {} })
 
 export function LangProvider({ profile, children }) {
-  const [lang, setLangState] = useState(profile?.idioma ?? 'es')
+  const [lang, setLangState] = useState(profile?.idioma ?? 'en')
 
   useEffect(() => {
     if (profile?.idioma) setLangState(profile.idioma)
