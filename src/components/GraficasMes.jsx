@@ -120,7 +120,7 @@ function TrendBars({ data, fmt, lang }) {
   return (
     <div className="trend-wrap">
       {sel && (
-        <div className="trend-tooltip">
+        <div className="trend-tooltip" onClick={() => setActiveCol(null)} style={{ cursor: 'pointer' }}>
           <span className="trend-tooltip-label">{sel.label}</span>
           {sel.income > 0 && (
             <span className="trend-tooltip-inc">▲ {fmt(sel.income)}</span>
