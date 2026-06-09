@@ -558,7 +558,16 @@ export default function MesView() {
                         onClick={() => { setEditMov(m); setModalOpen(true) }}
                       >
                         <div className="movement-left">
-                          <span className="movement-date">{m.fecha}</span>
+                          <div className="movement-meta">
+                            <span className="movement-date">{m.fecha}</span>
+                            {usuarios.length > 1 && m.creado_por && (
+                              <span className="movement-creator">
+                                {m.creado_por === profile?.id
+                                  ? t(lang, 'you')
+                                  : (usuarios.find(u => u.id === m.creado_por)?.nombre ?? '')}
+                              </span>
+                            )}
+                          </div>
                           <span className="movement-cat">
                             {catName(m.categoria_id)}{sub ? ` · ${sub}` : ''}
                           </span>
