@@ -92,10 +92,11 @@ export default function ImportarCSVModal({ open, onClose, lang, hogarId, userId,
   const [rows, setRows] = useState([])
   const [importing, setImporting] = useState(false)
   const [done, setDone] = useState(null)
+  const [dragOver, setDragOver] = useState(false)
   const fileRef = useRef(null)
 
   useEffect(() => {
-    if (!open) { setRows([]); setDone(null) }
+    if (!open) { setRows([]); setDone(null); setDragOver(false) }
   }, [open])
 
   useEffect(() => {
@@ -107,15 +108,25 @@ export default function ImportarCSVModal({ open, onClose, lang, hogarId, userId,
 
   if (!open) return null
 
-  function handleFile(e) {
-    const file = e.target.files?.[0]
-    if (!file) return
+  function readFile(file) {
+    if (!file || !file.name.match(/\.csv$/i)) return
     const reader = new FileReader()
     reader.onload = ev => {
       const parsed = parseCSV(ev.target.result, categorias)
       setRows(parsed)
     }
     reader.readAsText(file, 'utf-8')
+  }
+
+  function handleFile(e) {
+    readFile(e.target.files?.[0])
+  }
+
+  function handleDrop(e) {
+    e.preventDefault()
+    setDragOver(false)
+    const file = e.dataTransfer.files?.[0]
+    readFile(file)
   }
 
   async function handleImport() {
@@ -184,15 +195,39 @@ export default function ImportarCSVModal({ open, onClose, lang, hogarId, userId,
               </p>
             </div>
 
-            <div className="field">
-              <label>{lang === 'es' ? 'Archivo CSV' : 'CSV file'}</label>
+            <div
+              className={`csv-drop-zone${dragOver ? ' csv-drop-active' : ''}${rows.length > 0 ? ' csv-drop-loaded' : ''}`}
+              onDragOver={e => { e.preventDefault(); setDragOver(true) }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={handleDrop}
+              onClick={() => fileRef.current?.click()}
+              role="button"
+              tabIndex={0}
+              aria-label={lang === 'es' ? 'Área de arrastre de CSV' : 'CSV drop area'}
+              onKeyDown={e => e.key === 'Enter' && fileRef.current?.click()}
+            >
               <input
                 ref={fileRef}
                 type="file"
                 accept=".csv,text/csv"
                 onChange={handleFile}
-                style={{ fontSize: '0.9rem' }}
+                style={{ display: 'none' }}
               />
+              {rows.length > 0 ? (
+                <span className="csv-drop-label csv-drop-done">
+                  ✓ {validRows.length + invalidRows.length} {lang === 'es' ? 'filas cargadas' : 'rows loaded'}
+                  <span className="csv-drop-change">{lang === 'es' ? ' · cambiar' : ' · change'}</span>
+                </span>
+              ) : (
+                <>
+                  <span className="csv-drop-icon" aria-hidden="true">📂</span>
+                  <span className="csv-drop-label">
+                    {dragOver
+                      ? (lang === 'es' ? 'Suelta el archivo' : 'Drop the file')
+                      : (lang === 'es' ? 'Arrastra un CSV aquí o haz clic' : 'Drag a CSV here or click to browse')}
+                  </span>
+                </>
+              )}
             </div>
 
             {rows.length > 0 && (

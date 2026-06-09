@@ -1900,6 +1900,29 @@ kbd {
 .amount-expr-preview { font-size: 0.8rem; font-weight: 500; color: var(--accent); margin-left: 0.4em; }
 
 /* ── Import CSV modal ── */
+.csv-drop-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  border: 2px dashed var(--border);
+  border-radius: var(--r);
+  padding: 1.25rem;
+  cursor: pointer;
+  transition: border-color .15s, background .15s;
+  text-align: center;
+  margin-bottom: 0.25rem;
+  min-height: 72px;
+}
+.csv-drop-zone:hover, .csv-drop-zone:focus-visible { border-color: var(--accent); outline: none; }
+.csv-drop-active { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 6%, var(--surface)); }
+.csv-drop-loaded { border-style: solid; border-color: var(--income); }
+.csv-drop-icon { font-size: 1.4rem; }
+.csv-drop-label { font-size: 0.85rem; color: var(--text2); }
+.csv-drop-done { color: var(--income); font-weight: 500; }
+.csv-drop-change { font-weight: 400; color: var(--text3); }
+
 .import-modal-card { max-width: 640px; max-height: 80vh; display: flex; flex-direction: column; }
 .import-help { margin-bottom: 0.75rem; }
 .import-help-text { font-size: 0.82rem; color: var(--text2); margin: 0 0 0.25rem; }
