@@ -5,6 +5,7 @@ import { useLang } from '../context/LangContext'
 import { t, MONTHS } from '../i18n'
 import MovimientoModal from '../components/MovimientoModal'
 import ActivityPanel from '../components/ActivityPanel'
+import GraficasMes from '../components/GraficasMes'
 
 export default function MesView() {
   const { profile } = useAuth()
@@ -35,6 +36,9 @@ export default function MesView() {
 
   // Edición inline de presupuesto
   const [editBudget, setEditBudget] = useState(null) // { catId }
+
+  // Tendencia mensual (últimos 6 meses, sin etiquetas de idioma)
+  const [rawTrend, setRawTrend] = useState([])
 
   const hogarId = profile?.hogar_id
 
@@ -89,6 +93,48 @@ export default function MesView() {
   }, [hogarId, anio, mes])
 
   useEffect(() => { loadMes() }, [loadMes])
+
+  // ── Tendencia: últimos 6 meses ──
+  const loadTrend = useCallback(async () => {
+    if (!hogarId) return
+    const months = []
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(anio, mes - 1 - i, 1)
+      months.push({ anio: d.getFullYear(), mes: d.getMonth() + 1 })
+    }
+    const first = months[0]
+    const startStr = `${first.anio}-${String(first.mes).padStart(2, '0')}-01`
+    const lastDay = new Date(anio, mes, 0).getDate()
+    const endStr = `${anio}-${String(mes).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
+
+    const { data } = await supabase
+      .from('movimientos')
+      .select('tipo, importe, anio, mes')
+      .eq('hogar_id', hogarId)
+      .gte('fecha', startStr)
+      .lte('fecha', endStr)
+
+    if (!data) return
+    const agg = {}
+    months.forEach(m => { agg[`${m.anio}-${m.mes}`] = { anio: m.anio, mes: m.mes, income: 0, expenses: 0 } })
+    data.forEach(mov => {
+      const key = `${mov.anio}-${mov.mes}`
+      if (agg[key]) {
+        if (mov.tipo === 'ingreso') agg[key].income += Number(mov.importe)
+        else agg[key].expenses += Number(mov.importe)
+      }
+    })
+    setRawTrend(months.map(m => agg[`${m.anio}-${m.mes}`]))
+  }, [hogarId, anio, mes])
+
+  useEffect(() => { loadTrend() }, [loadTrend])
+
+  const trendData = useMemo(() =>
+    rawTrend.map(d => ({
+      ...d,
+      label: MONTHS[lang][d.mes - 1].slice(0, 3),
+    })),
+  [rawTrend, lang])
 
   // ── Actividad: carga inicial + contador no leídos ──
   useEffect(() => {
@@ -288,6 +334,15 @@ export default function MesView() {
           <div className="loading-row">{t(lang, 'loading')}</div>
         ) : (
           <>
+            {/* Gráficas */}
+            <GraficasMes
+              lang={lang}
+              gastoPorCat={gastoPorCat}
+              categorias={categorias}
+              trendData={trendData}
+              fmt={fmt}
+            />
+
             {/* Por categoría (gastos) */}
             <section className="section">
               <h2 className="section-title">{t(lang, 'budget_section')}</h2>

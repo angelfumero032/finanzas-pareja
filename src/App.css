@@ -546,3 +546,128 @@
 .activity-actor { font-size: 0.7rem; font-weight: 700; color: var(--accent); margin-bottom: 0.1rem; text-transform: uppercase; letter-spacing: 0.04em; }
 .activity-text  { font-size: 0.875rem; color: var(--text); line-height: 1.4; }
 .activity-time  { font-size: 0.72rem; color: var(--text3); margin-top: 0.15rem; }
+
+/* ── Gráficas ── */
+.chart-block { margin-bottom: 0; }
+.chart-block-sep { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+
+.chart-subtitle {
+  margin: 0 0 0.6rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text2);
+}
+
+/* Donut */
+.donut-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+.donut-svg { width: 180px; height: 180px; }
+
+.donut-legend {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 6px;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  transition: background 0.12s;
+  user-select: none;
+}
+.legend-item:hover, .legend-active { background: var(--surface2); }
+
+.legend-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.legend-name {
+  flex: 1;
+  font-size: 0.82rem;
+  color: var(--text);
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.legend-val  { font-size: 0.82rem; font-weight: 600; color: var(--text); flex-shrink: 0; }
+.legend-pct  { font-size: 0.75rem; color: var(--text3); min-width: 28px; text-align: right; flex-shrink: 0; }
+
+/* Barras de tendencia */
+.trend-wrap { display: flex; flex-direction: column; gap: 0.5rem; }
+
+.trend-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 120px;
+}
+
+.trend-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  height: 100%;
+}
+
+.trend-bars-pair {
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  width: 100%;
+  justify-content: center;
+}
+
+.trend-bar {
+  flex: 1;
+  max-width: 18px;
+  border-radius: 3px 3px 0 0;
+  min-height: 3px;
+  transition: height 0.3s ease;
+}
+.income-bar  { background: var(--income); }
+.expense-bar { background: var(--expense); }
+
+.trend-label {
+  font-size: 0.65rem;
+  color: var(--text3);
+  text-align: center;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.trend-legend-row {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.75rem;
+  color: var(--text2);
+}
+.trend-legend-item { display: flex; align-items: center; gap: 5px; }
+
+.trend-dot-sq {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.income-sq  { background: var(--income); }
+.expense-sq { background: var(--expense); }

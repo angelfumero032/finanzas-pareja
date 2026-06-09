@@ -43,6 +43,9 @@ const T = {
     hr_ago: 'h',
     day_ago: 'd',
     profile_missing: 'Perfil no encontrado — ¿se ejecutó seed.sql con los UID reales?',
+    charts_section: 'Gráficas',
+    spending_by_category: 'Gasto por categoría',
+    monthly_trend: 'Tendencia 6 meses',
   },
   en: {
     app_name: 'Couple finances',
@@ -88,6 +91,9 @@ const T = {
     hr_ago: 'h',
     day_ago: 'd',
     profile_missing: 'Profile not found — did you run seed.sql with real UIDs?',
+    charts_section: 'Charts',
+    spending_by_category: 'Spending by category',
+    monthly_trend: '6-month trend',
   },
 }
 
