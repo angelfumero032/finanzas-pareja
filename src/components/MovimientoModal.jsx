@@ -96,17 +96,19 @@ export default function MovimientoModal({
     if (!imp || imp <= 0) return
     setSaving(true)
     try {
-      await onSave({
+      const payload = {
         tipo,
         importe: imp,
-        concepto: concepto.trim() || null,
         fecha,
         categoria_id: catId || null,
         subcategoria_id: subcatId || null,
         nota: nota.trim() || null,
         hogar_id: hogarId,
         creado_por: userId,
-      })
+      }
+      // concepto solo si hay valor — evita error si la migración aún no se aplicó
+      if (concepto.trim()) payload.concepto = concepto.trim()
+      await onSave(payload)
     } finally {
       setSaving(false)
     }
