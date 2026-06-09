@@ -881,6 +881,193 @@ export default function MesView() {
           </div>
         ) : (
           <>
+            {/* Movimientos */}
+            <section className="section" ref={movListRef}>
+              <div className="section-header">
+                <h2 className="section-title">{t(lang, 'movements_section')}</h2>
+                <div className="section-header-actions">
+                  <button className="btn-sm btn-secondary" onClick={() => setShowImportModal(true)}>
+                    {t(lang, 'import_csv')}
+                  </button>
+                  {movimientos.length > 0 && (
+                    <button className="btn-sm btn-secondary" onClick={exportarCSV}>
+                      {t(lang, 'export_csv')}
+                    </button>
+                  )}
+                  <button
+                    className="btn-sm btn-primary"
+                    onClick={() => { setEditMov(null); setModalOpen(true) }}
+                  >
+                    {t(lang, 'add_movement')}
+                  </button>
+                </div>
+              </div>
+
+              {movimientos.length > 0 && (
+                <>
+                  <div className="filter-tabs-row">
+                    <div className="filter-tabs">
+                      {['all', 'gasto', 'ingreso'].map(tipo => {
+                        const count = tipo === 'all' ? movimientos.length : movimientos.filter(m => m.tipo === tipo).length
+                        return (
+                          <button
+                            key={tipo}
+                            className={`filter-tab${filtroTipo === tipo ? ' filter-tab-active' : ''}`}
+                            onClick={() => setFiltroTipo(tipo)}
+                          >
+                            {tipo === 'all' ? t(lang, 'filter_all') : tipo === 'gasto' ? t(lang, 'expense') : t(lang, 'income')}
+                            {count > 0 && <span className="tab-count">{count}</span>}
+                          </button>
+                        )
+                      })}
+                    </div>
+                    <button
+                      className={`sort-btn${sortMovs === 'importe' ? ' sort-btn-active' : ''}`}
+                      onClick={() => setSortMovs(s => {
+        const next = s === 'fecha' ? 'importe' : 'fecha'
+        localStorage.setItem('sortMovs', next)
+        return next
+      })}
+                      title={sortMovs === 'fecha' ? t(lang, 'sort_by_amount') : t(lang, 'sort_by_date')}
+                    >
+                      {sortMovs === 'fecha' ? t(lang, 'sort_by_date') : t(lang, 'sort_by_amount')}
+                    </button>
+                  </div>
+                  <div className="search-wrap">
+                    <input
+                      ref={searchRef}
+                      className="search-input"
+                      type="search"
+                      placeholder={t(lang, 'search_movements')}
+                      aria-label={t(lang, 'search_movements')}
+                      value={busqueda}
+                      onChange={e => setBusqueda(e.target.value)}
+                    />
+                    {busqueda && (
+                      <button className="search-clear" onClick={() => setBusqueda('')}>×</button>
+                    )}
+                  </div>
+                  {filtroCatId && (
+                    <div className="cat-filter-chip">
+                      <span>{filtroCatId === 'nocat' ? t(lang, 'no_category') : catName(filtroCatId)}</span>
+                      <button className="search-clear" onClick={() => setFiltroCatId(null)}>×</button>
+                    </div>
+                  )}
+                  {hayFiltroActivo && movimientosFiltrados.length > 0 && (
+                    <p className="filter-summary">
+                      {movimientosFiltrados.length} · {fmt(totalFiltrado)}
+                    </p>
+                  )}
+                </>
+              )}
+
+              {movimientosFiltrados.length === 0 ? (
+                <div className="empty-filtered">
+                  <p className="empty-text">
+                    {hayFiltroActivo ? t(lang, 'no_results') : t(lang, 'no_movements')}
+                  </p>
+                  {hayFiltroActivo ? (
+                    <button
+                      className="btn-sm btn-secondary"
+                      onClick={() => { setFiltroTipo('all'); setBusqueda(''); setFiltroCatId(null) }}
+                    >
+                      {t(lang, 'clear_filters')}
+                    </button>
+                  ) : (
+                    <div className="empty-actions">
+                      <button
+                        className="btn-sm btn-primary"
+                        onClick={() => { setEditMov(null); setModalOpen(true) }}
+                      >
+                        {t(lang, 'add_movement')}
+                      </button>
+                      <button
+                        className="btn-sm btn-secondary"
+                        onClick={() => setShowImportModal(true)}
+                      >
+                        {t(lang, 'import_csv')}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="movements-list">
+                  {renderList.map((entry, idx) => {
+                    if (entry.type === 'header') {
+                      const dt = dailyTotals[entry.date]
+                      return (
+                        <div key={`h-${entry.date}`} className="movement-date-header">
+                          <span>{formatFecha(entry.date)}</span>
+                          {dt !== undefined && (
+                            <span className={`daily-total ${dt >= 0 ? 'amount-income' : 'amount-expense'}`}>
+                              {dt >= 0 ? '+' : ''}{fmt(dt)}
+                            </span>
+                          )}
+                        </div>
+                      )
+                    }
+                    const m = entry.m
+                    const sub = subcatName(m.subcategoria_id)
+                    return (
+                      <button
+                        key={m.id}
+                        className="movement-item"
+                        onClick={() => { setEditMov(m); setModalOpen(true) }}
+                      >
+                        <div className="movement-left">
+                          {(sortMovs === 'importe' || usuarios.length > 1) && (
+                            <div className="movement-meta">
+                              {sortMovs === 'importe' && (
+                                <span className="movement-date" title={m.fecha}>{formatFecha(m.fecha)}</span>
+                              )}
+                              {usuarios.length > 1 && m.creado_por && (
+                                <span className="movement-creator">
+                                  {m.creado_por === profile?.id
+                                    ? t(lang, 'you')
+                                    : (usuarios.find(u => u.id === m.creado_por)?.nombre ?? '')}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                          <span className="movement-title">
+                            {m.categoria_id && catColorMap[m.categoria_id] && (
+                              <span
+                                className="movement-cat-dot"
+                                style={{ background: catColorMap[m.categoria_id] }}
+                              />
+                            )}
+                            {m.concepto || catName(m.categoria_id)}
+                          </span>
+                          {m.concepto && (
+                            <span className="movement-cat">
+                              {catName(m.categoria_id)}{sub ? ` · ${sub}` : ''}
+                            </span>
+                          )}
+                          {m.nota && <span className="movement-nota">{m.nota}</span>}
+                        </div>
+                        <span className={`movement-amount ${m.tipo === 'gasto' ? 'amount-expense' : 'amount-income'}`}>
+                          {m.tipo === 'gasto' ? '-' : '+'}{fmt(Number(m.importe))}
+                        </span>
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+              {movimientosFiltrados.length > 1 && (
+                <div className="movements-footer">
+                  <span className="movements-footer-count">{movimientosFiltrados.length}</span>
+                  {hayFiltroActivo ? (
+                    <span className="movements-footer-total">{fmt(totalFiltrado)}</span>
+                  ) : (
+                    <>
+                      {totalGastos > 0 && <span className="movements-footer-exp">−{fmt(totalGastos)}</span>}
+                      {totalIngresos > 0 && <span className="movements-footer-inc">+{fmt(totalIngresos)}</span>}
+                    </>
+                  )}
+                </div>
+              )}
+            </section>
+
             {/* Por categoría (gastos) */}
             <section className="section">
               <div className="section-header">
@@ -1117,193 +1304,6 @@ export default function MesView() {
                       <span className="budget-spent">{fmt(gastosNoCategoria)}</span>
                     </div>
                   </div>
-                </div>
-              )}
-            </section>
-
-            {/* Movimientos */}
-            <section className="section" ref={movListRef}>
-              <div className="section-header">
-                <h2 className="section-title">{t(lang, 'movements_section')}</h2>
-                <div className="section-header-actions">
-                  <button className="btn-sm btn-secondary" onClick={() => setShowImportModal(true)}>
-                    {t(lang, 'import_csv')}
-                  </button>
-                  {movimientos.length > 0 && (
-                    <button className="btn-sm btn-secondary" onClick={exportarCSV}>
-                      {t(lang, 'export_csv')}
-                    </button>
-                  )}
-                  <button
-                    className="btn-sm btn-primary"
-                    onClick={() => { setEditMov(null); setModalOpen(true) }}
-                  >
-                    {t(lang, 'add_movement')}
-                  </button>
-                </div>
-              </div>
-
-              {movimientos.length > 0 && (
-                <>
-                  <div className="filter-tabs-row">
-                    <div className="filter-tabs">
-                      {['all', 'gasto', 'ingreso'].map(tipo => {
-                        const count = tipo === 'all' ? movimientos.length : movimientos.filter(m => m.tipo === tipo).length
-                        return (
-                          <button
-                            key={tipo}
-                            className={`filter-tab${filtroTipo === tipo ? ' filter-tab-active' : ''}`}
-                            onClick={() => setFiltroTipo(tipo)}
-                          >
-                            {tipo === 'all' ? t(lang, 'filter_all') : tipo === 'gasto' ? t(lang, 'expense') : t(lang, 'income')}
-                            {count > 0 && <span className="tab-count">{count}</span>}
-                          </button>
-                        )
-                      })}
-                    </div>
-                    <button
-                      className={`sort-btn${sortMovs === 'importe' ? ' sort-btn-active' : ''}`}
-                      onClick={() => setSortMovs(s => {
-        const next = s === 'fecha' ? 'importe' : 'fecha'
-        localStorage.setItem('sortMovs', next)
-        return next
-      })}
-                      title={sortMovs === 'fecha' ? t(lang, 'sort_by_amount') : t(lang, 'sort_by_date')}
-                    >
-                      {sortMovs === 'fecha' ? t(lang, 'sort_by_date') : t(lang, 'sort_by_amount')}
-                    </button>
-                  </div>
-                  <div className="search-wrap">
-                    <input
-                      ref={searchRef}
-                      className="search-input"
-                      type="search"
-                      placeholder={t(lang, 'search_movements')}
-                      aria-label={t(lang, 'search_movements')}
-                      value={busqueda}
-                      onChange={e => setBusqueda(e.target.value)}
-                    />
-                    {busqueda && (
-                      <button className="search-clear" onClick={() => setBusqueda('')}>×</button>
-                    )}
-                  </div>
-                  {filtroCatId && (
-                    <div className="cat-filter-chip">
-                      <span>{filtroCatId === 'nocat' ? t(lang, 'no_category') : catName(filtroCatId)}</span>
-                      <button className="search-clear" onClick={() => setFiltroCatId(null)}>×</button>
-                    </div>
-                  )}
-                  {hayFiltroActivo && movimientosFiltrados.length > 0 && (
-                    <p className="filter-summary">
-                      {movimientosFiltrados.length} · {fmt(totalFiltrado)}
-                    </p>
-                  )}
-                </>
-              )}
-
-              {movimientosFiltrados.length === 0 ? (
-                <div className="empty-filtered">
-                  <p className="empty-text">
-                    {hayFiltroActivo ? t(lang, 'no_results') : t(lang, 'no_movements')}
-                  </p>
-                  {hayFiltroActivo ? (
-                    <button
-                      className="btn-sm btn-secondary"
-                      onClick={() => { setFiltroTipo('all'); setBusqueda(''); setFiltroCatId(null) }}
-                    >
-                      {t(lang, 'clear_filters')}
-                    </button>
-                  ) : (
-                    <div className="empty-actions">
-                      <button
-                        className="btn-sm btn-primary"
-                        onClick={() => { setEditMov(null); setModalOpen(true) }}
-                      >
-                        {t(lang, 'add_movement')}
-                      </button>
-                      <button
-                        className="btn-sm btn-secondary"
-                        onClick={() => setShowImportModal(true)}
-                      >
-                        {t(lang, 'import_csv')}
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="movements-list">
-                  {renderList.map((entry, idx) => {
-                    if (entry.type === 'header') {
-                      const dt = dailyTotals[entry.date]
-                      return (
-                        <div key={`h-${entry.date}`} className="movement-date-header">
-                          <span>{formatFecha(entry.date)}</span>
-                          {dt !== undefined && (
-                            <span className={`daily-total ${dt >= 0 ? 'amount-income' : 'amount-expense'}`}>
-                              {dt >= 0 ? '+' : ''}{fmt(dt)}
-                            </span>
-                          )}
-                        </div>
-                      )
-                    }
-                    const m = entry.m
-                    const sub = subcatName(m.subcategoria_id)
-                    return (
-                      <button
-                        key={m.id}
-                        className="movement-item"
-                        onClick={() => { setEditMov(m); setModalOpen(true) }}
-                      >
-                        <div className="movement-left">
-                          {(sortMovs === 'importe' || usuarios.length > 1) && (
-                            <div className="movement-meta">
-                              {sortMovs === 'importe' && (
-                                <span className="movement-date" title={m.fecha}>{formatFecha(m.fecha)}</span>
-                              )}
-                              {usuarios.length > 1 && m.creado_por && (
-                                <span className="movement-creator">
-                                  {m.creado_por === profile?.id
-                                    ? t(lang, 'you')
-                                    : (usuarios.find(u => u.id === m.creado_por)?.nombre ?? '')}
-                                </span>
-                              )}
-                            </div>
-                          )}
-                          <span className="movement-title">
-                            {m.categoria_id && catColorMap[m.categoria_id] && (
-                              <span
-                                className="movement-cat-dot"
-                                style={{ background: catColorMap[m.categoria_id] }}
-                              />
-                            )}
-                            {m.concepto || catName(m.categoria_id)}
-                          </span>
-                          {m.concepto && (
-                            <span className="movement-cat">
-                              {catName(m.categoria_id)}{sub ? ` · ${sub}` : ''}
-                            </span>
-                          )}
-                          {m.nota && <span className="movement-nota">{m.nota}</span>}
-                        </div>
-                        <span className={`movement-amount ${m.tipo === 'gasto' ? 'amount-expense' : 'amount-income'}`}>
-                          {m.tipo === 'gasto' ? '-' : '+'}{fmt(Number(m.importe))}
-                        </span>
-                      </button>
-                    )
-                  })}
-                </div>
-              )}
-              {movimientosFiltrados.length > 1 && (
-                <div className="movements-footer">
-                  <span className="movements-footer-count">{movimientosFiltrados.length}</span>
-                  {hayFiltroActivo ? (
-                    <span className="movements-footer-total">{fmt(totalFiltrado)}</span>
-                  ) : (
-                    <>
-                      {totalGastos > 0 && <span className="movements-footer-exp">−{fmt(totalGastos)}</span>}
-                      {totalIngresos > 0 && <span className="movements-footer-inc">+{fmt(totalIngresos)}</span>}
-                    </>
-                  )}
                 </div>
               )}
             </section>
