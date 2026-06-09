@@ -140,7 +140,7 @@ export default function CategoriasModal({ open, onClose, lang, hogarId, onRefres
       <div className="modal-card cats-modal-card">
         <div className="modal-header">
           <h2 className="modal-title">{lang === 'es' ? 'Categorías' : 'Categories'}</h2>
-          <button className="btn-icon" onClick={onClose} aria-label="Cerrar">✕</button>
+          <button className="btn-icon" onClick={onClose} aria-label={t(lang, 'close')}>✕</button>
         </div>
 
         <div className="filter-tabs cats-type-tabs">

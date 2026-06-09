@@ -46,7 +46,7 @@ export default function MesView() {
   const [filtroTipo, setFiltroTipo] = useState('all')
   const [busqueda, setBusqueda] = useState('')
   const [filtroCatId, setFiltroCatId] = useState(null)
-  const [sortMovs, setSortMovs] = useState('fecha') // 'fecha' | 'importe'
+  const [sortMovs, setSortMovs] = useState(() => localStorage.getItem('sortMovs') ?? 'fecha')
 
   const movListRef = useRef(null)
   const searchRef = useRef(null)
@@ -361,6 +361,7 @@ export default function MesView() {
       if (e.key === 'ArrowRight' && !isCurrentMonth) nextMes()
       if (e.key === 'n' || e.key === 'N') { setEditMov(null); setModalOpen(true) }
       if ((e.key === 't' || e.key === 'T') && !isCurrentMonth) { setAnio(todayDate.getFullYear()); setMes(todayDate.getMonth() + 1) }
+      if (e.key === 'c' || e.key === 'C') setShowCatsModal(true)
       if (e.key === '?') setShowHelp(h => !h)
       if (e.key === '/' && searchRef.current) { e.preventDefault(); searchRef.current.focus() }
       if (e.key === 'd' || e.key === 'D') cycleTheme()
@@ -1135,7 +1136,11 @@ export default function MesView() {
                     </div>
                     <button
                       className={`sort-btn${sortMovs === 'importe' ? ' sort-btn-active' : ''}`}
-                      onClick={() => setSortMovs(s => s === 'fecha' ? 'importe' : 'fecha')}
+                      onClick={() => setSortMovs(s => {
+        const next = s === 'fecha' ? 'importe' : 'fecha'
+        localStorage.setItem('sortMovs', next)
+        return next
+      })}
                       title={sortMovs === 'fecha' ? t(lang, 'sort_by_amount') : t(lang, 'sort_by_date')}
                     >
                       {sortMovs === 'fecha' ? t(lang, 'sort_by_date') : t(lang, 'sort_by_amount')}
@@ -1280,7 +1285,7 @@ export default function MesView() {
         categorias={categorias}
         anio={anio}
         mes={mes}
-        onImported={() => { loadMes(); showToast(t(lang, 'saved_ok')) }}
+        onImported={(n) => { loadMes(); setShowImportModal(false); showToast(tFmt(lang, 'imported_ok', { n })) }}
       />
 
       {/* Modal movimiento */}
@@ -1329,6 +1334,7 @@ export default function MesView() {
                   ['←  →', lang === 'es' ? 'Mes anterior / siguiente' : 'Previous / next month'],
                   ['N', lang === 'es' ? 'Nuevo movimiento' : 'New movement'],
                   ['T', lang === 'es' ? 'Ir al mes actual' : 'Go to current month'],
+                  ['C', lang === 'es' ? 'Gestionar categorías' : 'Manage categories'],
                   ['/', lang === 'es' ? 'Enfocar búsqueda' : 'Focus search'],
                   ['?', lang === 'es' ? 'Mostrar / ocultar atajos' : 'Show / hide shortcuts'],
                   ['D', lang === 'es' ? 'Alternar tema oscuro/claro' : 'Toggle dark/light theme'],

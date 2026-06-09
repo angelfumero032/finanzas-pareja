@@ -52,7 +52,7 @@ export default function ActivityPanel({ open, onClose, actividades, currentUserI
       <aside className={`activity-panel${open ? ' open' : ''}`} aria-hidden={!open}>
         <div className="panel-header">
           <h2 className="panel-title">{t(lang, 'activity_title')}</h2>
-          <button className="btn-icon" onClick={onClose} aria-label="Cerrar">✕</button>
+          <button className="btn-icon" onClick={onClose} aria-label={t(lang, 'close')}>✕</button>
         </div>
         <div className="panel-body">
           {actividades.length === 0 ? (

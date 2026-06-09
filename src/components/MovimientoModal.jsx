@@ -79,7 +79,7 @@ export default function MovimientoModal({ open, onClose, onSave, onDelete, onDup
           <h2 className="modal-title">
             {movimiento ? t(lang, 'edit_movement') : t(lang, 'new_movement')}
           </h2>
-          <button className="btn-icon" onClick={onClose} aria-label="Cerrar">✕</button>
+          <button className="btn-icon" onClick={onClose} aria-label={t(lang, 'close')}>✕</button>
         </div>
 
         <form onSubmit={handleSave} className="modal-form">

@@ -116,7 +116,7 @@ export default function ImportarCSVModal({ open, onClose, lang, hogarId, userId,
       const { error } = await supabase.from('movimientos').insert(inserts)
       if (error) throw error
       setDone(valid.length)
-      onImported()
+      onImported(valid.length)
     } catch {
       setDone(-1)
     } finally {
@@ -133,7 +133,7 @@ export default function ImportarCSVModal({ open, onClose, lang, hogarId, userId,
       <div className="modal-card import-modal-card">
         <div className="modal-header">
           <h2 className="modal-title">{lang === 'es' ? 'Importar CSV' : 'Import CSV'}</h2>
-          <button className="btn-icon" onClick={onClose} aria-label="Cerrar">✕</button>
+          <button className="btn-icon" onClick={onClose} aria-label={t(lang, 'close')}>✕</button>
         </div>
 
         {done !== null ? (
@@ -145,7 +145,7 @@ export default function ImportarCSVModal({ open, onClose, lang, hogarId, userId,
             ) : (
               <p className="import-result-err">{t(lang, 'save_error')}</p>
             )}
-            <button className="btn-secondary" onClick={onClose}>{t(lang, 'cancel')}</button>
+            <button className="btn-secondary" onClick={onClose}>{t(lang, 'close')}</button>
           </div>
         ) : (
           <>
