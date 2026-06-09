@@ -230,7 +230,50 @@ function InsightsBlock({ insights, fmt, lang, catMap }) {
   )
 }
 
-export default function GraficasMes({ lang, gastoPorCat, categorias, trendData, fmt, onSelectCat, catColors, catMap, insights, selectedCatId }) {
+function SpendingCalendar({ byDay, anio, mes, lang, fmt, onSelectDate, selectedDate }) {
+  const daysInMonth = new Date(anio, mes, 0).getDate()
+  const firstDow = new Date(anio, mes - 1, 1).getDay()
+  const offset = firstDow === 0 ? 6 : firstDow - 1
+  const values = Object.values(byDay).filter(v => v > 0)
+  const maxSpend = values.length > 0 ? Math.max(...values) : 1
+  const DOW = lang === 'es' ? ['L','M','X','J','V','S','D'] : ['M','T','W','T','F','S','S']
+
+  const cells = []
+  for (let i = 0; i < offset; i++) cells.push(null)
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${anio}-${String(mes).padStart(2,'0')}-${String(d).padStart(2,'0')}`
+    cells.push({ d, dateStr, spend: byDay[dateStr] ?? 0 })
+  }
+
+  return (
+    <div className="spend-cal">
+      <div className="spend-cal-dow" aria-hidden="true">
+        {DOW.map((l, i) => <span key={i} className="spend-cal-dow-lbl">{l}</span>)}
+      </div>
+      <div className="spend-cal-grid">
+        {cells.map((cell, i) => {
+          if (!cell) return <span key={`e${i}`} className="spend-cal-empty" aria-hidden="true" />
+          const heat = cell.spend > 0 ? Math.max(1, Math.ceil(cell.spend / maxSpend * 5)) : 0
+          const sel = selectedDate === cell.dateStr
+          return (
+            <button
+              key={cell.d}
+              className={`spend-cal-day heat-${heat}${sel ? ' spend-cal-sel' : ''}`}
+              onClick={() => onSelectDate?.(sel ? null : cell.dateStr)}
+              title={cell.spend > 0 ? fmt(cell.spend) : String(cell.d)}
+              aria-label={`${cell.dateStr}${cell.spend > 0 ? ': ' + fmt(cell.spend) : ''}`}
+              aria-pressed={sel}
+            >
+              {cell.d}
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+export default function GraficasMes({ lang, gastoPorCat, categorias, trendData, fmt, onSelectCat, catColors, catMap, insights, selectedCatId, spendingByDay, anio, mes, onSelectDate, selectedDate }) {
   const pieData = categorias
     .filter(c => c.tipo === 'gasto' && (gastoPorCat[c.id] ?? 0) > 0)
     .map((c, i) => ({
@@ -242,8 +285,9 @@ export default function GraficasMes({ lang, gastoPorCat, categorias, trendData, 
     .sort((a, b) => b.value - a.value)
 
   const hasTrend = trendData.some(d => d.income > 0 || d.expenses > 0)
+  const hasCal = spendingByDay && Object.values(spendingByDay).some(v => v > 0) && anio && mes
 
-  if (pieData.length === 0 && !hasTrend && !insights) return null
+  if (pieData.length === 0 && !hasTrend && !insights && !hasCal) return null
 
   return (
     <section className="section section-charts">
@@ -263,8 +307,31 @@ export default function GraficasMes({ lang, gastoPorCat, categorias, trendData, 
         </div>
       )}
 
-      {hasTrend && (
+      {hasCal && (
         <div className={`chart-block${pieData.length > 0 || insights ? ' chart-block-sep' : ''}`}>
+          <p className="chart-subtitle">{lang === 'es' ? 'Gasto por día' : 'Daily spending'}</p>
+          <SpendingCalendar
+            byDay={spendingByDay}
+            anio={anio}
+            mes={mes}
+            lang={lang}
+            fmt={fmt}
+            onSelectDate={onSelectDate}
+            selectedDate={selectedDate}
+          />
+          {selectedDate && (
+            <button
+              className="spend-cal-clear-btn"
+              onClick={() => onSelectDate?.(null)}
+            >
+              × {lang === 'es' ? 'limpiar filtro de fecha' : 'clear date filter'}
+            </button>
+          )}
+        </div>
+      )}
+
+      {hasTrend && (
+        <div className={`chart-block${pieData.length > 0 || insights || hasCal ? ' chart-block-sep' : ''}`}>
           <p className="chart-subtitle">{t(lang, 'monthly_trend')}</p>
           <TrendBars data={trendData} fmt={fmt} lang={lang} />
         </div>

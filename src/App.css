@@ -1708,6 +1708,61 @@ html, body { overscroll-behavior: none; }
 .legend-val  { font-size: 0.82rem; font-weight: 600; color: var(--text); flex-shrink: 0; }
 .legend-pct  { font-size: 0.75rem; color: var(--text3); min-width: 28px; text-align: right; flex-shrink: 0; }
 
+/* Spending calendar heatmap */
+.spend-cal { margin: 0.25rem 0; }
+.spend-cal-dow {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  margin-bottom: 4px;
+}
+.spend-cal-dow-lbl {
+  text-align: center;
+  font-size: 0.62rem;
+  color: var(--text3);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+.spend-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+.spend-cal-empty { aspect-ratio: 1; }
+.spend-cal-day {
+  aspect-ratio: 1;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  transition: transform .1s, border-color .1s;
+  color: var(--text);
+  padding: 0;
+  line-height: 1;
+}
+.spend-cal-day:hover { transform: scale(1.12); border-color: var(--border); z-index: 1; position: relative; }
+.spend-cal-sel { border-color: var(--accent) !important; box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 25%, transparent); }
+.heat-0 { background: var(--surface); color: var(--text3); opacity: 0.6; }
+.heat-1 { background: color-mix(in srgb, #ef4444 14%, var(--surface)); }
+.heat-2 { background: color-mix(in srgb, #ef4444 30%, var(--surface)); }
+.heat-3 { background: color-mix(in srgb, #ef4444 52%, var(--surface)); }
+.heat-4 { background: color-mix(in srgb, #ef4444 74%, var(--surface)); color: #fff; }
+.heat-5 { background: #ef4444; color: #fff; }
+.spend-cal-clear-btn {
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--text3);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.15rem 0.3rem;
+}
+.spend-cal-clear-btn:hover { color: var(--text2); }
+
 /* Barras de tendencia */
 .trend-wrap { display: flex; flex-direction: column; gap: 0.5rem; }
 

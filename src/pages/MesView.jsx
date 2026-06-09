@@ -52,6 +52,7 @@ export default function MesView() {
   const [filtroCatId, setFiltroCatId] = useState(null)
   const [sortMovs, setSortMovs] = useState(() => localStorage.getItem('sortMovs') ?? 'fecha')
   const [compactMode, setCompactMode] = useState(() => localStorage.getItem('compactMode') === '1')
+  const [filterDate, setFilterDate] = useState(null)
 
   const movListRef = useRef(null)
   const searchRef = useRef(null)
@@ -122,6 +123,9 @@ export default function MesView() {
   // Duplicate movement
   const [duplicateData, setDuplicateData] = useState(null)
   const [modalKey, setModalKey] = useState(0)
+
+  // Quick tipo for keyboard shortcut (n=expense, N=income)
+  const [quickTipo, setQuickTipo] = useState(null)
 
   // Year summary (lazy loaded when toggled)
   const [showYearView, setShowYearView] = useState(false)
@@ -283,7 +287,7 @@ export default function MesView() {
   useEffect(() => { loadMes() }, [loadMes])
 
   // Limpiar filtros al cambiar de mes
-  useEffect(() => { setBusqueda(''); setFiltroTipo('all'); setFiltroCatId(null); setFiltroFijo(null); setFiltroPendiente(false) }, [anio, mes])
+  useEffect(() => { setBusqueda(''); setFiltroTipo('all'); setFiltroCatId(null); setFiltroFijo(null); setFiltroPendiente(false); setFilterDate(null) }, [anio, mes])
 
   // Bloquear scroll del body cuando hay un panel/modal abierto (fix iOS)
   useEffect(() => {
@@ -465,7 +469,8 @@ export default function MesView() {
       if (modalOpen || showActivity || showHelp) return
       if (e.key === 'ArrowLeft') prevMes()
       if (e.key === 'ArrowRight') nextMes()
-      if (e.key === 'n' || e.key === 'N') { setEditMov(null); setModalOpen(true) }
+      if (e.key === 'n') { setEditMov(null); setQuickTipo('gasto'); setModalOpen(true) }
+      if (e.key === 'N') { setEditMov(null); setQuickTipo('ingreso'); setModalOpen(true) }
       if (e.key === 'i' || e.key === 'I') setShowImportModal(true)
       if (e.key === 't' || e.key === 'T') { setAnio(todayDate.getFullYear()); setMes(todayDate.getMonth() + 1) }
       if (e.key === 'c' || e.key === 'C') setShowCatsModal(true)
@@ -478,7 +483,7 @@ export default function MesView() {
       if (e.key === 'g' || e.key === 'G') document.querySelector('.section-charts')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
       if (e.key === 'p' || e.key === 'P') { setFiltroPendiente(v => !v); setFiltroTipo(t => t === 'all' ? 'gasto' : t) }
       if (e.key === 'f' || e.key === 'F') { setFiltroFijo(v => v === true ? null : true) }
-      if (e.key === 'x' || e.key === 'X') { setFiltroTipo('all'); setBusqueda(''); setFiltroCatId(null); setFiltroFijo(null); setFiltroPendiente(false) }
+      if (e.key === 'x' || e.key === 'X') { setFiltroTipo('all'); setBusqueda(''); setFiltroCatId(null); setFiltroFijo(null); setFiltroPendiente(false); setFilterDate(null) }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -828,6 +833,7 @@ export default function MesView() {
       .filter(m => !filtroCatId || (filtroCatId === 'nocat' ? !m.categoria_id : m.categoria_id === filtroCatId))
       .filter(m => filtroFijo === null || (filtroFijo === true ? m.es_fijo : !m.es_fijo))
       .filter(m => !filtroPendiente || m.pendiente)
+      .filter(m => !filterDate || m.fecha === filterDate)
       .filter(m => {
         if (!busqueda) return true
         const q = busqueda.toLowerCase()
@@ -847,13 +853,13 @@ export default function MesView() {
       list = [...list].sort((a, b) => Number(b.importe) - Number(a.importe))
     }
     return list
-  }, [movimientos, filtroTipo, filtroCatId, busqueda, sortMovs, catMap, subcatMap, usuarios, profile?.id, lang, filtroFijo, filtroPendiente])
+  }, [movimientos, filtroTipo, filtroCatId, busqueda, sortMovs, catMap, subcatMap, usuarios, profile?.id, lang, filtroFijo, filtroPendiente, filterDate])
 
   const totalFiltrado = useMemo(
     () => movimientosFiltrados.reduce((s, m) => s + Number(m.importe), 0),
     [movimientosFiltrados]
   )
-  const hayFiltroActivo = filtroTipo !== 'all' || busqueda || filtroCatId || filtroFijo !== null || filtroPendiente
+  const hayFiltroActivo = filtroTipo !== 'all' || busqueda || filtroCatId || filtroFijo !== null || filtroPendiente || filterDate
 
   const gastosPorUsuario = useMemo(() => {
     if (usuarios.length < 2) return null
@@ -985,6 +991,12 @@ export default function MesView() {
       else weekdayTotal += Number(m.importe)
     })
     return { biggest, topDay, weekendTotal, weekdayTotal }
+  }, [gastosItems])
+
+  const spendingByDay = useMemo(() => {
+    const map = {}
+    gastosItems.forEach(m => { map[m.fecha] = (map[m.fecha] ?? 0) + Number(m.importe) })
+    return map
   }, [gastosItems])
 
   const budgetHealthScore = useMemo(() => {
@@ -1984,6 +1996,12 @@ export default function MesView() {
                       <button className="search-clear" onClick={() => setFiltroCatId(null)}>×</button>
                     </div>
                   )}
+                  {filterDate && (
+                    <div className="cat-filter-chip cat-filter-chip-date">
+                      <span>📅 {filterDate}</span>
+                      <button className="search-clear" onClick={() => setFilterDate(null)}>×</button>
+                    </div>
+                  )}
                   {hayFiltroActivo && movimientosFiltrados.length > 0 && (
                     <p className="filter-summary">
                       {movimientosFiltrados.length} · {fmt(totalFiltrado)}
@@ -2161,6 +2179,15 @@ export default function MesView() {
                 setFiltroTipo(catId ? 'gasto' : 'all')
                 if (catId) movListRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
               }}
+              spendingByDay={spendingByDay}
+              anio={anio}
+              mes={mes}
+              selectedDate={filterDate}
+              onSelectDate={dateStr => {
+                setFilterDate(dateStr)
+                setFiltroTipo('all')
+                if (dateStr) movListRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+              }}
             />
 
             {/* Resumen anual */}
@@ -2285,7 +2312,7 @@ export default function MesView() {
       <MovimientoModal
         key={modalKey}
         open={modalOpen}
-        onClose={() => { setModalOpen(false); setEditMov(null); setQuickAddCatId(null); setDuplicateData(null) }}
+        onClose={() => { setModalOpen(false); setEditMov(null); setQuickAddCatId(null); setDuplicateData(null); setQuickTipo(null) }}
         onSave={handleSaveMov}
         onDelete={handleDeleteMov}
         onDuplicate={editMov ? handleDuplicateMov : null}
@@ -2294,7 +2321,7 @@ export default function MesView() {
         subcategorias={subcategorias}
         hogarId={hogarId}
         userId={profile?.id}
-        defaultTipo={duplicateData?.tipo ?? (filtroTipo !== 'all' ? filtroTipo : 'gasto')}
+        defaultTipo={duplicateData?.tipo ?? quickTipo ?? (filtroTipo !== 'all' ? filtroTipo : 'gasto')}
         defaultCatId={!editMov ? (duplicateData?.catId ?? quickAddCatId ?? (filtroTipo !== 'ingreso' && filtroCatId !== 'nocat' ? filtroCatId : null)) : null}
         defaultImporte={!editMov ? (duplicateData?.importe ?? '') : ''}
         defaultSubcatId={!editMov ? (duplicateData?.subcatId ?? '') : ''}
@@ -2327,7 +2354,8 @@ export default function MesView() {
               <tbody>
                 {[
                   ['←  →', lang === 'es' ? 'Mes anterior / siguiente' : 'Previous / next month'],
-                  ['N', lang === 'es' ? 'Nuevo movimiento' : 'New movement'],
+                  ['n', lang === 'es' ? 'Nuevo gasto' : 'New expense'],
+                  ['N', lang === 'es' ? 'Nuevo ingreso' : 'New income'],
                   ['I', lang === 'es' ? 'Importar CSV' : 'Import CSV'],
                   ['E', lang === 'es' ? 'Exportar CSV' : 'Export CSV'],
                   ['T', lang === 'es' ? 'Ir al mes actual' : 'Go to current month'],
