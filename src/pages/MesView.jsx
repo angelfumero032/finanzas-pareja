@@ -53,6 +53,9 @@ export default function MesView() {
   // Edición inline de presupuesto
   const [editBudget, setEditBudget] = useState(null) // { catId }
 
+  // Categoría pre-seleccionada al abrir modal desde una fila de presupuesto
+  const [quickAddCatId, setQuickAddCatId] = useState(null)
+
   // Help overlay (atajos de teclado)
   const [showHelp, setShowHelp] = useState(false)
 
@@ -748,6 +751,12 @@ export default function MesView() {
                             )}
                           </button>
                           <div className="budget-amounts">
+                            <button
+                              className="budget-add-btn"
+                              onClick={e => { e.stopPropagation(); setEditMov(null); setQuickAddCatId(cat.id); setModalOpen(true) }}
+                              title={`${t(lang, 'new_movement')} — ${cat.nombre}`}
+                              aria-label={`${t(lang, 'new_movement')} — ${cat.nombre}`}
+                            >+</button>
                             <span className="budget-spent">{fmt(spent)}</span>
                             {editBudget?.catId === cat.id ? (
                               <input
@@ -968,7 +977,7 @@ export default function MesView() {
       {/* Modal movimiento */}
       <MovimientoModal
         open={modalOpen}
-        onClose={() => { setModalOpen(false); setEditMov(null) }}
+        onClose={() => { setModalOpen(false); setEditMov(null); setQuickAddCatId(null) }}
         onSave={handleSaveMov}
         onDelete={handleDeleteMov}
         movimiento={editMov}
@@ -977,7 +986,7 @@ export default function MesView() {
         hogarId={hogarId}
         userId={profile?.id}
         defaultTipo={filtroTipo !== 'all' ? filtroTipo : 'gasto'}
-        defaultCatId={!editMov && filtroTipo !== 'ingreso' && filtroCatId !== 'nocat' ? filtroCatId : null}
+        defaultCatId={!editMov ? (quickAddCatId ?? (filtroTipo !== 'ingreso' && filtroCatId !== 'nocat' ? filtroCatId : null)) : null}
       />
 
       {/* Panel de actividad */}
