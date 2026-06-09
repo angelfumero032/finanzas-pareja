@@ -741,8 +741,17 @@ html, body { overscroll-behavior: none; }
   background: var(--border);
   border-radius: 99px;
   overflow: hidden;
+  position: relative;
 }
 .budget-bar-fill { height: 100%; border-radius: 99px; transition: width 0.35s ease; }
+.budget-bar-pending {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  background: rgba(217,119,6,0.35);
+  border-radius: 99px;
+  transition: width 0.35s ease, left 0.35s ease;
+}
 .bar-ok   { background: var(--income); }
 .bar-warn { background: var(--warn); }
 .bar-over { background: var(--expense); }
@@ -1806,8 +1815,47 @@ kbd {
   vertical-align: middle;
 }
 
-/* ── Filter tab variant for fixed ── */
+/* ── Filter tab variants ── */
 .filter-tab-fixed { font-size: 0.78rem; }
+.filter-tab-pending { font-size: 0.78rem; color: #d97706; }
+.filter-tab-pending.filter-tab-active { background: rgba(217,119,6,0.15); border-color: rgba(217,119,6,0.4); color: #d97706; }
+
+/* ── Pending actions row (mark all paid) ── */
+.pending-actions-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.45rem 0.65rem;
+  border-radius: 0.45rem;
+  background: rgba(217,119,6,0.07);
+  border: 1px solid rgba(217,119,6,0.18);
+  margin-top: 0.3rem;
+}
+.pending-actions-label {
+  font-size: 0.78rem;
+  color: #d97706;
+  font-weight: 500;
+}
+
+/* ── Summary rollover hint ── */
+.summary-rollover {
+  font-size: 0.7rem;
+  opacity: 0.78;
+  margin-top: 0.1rem;
+}
+
+/* ── Summary pending hint as button ── */
+.summary-pending-hint-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  text-align: left;
+  font-size: inherit;
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+}
 
 /* ── Category color picker in CategoriasModal ── */
 .cat-color-wrap {

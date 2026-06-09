@@ -47,6 +47,7 @@ export default function MesView() {
   // Filtro de tipo y búsqueda en lista de movimientos
   const [filtroTipo, setFiltroTipo] = useState('all')
   const [filtroFijo, setFiltroFijo] = useState(null) // null=all, true=fixed, false=variable
+  const [filtroPendiente, setFiltroPendiente] = useState(false) // true=only pending
   const [busqueda, setBusqueda] = useState('')
   const [filtroCatId, setFiltroCatId] = useState(null)
   const [sortMovs, setSortMovs] = useState(() => localStorage.getItem('sortMovs') ?? 'fecha')
@@ -214,7 +215,7 @@ export default function MesView() {
   useEffect(() => { loadMes() }, [loadMes])
 
   // Limpiar filtros al cambiar de mes
-  useEffect(() => { setBusqueda(''); setFiltroTipo('all'); setFiltroCatId(null); setFiltroFijo(null) }, [anio, mes])
+  useEffect(() => { setBusqueda(''); setFiltroTipo('all'); setFiltroCatId(null); setFiltroFijo(null); setFiltroPendiente(false) }, [anio, mes])
 
   // Bloquear scroll del body cuando hay un panel/modal abierto (fix iOS)
   useEffect(() => {
@@ -258,7 +259,7 @@ export default function MesView() {
 
   useEffect(() => { loadTrend() }, [loadTrend])
 
-  // ── Totales mes anterior (para deltas en resumen) ──
+  // ── Totales mes anterior (para deltas y rollover) ──
   const loadPrevMes = useCallback(async () => {
     if (!hogarId) return
     const d = new Date(anio, mes - 2, 1)
@@ -544,6 +545,23 @@ export default function MesView() {
     }
   }
 
+  // ── Marcar TODOS los gastos pendientes como pagados ──
+  async function handleMarkAllPaid() {
+    const ids = gastosPendientes.map(m => m.id)
+    if (ids.length === 0) return
+    try {
+      const { error } = await supabase
+        .from('movimientos')
+        .update({ pendiente: false })
+        .in('id', ids)
+      if (error) throw error
+      setMovimientos(prev => prev.map(m => ids.includes(m.id) ? { ...m, pendiente: false } : m))
+      showToast(t(lang, 'saved_ok'))
+    } catch {
+      showToast(t(lang, 'save_error'), 'error')
+    }
+  }
+
   // ── Presupuesto: copiar del mes anterior ──
   async function handleCopyBudgetFromLastMonth() {
     const d = new Date(anio, mes - 2, 1)
@@ -595,13 +613,16 @@ export default function MesView() {
   // ── Exportar CSV del mes (respeta el filtro activo) ──
   function exportarCSV() {
     const source = hayFiltroActivo ? movimientosFiltrados : movimientos
-    const header = ['fecha', 'tipo', 'importe', 'categoria', 'subcategoria', 'nota'].join(',')
+    const header = ['fecha', 'tipo', 'concepto', 'importe', 'categoria', 'subcategoria', 'fijo', 'pendiente', 'nota'].join(',')
     const rows = source.map(m => [
       m.fecha,
       m.tipo,
+      `"${(m.concepto || '').replace(/"/g, '""')}"`,
       Number(m.importe).toFixed(2),
       `"${catName(m.categoria_id).replace(/"/g, '""')}"`,
       `"${subcatName(m.subcategoria_id).replace(/"/g, '""')}"`,
+      m.es_fijo ? '1' : '0',
+      m.pendiente ? '1' : '0',
       `"${(m.nota || '').replace(/"/g, '""')}"`,
     ].join(','))
     const csv = [header, ...rows].join('\n')
@@ -685,12 +706,15 @@ export default function MesView() {
 
   const deltaIngresos = prevTotals?.ingresos > 0 ? (totalIngresos - prevTotals.ingresos) / prevTotals.ingresos * 100 : null
   const deltaGastos   = prevTotals?.gastos   > 0 ? (totalGastos   - prevTotals.gastos)   / prevTotals.gastos   * 100 : null
+  // Rollover: balance from the previous month (shows if they saved or overspent last month)
+  const rolloverBalance = prevTotals ? prevTotals.ingresos - prevTotals.gastos : null
 
   const movimientosFiltrados = useMemo(() => {
     let list = movimientos
       .filter(m => filtroTipo === 'all' || m.tipo === filtroTipo)
       .filter(m => !filtroCatId || (filtroCatId === 'nocat' ? !m.categoria_id : m.categoria_id === filtroCatId))
       .filter(m => filtroFijo === null || (filtroFijo === true ? m.es_fijo : !m.es_fijo))
+      .filter(m => !filtroPendiente || m.pendiente)
       .filter(m => {
         if (!busqueda) return true
         const q = busqueda.toLowerCase()
@@ -710,13 +734,13 @@ export default function MesView() {
       list = [...list].sort((a, b) => Number(b.importe) - Number(a.importe))
     }
     return list
-  }, [movimientos, filtroTipo, filtroCatId, busqueda, sortMovs, catMap, subcatMap, usuarios, profile?.id, lang])
+  }, [movimientos, filtroTipo, filtroCatId, busqueda, sortMovs, catMap, subcatMap, usuarios, profile?.id, lang, filtroFijo, filtroPendiente])
 
   const totalFiltrado = useMemo(
     () => movimientosFiltrados.reduce((s, m) => s + Number(m.importe), 0),
     [movimientosFiltrados]
   )
-  const hayFiltroActivo = filtroTipo !== 'all' || busqueda || filtroCatId || filtroFijo !== null
+  const hayFiltroActivo = filtroTipo !== 'all' || busqueda || filtroCatId || filtroFijo !== null || filtroPendiente
 
   const gastosPorUsuario = useMemo(() => {
     if (usuarios.length < 2) return null
@@ -744,8 +768,9 @@ export default function MesView() {
     return result
   }, [movimientosFiltrados, sortMovs])
 
-  const { gastoPorCat, movCountByCat, gastosNoCategoria, gastoPorSubcat } = useMemo(() => {
+  const { gastoPorCat, gastoPendientePorCat, movCountByCat, gastosNoCategoria, gastoPorSubcat } = useMemo(() => {
     const gpc = {}
+    const gpend = {}
     const mbc = {}
     const gps = {}
     let gnc = 0
@@ -753,6 +778,9 @@ export default function MesView() {
       if (m.categoria_id) {
         gpc[m.categoria_id] = (gpc[m.categoria_id] ?? 0) + Number(m.importe)
         mbc[m.categoria_id] = (mbc[m.categoria_id] ?? 0) + 1
+        if (m.pendiente) {
+          gpend[m.categoria_id] = (gpend[m.categoria_id] ?? 0) + Number(m.importe)
+        }
       } else {
         gnc += Number(m.importe)
       }
@@ -760,7 +788,7 @@ export default function MesView() {
         gps[m.subcategoria_id] = (gps[m.subcategoria_id] ?? 0) + Number(m.importe)
       }
     })
-    return { gastoPorCat: gpc, movCountByCat: mbc, gastosNoCategoria: gnc, gastoPorSubcat: gps }
+    return { gastoPorCat: gpc, gastoPendientePorCat: gpend, movCountByCat: mbc, gastosNoCategoria: gnc, gastoPorSubcat: gps }
   }, [movimientos])
 
   const presupuestoPorCat = useMemo(
@@ -947,8 +975,18 @@ export default function MesView() {
               </span>
             )}
             {totalPendiente > 0 && (
-              <span className="summary-pending-hint">
-                {lang === 'es' ? `+ ${fmt(totalPendiente)} pte.` : `+ ${fmt(totalPendiente)} pending`}
+              <button
+                className="summary-pending-hint summary-pending-hint-btn"
+                onClick={() => { setFiltroPendiente(true); setFiltroTipo('gasto') }}
+                title={t(lang, 'pending')}
+              >
+                {tFmt(lang, 'pending_count', { n: gastosPendientes.length })} · {fmt(totalPendiente)}
+              </button>
+            )}
+            {rolloverBalance !== null && rolloverBalance !== 0 && (totalIngresos > 0 || totalGastos > 0) && (
+              <span className={`summary-rollover ${rolloverBalance >= 0 ? 'delta-pos' : 'delta-neg'}`}
+                title={t(lang, 'rollover_hint')}>
+                {rolloverBalance >= 0 ? '↑' : '↓'} {fmt(Math.abs(rolloverBalance))} {lang === 'es' ? 'mes ant.' : 'prev.'}
               </span>
             )}
           </div>
@@ -1146,6 +1184,15 @@ export default function MesView() {
                         }`}
                         style={{ width: `${Math.min(100, spendPct * 100)}%` }}
                       />
+                      {totalPendiente > 0 && totalPresupuestado > 0 && (() => {
+                        const pendPct = Math.min(100 - Math.min(100, spendPct * 100), totalPendiente / totalPresupuestado * 100)
+                        return pendPct > 0 ? (
+                          <div
+                            className="budget-bar-pending"
+                            style={{ width: `${pendPct}%`, left: `${Math.min(100, spendPct * 100)}%` }}
+                          />
+                        ) : null
+                      })()}
                       {isCurrentMonth && (
                         <div
                           className="budget-time-marker"
@@ -1193,9 +1240,11 @@ export default function MesView() {
                     .filter(cat => !hideZeroCats || (gastoPorCat[cat.id] ?? 0) > 0 || presupuestoPorCat[cat.id] > 0)
                     .map(cat => {
                     const spent = gastoPorCat[cat.id] ?? 0
+                    const spentPendiente = gastoPendientePorCat[cat.id] ?? 0
                     const budget = presupuestoPorCat[cat.id] ?? 0
                     const ratio = budget > 0 ? spent / budget : 0
                     const pct = Math.min(100, ratio * 100)
+                    const pendingPct = budget > 0 ? Math.min(100 - pct, spentPendiente / budget * 100) : 0
                     const barClass = ratio > 1 ? 'bar-over' : ratio > 0.8 ? 'bar-warn' : 'bar-ok'
                     const fmtC = n => n >= 1000 ? `${(n/1000).toFixed(1)}k€` : `${Math.round(n)}€`
                     const pctLabel = ratio > 1
@@ -1275,6 +1324,12 @@ export default function MesView() {
                           <div className="budget-bar-wrap">
                             <div className="budget-bar-track">
                               <div className={`budget-bar-fill ${barClass}`} style={{ width: `${pct}%` }} />
+                              {pendingPct > 0 && (
+                                <div
+                                  className="budget-bar-pending"
+                                  style={{ width: `${pendingPct}%`, left: `${pct}%` }}
+                                />
+                              )}
                             </div>
                             <span className={`budget-bar-pct ${pctCls}`} title={`${Math.round(ratio * 100)}%`}>
                               {pctLabel}
@@ -1367,15 +1422,22 @@ export default function MesView() {
                         )
                       })}
                       {gastosFijos.length > 0 && (
-                        <>
-                          <button
-                            className={`filter-tab filter-tab-fixed${filtroFijo === true ? ' filter-tab-active' : ''}`}
-                            onClick={() => { setFiltroFijo(filtroFijo === true ? null : true); if (filtroFijo !== true) setFiltroTipo('gasto') }}
-                          >
-                            {t(lang, 'fixed_badge')}
-                            <span className="tab-count">{gastosFijos.length}</span>
-                          </button>
-                        </>
+                        <button
+                          className={`filter-tab filter-tab-fixed${filtroFijo === true ? ' filter-tab-active' : ''}`}
+                          onClick={() => { setFiltroFijo(filtroFijo === true ? null : true); setFiltroPendiente(false); if (filtroFijo !== true) setFiltroTipo('gasto') }}
+                        >
+                          {t(lang, 'fixed_badge')}
+                          <span className="tab-count">{gastosFijos.length}</span>
+                        </button>
+                      )}
+                      {gastosPendientes.length > 0 && (
+                        <button
+                          className={`filter-tab filter-tab-pending${filtroPendiente ? ' filter-tab-active' : ''}`}
+                          onClick={() => { setFiltroPendiente(p => !p); setFiltroFijo(null); if (!filtroPendiente) setFiltroTipo('gasto') }}
+                        >
+                          {t(lang, 'pending_badge')}
+                          <span className="tab-count">{gastosPendientes.length}</span>
+                        </button>
                       )}
                     </div>
                     <button
@@ -1390,6 +1452,16 @@ export default function MesView() {
                       {sortMovs === 'fecha' ? t(lang, 'sort_by_date') : t(lang, 'sort_by_amount')}
                     </button>
                   </div>
+                  {filtroPendiente && gastosPendientes.length > 0 && (
+                    <div className="pending-actions-row">
+                      <span className="pending-actions-label">
+                        {tFmt(lang, 'pending_count', { n: gastosPendientes.length })} · {fmt(totalPendiente)}
+                      </span>
+                      <button className="btn-sm btn-mark-all-paid" onClick={handleMarkAllPaid}>
+                        {t(lang, 'mark_all_paid')}
+                      </button>
+                    </div>
+                  )}
                   <div className="search-wrap">
                     <input
                       ref={searchRef}
@@ -1426,7 +1498,7 @@ export default function MesView() {
                   {hayFiltroActivo ? (
                     <button
                       className="btn-sm btn-secondary"
-                      onClick={() => { setFiltroTipo('all'); setBusqueda(''); setFiltroCatId(null); setFiltroFijo(null) }}
+                      onClick={() => { setFiltroTipo('all'); setBusqueda(''); setFiltroCatId(null); setFiltroFijo(null); setFiltroPendiente(false) }}
                     >
                       {t(lang, 'clear_filters')}
                     </button>

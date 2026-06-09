@@ -34,10 +34,13 @@ function parseCSV(text, categorias) {
   const idx = {
     fecha: cols.findIndex(c => ['fecha', 'date'].includes(c)),
     tipo: cols.findIndex(c => ['tipo', 'type'].includes(c)),
+    concepto: cols.findIndex(c => ['concepto', 'concept', 'descripcion', 'description'].includes(c)),
     importe: cols.findIndex(c => ['importe', 'amount', 'cantidad'].includes(c)),
     categoria: cols.findIndex(c => ['categoria', 'category'].includes(c)),
     subcategoria: cols.findIndex(c => ['subcategoria', 'subcategory'].includes(c)),
-    nota: cols.findIndex(c => ['nota', 'note', 'descripcion', 'description'].includes(c)),
+    fijo: cols.findIndex(c => ['fijo', 'fixed', 'es_fijo'].includes(c)),
+    pendiente: cols.findIndex(c => ['pendiente', 'pending'].includes(c)),
+    nota: cols.findIndex(c => ['nota', 'note'].includes(c)),
   }
 
   const catByName = {}
@@ -59,6 +62,9 @@ function parseCSV(text, categorias) {
     const catNombre = get('categoria').toLowerCase()
     const catId = catByName[catNombre] ?? null
     const nota = get('nota') || null
+    const concepto = get('concepto') || null
+    const esFijo = ['1', 'true', 'si', 'yes', 'sí'].includes(get('fijo').toLowerCase())
+    const pendiente = ['1', 'true', 'si', 'yes', 'sí'].includes(get('pendiente').toLowerCase())
 
     const errors = []
     if (!fecha || !/^\d{4}-\d{2}-\d{2}$/.test(fecha)) errors.push('fecha')
@@ -72,7 +78,10 @@ function parseCSV(text, categorias) {
       importe: isNaN(importe) ? 0 : importe,
       catNombre: get('categoria'),
       catId,
+      concepto,
       nota,
+      esFijo,
+      pendiente,
       errors,
       valid: errors.length === 0,
     }
@@ -121,7 +130,10 @@ export default function ImportarCSVModal({ open, onClose, lang, hogarId, userId,
         importe: r.importe,
         fecha: r.fecha,
         categoria_id: r.catId,
+        concepto: r.concepto || null,
         nota: r.nota,
+        es_fijo: r.tipo === 'gasto' ? r.esFijo : false,
+        pendiente: r.tipo === 'gasto' ? r.pendiente : false,
       }))
       const { error } = await supabase.from('movimientos').insert(inserts)
       if (error) throw error
@@ -162,8 +174,8 @@ export default function ImportarCSVModal({ open, onClose, lang, hogarId, userId,
             <div className="import-help">
               <p className="import-help-text">
                 {lang === 'es'
-                  ? 'CSV con columnas: fecha (YYYY-MM-DD), tipo (gasto/ingreso), importe, categoria (opcional), nota (opcional).'
-                  : 'CSV with columns: fecha (YYYY-MM-DD), tipo (gasto/income), importe, categoria (optional), nota (optional).'}
+                  ? 'CSV con columnas: fecha (YYYY-MM-DD), tipo (gasto/ingreso), concepto, importe, categoria, fijo (0/1), pendiente (0/1), nota — todas opcionales excepto fecha, tipo e importe.'
+                  : 'CSV columns: fecha (YYYY-MM-DD), tipo (gasto/ingreso), concepto, importe, categoria, fijo (0/1), pendiente (0/1), nota — only fecha, tipo and importe are required.'}
               </p>
               <p className="import-help-note">
                 {lang === 'es'
