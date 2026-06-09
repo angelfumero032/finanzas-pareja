@@ -590,6 +590,47 @@ html, body { overscroll-behavior: none; }
 .empty-text  { color: var(--text2); font-size: 0.875rem; margin: 0.5rem 0; text-align: center; }
 .empty-filtered { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 0.5rem 0; }
 
+/* ── Skeleton de carga ── */
+@keyframes shimmer {
+  0%   { opacity: 0.5; }
+  50%  { opacity: 0.9; }
+  100% { opacity: 0.5; }
+}
+.skeleton { background: var(--border); border-radius: 4px; animation: shimmer 1.5s ease-in-out infinite; }
+.skeleton-wrap { display: flex; flex-direction: column; gap: 1rem; }
+.skeleton-section {
+  background: var(--surface);
+  border-radius: var(--r);
+  padding: 1rem;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+.skeleton-row { display: flex; align-items: center; gap: 0.5rem; }
+.skeleton-dot  { width: 9px; height: 9px; min-width: 9px; border-radius: 50%; }
+.skeleton-line { flex: 1; height: 12px; }
+.skeleton-val  { width: 54px; height: 13px; flex-shrink: 0; }
+.skeleton-title { width: 80px; height: 9px; margin-bottom: 0.2rem; }
+
+/* ── "Volver a hoy" en el header ── */
+.back-today-btn {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+  border: none;
+  border-radius: 99px;
+  padding: 0.15rem 0.55rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+.back-today-btn:hover { background: color-mix(in srgb, var(--accent) 20%, transparent); }
+
 /* ── Lista de movimientos ── */
 .movements-list { display: flex; flex-direction: column; }
 

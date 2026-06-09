@@ -485,6 +485,15 @@ export default function MesView() {
         <h1 className="header-month">{MONTHS[lang][mes - 1]} {anio}</h1>
         <button className="btn-nav" onClick={nextMes} title={t(lang, 'next_month')} disabled={isCurrentMonth}>›</button>
 
+        {!isCurrentMonth && (
+          <button
+            className="back-today-btn"
+            onClick={() => { setAnio(todayDate.getFullYear()); setMes(todayDate.getMonth() + 1) }}
+          >
+            {t(lang, 'today')}
+          </button>
+        )}
+
         <div className="header-actions">
           <button className="campana-btn" onClick={handleOpenActivity} title={t(lang, 'activity_title')}>
             🔔
@@ -548,7 +557,28 @@ export default function MesView() {
         </div>
 
         {loading ? (
-          <div className="loading-row">{t(lang, 'loading')}</div>
+          <div className="skeleton-wrap" aria-hidden="true">
+            <div className="skeleton-section">
+              <div className="skeleton skeleton-title" />
+              {[1,2,3,4].map(i => (
+                <div key={i} className="skeleton-row">
+                  <div className="skeleton skeleton-dot" />
+                  <div className="skeleton skeleton-line" />
+                  <div className="skeleton skeleton-val" />
+                </div>
+              ))}
+            </div>
+            <div className="skeleton-section">
+              <div className="skeleton skeleton-title" />
+              {[1,2,3,4,5].map(i => (
+                <div key={i} className="skeleton-row">
+                  <div className="skeleton skeleton-dot" />
+                  <div className="skeleton skeleton-line" />
+                  <div className="skeleton skeleton-val" />
+                </div>
+              ))}
+            </div>
+          </div>
         ) : (
           <>
             {/* Gráficas */}
