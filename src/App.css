@@ -332,6 +332,57 @@ html, body { overscroll-behavior: none; }
 .summary-count   { font-size: 0.62rem; color: var(--text3); line-height: 1; margin-top: auto; align-self: flex-end; }
 .summary-savings { font-size: 0.65rem; font-weight: 600; line-height: 1; }
 
+/* ── Desglose por usuario ── */
+.by-user-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+.by-user-item {
+  background: var(--surface);
+  border-radius: var(--r);
+  padding: 0.6rem 0.75rem;
+  box-shadow: var(--shadow);
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: auto auto;
+  align-items: center;
+  gap: 0.15rem 0.5rem;
+}
+.by-user-name {
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text2);
+}
+.by-user-amt {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--expense);
+  text-align: right;
+}
+.by-user-bar-track {
+  grid-column: 1;
+  height: 3px;
+  background: var(--surface2);
+  border-radius: 99px;
+  overflow: hidden;
+  align-self: end;
+}
+.by-user-bar-fill {
+  height: 100%;
+  background: var(--expense);
+  border-radius: 99px;
+  opacity: 0.5;
+}
+.by-user-pct {
+  font-size: 0.62rem;
+  color: var(--text3);
+  font-weight: 600;
+  text-align: right;
+}
+
 /* ── Secciones ── */
 .section {
   background: var(--surface);

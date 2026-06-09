@@ -47,6 +47,7 @@ export default function MesView() {
   const [sortMovs, setSortMovs] = useState('fecha') // 'fecha' | 'importe'
 
   const movListRef = useRef(null)
+  const searchRef = useRef(null)
   const touchX = useRef(null)
   const touchY = useRef(null)
 
@@ -290,6 +291,7 @@ export default function MesView() {
       if (e.key === 'n' || e.key === 'N') { setEditMov(null); setModalOpen(true) }
       if ((e.key === 't' || e.key === 'T') && !isCurrentMonth) { setAnio(todayDate.getFullYear()); setMes(todayDate.getMonth() + 1) }
       if (e.key === '?') setShowHelp(h => !h)
+      if (e.key === '/' && searchRef.current) { e.preventDefault(); searchRef.current.focus() }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -457,6 +459,15 @@ export default function MesView() {
   )
   const hayFiltroActivo = filtroTipo !== 'all' || busqueda || filtroCatId
 
+  const gastosPorUsuario = useMemo(() => {
+    if (usuarios.length < 2) return null
+    return usuarios.map(u => ({
+      id: u.id,
+      nombre: u.id === profile?.id ? t(lang, 'you') : u.nombre,
+      total: gastosItems.filter(m => m.creado_por === u.id).reduce((s, m) => s + Number(m.importe), 0),
+    }))
+  }, [usuarios, gastosItems, profile?.id, lang])
+
   // Agrupar por fecha cuando el orden es temporal; lista plana cuando es por importe
   const renderList = useMemo(() => {
     if (sortMovs === 'importe') {
@@ -611,6 +622,24 @@ export default function MesView() {
             )}
           </div>
         </div>
+
+        {gastosPorUsuario && totalGastos > 0 && (
+          <div className="by-user-row">
+            {gastosPorUsuario.map(u => (
+              <div key={u.id} className="by-user-item">
+                <span className="by-user-name">{u.nombre}</span>
+                <span className="by-user-amt">{fmt(u.total)}</span>
+                <div className="by-user-bar-track">
+                  <div
+                    className="by-user-bar-fill"
+                    style={{ width: `${Math.round(u.total / totalGastos * 100)}%` }}
+                  />
+                </div>
+                <span className="by-user-pct">{Math.round(u.total / totalGastos * 100)}%</span>
+              </div>
+            ))}
+          </div>
+        )}
 
         {loading ? (
           <div className="skeleton-wrap" aria-hidden="true">
@@ -871,6 +900,7 @@ export default function MesView() {
                   </div>
                   <div className="search-wrap">
                     <input
+                      ref={searchRef}
                       className="search-input"
                       type="search"
                       placeholder={lang === 'es' ? 'Buscar categoría, importe, nota…' : 'Search category, amount, note…'}
@@ -1012,6 +1042,7 @@ export default function MesView() {
                   ['←  →', lang === 'es' ? 'Mes anterior / siguiente' : 'Previous / next month'],
                   ['N', lang === 'es' ? 'Nuevo movimiento' : 'New movement'],
                   ['T', lang === 'es' ? 'Ir al mes actual' : 'Go to current month'],
+                  ['/', lang === 'es' ? 'Enfocar búsqueda' : 'Focus search'],
                   ['?', lang === 'es' ? 'Mostrar / ocultar atajos' : 'Show / hide shortcuts'],
                   ['Esc', lang === 'es' ? 'Cerrar modal' : 'Close modal'],
                 ].map(([key, desc]) => (
