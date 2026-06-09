@@ -1745,6 +1745,7 @@ kbd {
   color: var(--text3);
 }
 .note-counter-warn { color: var(--warn); font-weight: 600; }
+.amount-expr-preview { font-size: 0.8rem; font-weight: 500; color: var(--accent); margin-left: 0.4em; }
 
 /* ── Import CSV modal ── */
 .import-modal-card { max-width: 640px; max-height: 80vh; display: flex; flex-direction: column; }

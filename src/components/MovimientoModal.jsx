@@ -3,6 +3,20 @@ import { useLang } from '../context/LangContext'
 import { t } from '../i18n'
 import { getConceptosByCatName } from '../data/conceptos'
 
+function evalAmount(str) {
+  const clean = str.trim().replace(',', '.')
+  if (!/^[0-9+\-*/.() ]+$/.test(clean) || clean === '') return null
+  try {
+    // eslint-disable-next-line no-new-func
+    const result = new Function('return (' + clean + ')')()
+    return typeof result === 'number' && isFinite(result) && result > 0
+      ? Math.round(result * 100) / 100
+      : null
+  } catch {
+    return null
+  }
+}
+
 export default function MovimientoModal({
   open, onClose, onSave, onDelete, onDuplicate,
   movimiento, categorias, subcategorias,
@@ -154,18 +168,29 @@ export default function MovimientoModal({
 
           {/* Importe */}
           <div className="field">
-            <label htmlFor="m-importe">{t(lang, 'amount')}</label>
+            <label htmlFor="m-importe">
+              {t(lang, 'amount')}
+              {/[+\-*/()]/.test(importe) && (() => {
+                const result = evalAmount(importe)
+                return result ? <span className="amount-expr-preview"> = {result.toFixed(2)}</span> : null
+              })()}
+            </label>
             <input
               id="m-importe"
-              type="number"
-              step="0.01"
-              min="0.01"
+              type="text"
+              inputMode="decimal"
               value={importe}
               onChange={e => setImporte(e.target.value.replace(',', '.'))}
               onFocus={e => e.target.select()}
+              onBlur={e => {
+                const v = e.target.value
+                if (/[+\-*/()]/.test(v)) {
+                  const result = evalAmount(v)
+                  if (result !== null) setImporte(String(result))
+                }
+              }}
               required
               autoFocus={!movimiento}
-              inputMode="decimal"
               placeholder="0.00"
             />
             <div className="quick-amounts">
@@ -226,19 +251,29 @@ export default function MovimientoModal({
               max={todayStr}
             />
             <div className="quick-amounts">
-              {[
-                { label: t(lang, 'today'), value: todayStr },
-                { label: t(lang, 'yesterday'), value: new Date(new Date(todayStr).getTime() - 86400000).toISOString().slice(0, 10) },
-              ].map(({ label, value }) => (
-                <button
-                  key={value}
-                  type="button"
-                  className={`quick-amount-btn${fecha === value ? ' quick-amount-active' : ''}`}
-                  onClick={() => setFecha(value)}
-                >
-                  {label}
-                </button>
-              ))}
+              {(() => {
+                const dayLabels = lang === 'es'
+                  ? ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
+                  : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+                const chips = [
+                  { label: t(lang, 'today'), value: todayStr },
+                  { label: t(lang, 'yesterday'), value: new Date(new Date(todayStr).getTime() - 86400000).toISOString().slice(0, 10) },
+                  ...[2, 3, 4].map(n => {
+                    const d = new Date(new Date(todayStr).getTime() - n * 86400000)
+                    return { label: dayLabels[d.getDay()], value: d.toISOString().slice(0, 10) }
+                  }),
+                ]
+                return chips.map(({ label, value }) => (
+                  <button
+                    key={value}
+                    type="button"
+                    className={`quick-amount-btn${fecha === value ? ' quick-amount-active' : ''}`}
+                    onClick={() => setFecha(value)}
+                  >
+                    {label}
+                  </button>
+                ))
+              })()}
             </div>
           </div>
 
