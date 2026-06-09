@@ -1,13 +1,23 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useLang } from '../context/LangContext'
 import { t } from '../i18n'
+import { getConceptosByCatName } from '../data/conceptos'
 
-export default function MovimientoModal({ open, onClose, onSave, onDelete, onDuplicate, movimiento, categorias, subcategorias, hogarId, userId, defaultTipo = 'gasto', defaultCatId = null, defaultImporte = '', defaultSubcatId = '', defaultNota = '', gastoPorCat = {}, presupuestoPorCat = {} }) {
+export default function MovimientoModal({
+  open, onClose, onSave, onDelete, onDuplicate,
+  movimiento, categorias, subcategorias,
+  hogarId, userId,
+  defaultTipo = 'gasto', defaultCatId = null,
+  defaultImporte = '', defaultSubcatId = '', defaultNota = '', defaultConcepto = '',
+  gastoPorCat = {}, presupuestoPorCat = {},
+  recentConceptos = [],
+}) {
   const { lang } = useLang()
   const todayStr = new Date().toISOString().slice(0, 10)
 
   const [tipo, setTipo] = useState('gasto')
   const [importe, setImporte] = useState('')
+  const [concepto, setConcepto] = useState('')
   const [fecha, setFecha] = useState(todayStr)
   const [catId, setCatId] = useState('')
   const [subcatId, setSubcatId] = useState('')
@@ -19,6 +29,7 @@ export default function MovimientoModal({ open, onClose, onSave, onDelete, onDup
     if (movimiento) {
       setTipo(movimiento.tipo ?? 'gasto')
       setImporte(String(movimiento.importe ?? ''))
+      setConcepto(movimiento.concepto ?? '')
       setFecha(movimiento.fecha ?? todayStr)
       setCatId(movimiento.categoria_id ?? '')
       setSubcatId(movimiento.subcategoria_id ?? '')
@@ -26,12 +37,13 @@ export default function MovimientoModal({ open, onClose, onSave, onDelete, onDup
     } else {
       setTipo(defaultTipo)
       setImporte(defaultImporte || '')
+      setConcepto(defaultConcepto || '')
       setFecha(todayStr)
       setCatId(defaultCatId || '')
       setSubcatId(defaultSubcatId || '')
       setNota(defaultNota || '')
     }
-  }, [open, movimiento?.id, defaultTipo, defaultCatId, defaultImporte, defaultSubcatId, defaultNota])
+  }, [open, movimiento?.id, defaultTipo, defaultCatId, defaultImporte, defaultSubcatId, defaultNota, defaultConcepto])
 
   useEffect(() => {
     if (!open) return
@@ -42,6 +54,35 @@ export default function MovimientoModal({ open, onClose, onSave, onDelete, onDup
 
   const catsFiltradas = categorias.filter(c => c.tipo === tipo)
   const subcatsFiltradas = subcategorias.filter(s => s.categoria_id === catId)
+  const catName = catsFiltradas.find(c => c.id === catId)?.nombre ?? ''
+
+  // Sugerencias: estáticas de la categoría + recientes del hogar (dedup)
+  const sugerencias = useMemo(() => {
+    const estaticas = getConceptosByCatName(catName)
+    const recientes = catId
+      ? recentConceptos.filter(r => r.categoria_id === catId).map(r => r.concepto)
+      : recentConceptos.map(r => r.concepto)
+    const all = [...new Set([...recientes, ...estaticas])]
+    return all
+  }, [catName, catId, recentConceptos])
+
+  // Chips: top-6 más frecuentes para la categoría seleccionada
+  const chips = useMemo(() => {
+    const freq = {}
+    const relevant = catId
+      ? recentConceptos.filter(r => r.categoria_id === catId)
+      : []
+    relevant.forEach(r => { freq[r.concepto] = (freq[r.concepto] ?? 0) + 1 })
+    const fromRecent = Object.entries(freq)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6)
+      .map(([c]) => c)
+    if (fromRecent.length >= 4) return fromRecent
+    // completar con estáticos si hay pocos recientes
+    const estaticas = getConceptosByCatName(catName)
+    const combined = [...new Set([...fromRecent, ...estaticas])].slice(0, 6)
+    return combined
+  }, [catId, catName, recentConceptos])
 
   function handleTipo(newTipo) {
     setTipo(newTipo)
@@ -58,6 +99,7 @@ export default function MovimientoModal({ open, onClose, onSave, onDelete, onDup
       await onSave({
         tipo,
         importe: imp,
+        concepto: concepto.trim() || null,
         fecha,
         categoria_id: catId || null,
         subcategoria_id: subcatId || null,
@@ -100,6 +142,7 @@ export default function MovimientoModal({ open, onClose, onSave, onDelete, onDup
             </button>
           </div>
 
+          {/* Importe */}
           <div className="field">
             <label htmlFor="m-importe">{t(lang, 'amount')}</label>
             <input
@@ -129,6 +172,39 @@ export default function MovimientoModal({ open, onClose, onSave, onDelete, onDup
             </div>
           </div>
 
+          {/* Concepto — dato de primera clase */}
+          <div className="field field-concepto">
+            <label htmlFor="m-concepto">{t(lang, 'concept')}</label>
+            <input
+              id="m-concepto"
+              type="text"
+              list="concepto-list"
+              value={concepto}
+              onChange={e => setConcepto(e.target.value)}
+              maxLength={60}
+              placeholder={t(lang, 'concept_placeholder')}
+              autoComplete="off"
+            />
+            <datalist id="concepto-list">
+              {sugerencias.map(s => <option key={s} value={s} />)}
+            </datalist>
+            {chips.length > 0 && (
+              <div className="concepto-chips">
+                {chips.map(chip => (
+                  <button
+                    key={chip}
+                    type="button"
+                    className={`concepto-chip${concepto === chip ? ' concepto-chip-active' : ''}`}
+                    onClick={() => setConcepto(chip)}
+                  >
+                    {chip}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Fecha */}
           <div className="field">
             <label htmlFor="m-fecha">{t(lang, 'date')}</label>
             <input
@@ -156,6 +232,7 @@ export default function MovimientoModal({ open, onClose, onSave, onDelete, onDup
             </div>
           </div>
 
+          {/* Categoría */}
           <div className="field">
             <label htmlFor="m-cat">{t(lang, 'category')}</label>
             <select
@@ -188,6 +265,7 @@ export default function MovimientoModal({ open, onClose, onSave, onDelete, onDup
             })()}
           </div>
 
+          {/* Subcategoría */}
           {subcatsFiltradas.length > 0 && (
             <div className="field">
               <label htmlFor="m-subcat">{t(lang, 'subcategory')}</label>
@@ -204,6 +282,7 @@ export default function MovimientoModal({ open, onClose, onSave, onDelete, onDup
             </div>
           )}
 
+          {/* Nota — detalle opcional */}
           <div className="field">
             <label htmlFor="m-nota">
               {t(lang, 'note')}

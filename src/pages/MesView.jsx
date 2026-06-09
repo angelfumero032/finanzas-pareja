@@ -102,6 +102,9 @@ export default function MesView() {
   const pendingDeleteTimers = useRef(new Map())
   useEffect(() => () => { pendingDeleteTimers.current.forEach(clearTimeout) }, [])
 
+  // Conceptos recientes del hogar (para datalist + chips del modal)
+  const [recentConceptos, setRecentConceptos] = useState([])
+
   // Duplicate movement
   const [duplicateData, setDuplicateData] = useState(null)
   const [modalKey, setModalKey] = useState(0)
@@ -150,14 +153,17 @@ export default function MesView() {
   // ── Carga de datos estáticos (categorías, subcategorías, perfiles del hogar) ──
   const loadStaticos = useCallback(() => {
     if (!hogarId) return
+    const since60d = new Date(Date.now() - 60 * 86400000).toISOString().slice(0, 10)
     Promise.all([
       supabase.from('categorias').select('*').eq('hogar_id', hogarId).eq('archivada', false).order('tipo').order('orden'),
       supabase.from('subcategorias').select('*').eq('hogar_id', hogarId).eq('archivada', false).order('orden'),
       supabase.from('usuarios').select('id, nombre').eq('hogar_id', hogarId),
-    ]).then(([cats, subcats, usrs]) => {
+      supabase.from('movimientos').select('concepto, categoria_id').eq('hogar_id', hogarId).not('concepto', 'is', null).gte('fecha', since60d).limit(200),
+    ]).then(([cats, subcats, usrs, recentC]) => {
       if (cats.data) setCategorias(cats.data)
       if (subcats.data) setSubcategorias(subcats.data)
       if (usrs.data) setUsuarios(usrs.data)
+      if (recentC.data) setRecentConceptos(recentC.data)
     })
   }, [hogarId])
   useEffect(() => { loadStaticos() }, [loadStaticos])
@@ -474,6 +480,7 @@ export default function MesView() {
       catId: mov.categoria_id,
       subcatId: mov.subcategoria_id ?? '',
       nota: mov.nota ?? '',
+      concepto: mov.concepto ?? '',
     })
     setModalKey(k => k + 1)
   }
@@ -596,6 +603,7 @@ export default function MesView() {
           ? t(lang, 'you').toLowerCase()
           : (usuarios.find(u => u.id === m.creado_por)?.nombre ?? '').toLowerCase()
         return (
+          (m.concepto || '').toLowerCase().includes(q) ||
           (catMap.get(m.categoria_id) ?? '').toLowerCase().includes(q) ||
           (subcatMap.get(m.subcategoria_id) ?? '').toLowerCase().includes(q) ||
           (m.nota || '').toLowerCase().includes(q) ||
@@ -873,76 +881,6 @@ export default function MesView() {
           </div>
         ) : (
           <>
-            {/* Gráficas */}
-            <GraficasMes
-              lang={lang}
-              gastoPorCat={gastoPorCat}
-              categorias={categorias}
-              trendData={trendData}
-              fmt={fmt}
-              catColors={catColorMap}
-              selectedCatId={filtroCatId && filtroCatId !== 'nocat' ? filtroCatId : null}
-              onSelectCat={catId => {
-                setFiltroCatId(catId)
-                setFiltroTipo(catId ? 'gasto' : 'all')
-                if (catId) movListRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-              }}
-            />
-
-            {/* Resumen anual */}
-            <section className="section section-year">
-              <div className="section-header">
-                <h2 className="section-title">{lang === 'es' ? `Año ${anio}` : `Year ${anio}`}</h2>
-                <div className="section-header-actions">
-                  {showYearView && yearData && (
-                    <button className="btn-sm btn-secondary" onClick={exportarCSVAnio}>
-                      {t(lang, 'export_csv')}
-                    </button>
-                  )}
-                  <button
-                    className="btn-sm btn-secondary"
-                    onClick={() => setShowYearView(v => !v)}
-                  >
-                    {showYearView ? t(lang, 'year_hide') : t(lang, 'year_show')}
-                  </button>
-                </div>
-              </div>
-              {showYearView && (
-                yearLoading ? (
-                  <div className="loading-row">{t(lang, 'loading')}</div>
-                ) : yearData ? (
-                  <div className="year-grid">
-                    {yearData.map((d, i) => {
-                      const balance = d.income - d.expenses
-                      const isCurrent = i + 1 === mes && anio === todayDate.getFullYear()
-                      const isEmpty = d.income === 0 && d.expenses === 0
-                      const isFuture = anio === todayDate.getFullYear()
-                        ? i + 1 > todayDate.getMonth() + 1
-                        : anio > todayDate.getFullYear()
-                      return (
-                        <button
-                          key={i}
-                          className={`year-cell${isCurrent ? ' year-cell-current' : ''}${isEmpty ? ' year-cell-empty' : ''}${isFuture ? ' year-cell-future' : ''}`}
-                          onClick={() => setMes(i + 1)}
-                          title={MONTHS[lang][i]}
-                        >
-                          <span className="year-cell-month">{MONTHS[lang][i].slice(0, 3)}</span>
-                          {!isEmpty && (
-                            <>
-                              <span className="year-cell-exp">{fmtK(d.expenses)}</span>
-                              <span className={`year-cell-bal ${balance >= 0 ? 'year-bal-pos' : 'year-bal-neg'}`}>
-                                {balance >= 0 ? '+' : ''}{fmtK(balance)}
-                              </span>
-                            </>
-                          )}
-                        </button>
-                      )
-                    })}
-                  </div>
-                ) : null
-              )}
-            </section>
-
             {/* Por categoría (gastos) */}
             <section className="section">
               <div className="section-header">
@@ -1331,15 +1269,20 @@ export default function MesView() {
                               )}
                             </div>
                           )}
-                          <span className="movement-cat">
+                          <span className="movement-title">
                             {m.categoria_id && catColorMap[m.categoria_id] && (
                               <span
                                 className="movement-cat-dot"
                                 style={{ background: catColorMap[m.categoria_id] }}
                               />
                             )}
-                            {catName(m.categoria_id)}{sub ? ` · ${sub}` : ''}
+                            {m.concepto || catName(m.categoria_id)}
                           </span>
+                          {m.concepto && (
+                            <span className="movement-cat">
+                              {catName(m.categoria_id)}{sub ? ` · ${sub}` : ''}
+                            </span>
+                          )}
                           {m.nota && <span className="movement-nota">{m.nota}</span>}
                         </div>
                         <span className={`movement-amount ${m.tipo === 'gasto' ? 'amount-expense' : 'amount-income'}`}>
@@ -1362,6 +1305,76 @@ export default function MesView() {
                     </>
                   )}
                 </div>
+              )}
+            </section>
+
+            {/* Gráficas */}
+            <GraficasMes
+              lang={lang}
+              gastoPorCat={gastoPorCat}
+              categorias={categorias}
+              trendData={trendData}
+              fmt={fmt}
+              catColors={catColorMap}
+              selectedCatId={filtroCatId && filtroCatId !== 'nocat' ? filtroCatId : null}
+              onSelectCat={catId => {
+                setFiltroCatId(catId)
+                setFiltroTipo(catId ? 'gasto' : 'all')
+                if (catId) movListRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+              }}
+            />
+
+            {/* Resumen anual */}
+            <section className="section section-year">
+              <div className="section-header">
+                <h2 className="section-title">{lang === 'es' ? `Año ${anio}` : `Year ${anio}`}</h2>
+                <div className="section-header-actions">
+                  {showYearView && yearData && (
+                    <button className="btn-sm btn-secondary" onClick={exportarCSVAnio}>
+                      {t(lang, 'export_csv')}
+                    </button>
+                  )}
+                  <button
+                    className="btn-sm btn-secondary"
+                    onClick={() => setShowYearView(v => !v)}
+                  >
+                    {showYearView ? t(lang, 'year_hide') : t(lang, 'year_show')}
+                  </button>
+                </div>
+              </div>
+              {showYearView && (
+                yearLoading ? (
+                  <div className="loading-row">{t(lang, 'loading')}</div>
+                ) : yearData ? (
+                  <div className="year-grid">
+                    {yearData.map((d, i) => {
+                      const balance = d.income - d.expenses
+                      const isCurrent = i + 1 === mes && anio === todayDate.getFullYear()
+                      const isEmpty = d.income === 0 && d.expenses === 0
+                      const isFuture = anio === todayDate.getFullYear()
+                        ? i + 1 > todayDate.getMonth() + 1
+                        : anio > todayDate.getFullYear()
+                      return (
+                        <button
+                          key={i}
+                          className={`year-cell${isCurrent ? ' year-cell-current' : ''}${isEmpty ? ' year-cell-empty' : ''}${isFuture ? ' year-cell-future' : ''}`}
+                          onClick={() => setMes(i + 1)}
+                          title={MONTHS[lang][i]}
+                        >
+                          <span className="year-cell-month">{MONTHS[lang][i].slice(0, 3)}</span>
+                          {!isEmpty && (
+                            <>
+                              <span className="year-cell-exp">{fmtK(d.expenses)}</span>
+                              <span className={`year-cell-bal ${balance >= 0 ? 'year-bal-pos' : 'year-bal-neg'}`}>
+                                {balance >= 0 ? '+' : ''}{fmtK(balance)}
+                              </span>
+                            </>
+                          )}
+                        </button>
+                      )
+                    })}
+                  </div>
+                ) : null
               )}
             </section>
           </>
@@ -1408,6 +1421,8 @@ export default function MesView() {
         defaultImporte={!editMov ? (duplicateData?.importe ?? '') : ''}
         defaultSubcatId={!editMov ? (duplicateData?.subcatId ?? '') : ''}
         defaultNota={!editMov ? (duplicateData?.nota ?? '') : ''}
+        defaultConcepto={!editMov ? (duplicateData?.concepto ?? '') : ''}
+        recentConceptos={recentConceptos}
         gastoPorCat={gastoPorCat}
         presupuestoPorCat={presupuestoPorCat}
       />
