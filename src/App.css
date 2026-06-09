@@ -351,6 +351,42 @@
   color: #fff;
 }
 
+/* ── Búsqueda en movimientos ── */
+.search-wrap {
+  position: relative;
+  margin-bottom: 0.5rem;
+}
+.search-input {
+  width: 100%;
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 0.42rem 2rem 0.42rem 0.7rem;
+  font-size: 0.85rem;
+  font-family: inherit;
+  color: var(--text);
+  background: var(--surface2);
+  outline: none;
+  transition: border-color 0.15s;
+  appearance: none;
+  box-sizing: border-box;
+}
+.search-input:focus { border-color: var(--accent); background: var(--surface); }
+.search-clear {
+  position: absolute;
+  right: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text3);
+  font-size: 1.1rem;
+  line-height: 1;
+  padding: 0;
+  font-family: inherit;
+}
+.search-clear:hover { color: var(--text); }
+
 /* ── Presupuesto por categoría ── */
 .budget-row {
   padding: 0.55rem 0;

@@ -34,8 +34,9 @@ export default function MesView() {
   const [modalOpen, setModalOpen] = useState(false)
   const [editMov, setEditMov] = useState(null)
 
-  // Filtro de tipo en lista de movimientos
+  // Filtro de tipo y búsqueda en lista de movimientos
   const [filtroTipo, setFiltroTipo] = useState('all')
+  const [busqueda, setBusqueda] = useState('')
 
   // Edición inline de presupuesto
   const [editBudget, setEditBudget] = useState(null) // { catId }
@@ -97,6 +98,9 @@ export default function MesView() {
   }, [hogarId, anio, mes])
 
   useEffect(() => { loadMes() }, [loadMes])
+
+  // Limpiar búsqueda al cambiar de mes
+  useEffect(() => { setBusqueda(''); setFiltroTipo('all') }, [anio, mes])
 
   // ── Tendencia: últimos 6 meses ──
   const loadTrend = useCallback(async () => {
@@ -307,9 +311,17 @@ export default function MesView() {
   const deltaIngresos = prevTotals?.ingresos > 0 ? (totalIngresos - prevTotals.ingresos) / prevTotals.ingresos * 100 : null
   const deltaGastos   = prevTotals?.gastos   > 0 ? (totalGastos   - prevTotals.gastos)   / prevTotals.gastos   * 100 : null
 
-  const movimientosFiltrados = filtroTipo === 'all'
-    ? movimientos
-    : movimientos.filter(m => m.tipo === filtroTipo)
+  const movimientosFiltrados = movimientos
+    .filter(m => filtroTipo === 'all' || m.tipo === filtroTipo)
+    .filter(m => {
+      if (!busqueda) return true
+      const q = busqueda.toLowerCase()
+      return (
+        catName(m.categoria_id).toLowerCase().includes(q) ||
+        subcatName(m.subcategoria_id).toLowerCase().includes(q) ||
+        (m.nota || '').toLowerCase().includes(q)
+      )
+    })
 
   const gastoPorCat = {}
   movimientos.filter(m => m.tipo === 'gasto' && m.categoria_id).forEach(m => {
@@ -484,17 +496,31 @@ export default function MesView() {
               </div>
 
               {movimientos.length > 0 && (
-                <div className="filter-tabs">
-                  {['all', 'gasto', 'ingreso'].map(tipo => (
-                    <button
-                      key={tipo}
-                      className={`filter-tab${filtroTipo === tipo ? ' filter-tab-active' : ''}`}
-                      onClick={() => setFiltroTipo(tipo)}
-                    >
-                      {tipo === 'all' ? t(lang, 'filter_all') : tipo === 'gasto' ? t(lang, 'expense') : t(lang, 'income')}
-                    </button>
-                  ))}
-                </div>
+                <>
+                  <div className="filter-tabs">
+                    {['all', 'gasto', 'ingreso'].map(tipo => (
+                      <button
+                        key={tipo}
+                        className={`filter-tab${filtroTipo === tipo ? ' filter-tab-active' : ''}`}
+                        onClick={() => setFiltroTipo(tipo)}
+                      >
+                        {tipo === 'all' ? t(lang, 'filter_all') : tipo === 'gasto' ? t(lang, 'expense') : t(lang, 'income')}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="search-wrap">
+                    <input
+                      className="search-input"
+                      type="search"
+                      placeholder={t(lang, 'category') + '…'}
+                      value={busqueda}
+                      onChange={e => setBusqueda(e.target.value)}
+                    />
+                    {busqueda && (
+                      <button className="search-clear" onClick={() => setBusqueda('')}>×</button>
+                    )}
+                  </div>
+                </>
               )}
 
               {movimientosFiltrados.length === 0 ? (
