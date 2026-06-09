@@ -362,20 +362,30 @@ export default function MesView() {
   // ── Presupuesto: copiar del mes anterior ──
   async function handleCopyBudgetFromLastMonth() {
     const d = new Date(anio, mes - 2, 1)
-    const { data } = await supabase
-      .from('presupuestos')
-      .select('categoria_id, importe')
-      .eq('hogar_id', hogarId)
-      .eq('anio', d.getFullYear())
-      .eq('mes', d.getMonth() + 1)
-    if (!data || data.length === 0) return
-    await supabase
-      .from('presupuestos')
-      .upsert(
-        data.map(p => ({ hogar_id: hogarId, categoria_id: p.categoria_id, anio, mes, importe: p.importe })),
-        { onConflict: 'hogar_id,categoria_id,anio,mes' }
-      )
-    loadMes()
+    try {
+      const { data, error: fetchErr } = await supabase
+        .from('presupuestos')
+        .select('categoria_id, importe')
+        .eq('hogar_id', hogarId)
+        .eq('anio', d.getFullYear())
+        .eq('mes', d.getMonth() + 1)
+      if (fetchErr) throw fetchErr
+      if (!data || data.length === 0) {
+        showToast(lang === 'es' ? 'Sin presupuesto el mes anterior' : 'No budget last month')
+        return
+      }
+      const { error: upsertErr } = await supabase
+        .from('presupuestos')
+        .upsert(
+          data.map(p => ({ hogar_id: hogarId, categoria_id: p.categoria_id, anio, mes, importe: p.importe })),
+          { onConflict: 'hogar_id,categoria_id,anio,mes' }
+        )
+      if (upsertErr) throw upsertErr
+      loadMes()
+      showToast(t(lang, 'saved_ok'))
+    } catch {
+      showToast(t(lang, 'save_error'), 'error')
+    }
   }
 
   // ── Presupuesto: guardar desde el input inline ──
@@ -485,30 +495,39 @@ export default function MesView() {
     return result
   }, [movimientosFiltrados, sortMovs])
 
-  const gastoPorCat = {}
-  const movCountByCat = {}
-  let gastosNoCategoria = 0
-  movimientos.filter(m => m.tipo === 'gasto').forEach(m => {
-    if (m.categoria_id) {
-      gastoPorCat[m.categoria_id] = (gastoPorCat[m.categoria_id] ?? 0) + Number(m.importe)
-      movCountByCat[m.categoria_id] = (movCountByCat[m.categoria_id] ?? 0) + 1
-    } else {
-      gastosNoCategoria += Number(m.importe)
-    }
-  })
-  const presupuestoPorCat = Object.fromEntries(presupuestos.map(p => [p.categoria_id, Number(p.importe)]))
-
-  const gastosCats = categorias
-    .filter(c => c.tipo === 'gasto')
-    .sort((a, b) => {
-      const ra = presupuestoPorCat[a.id] > 0 ? (gastoPorCat[a.id] ?? 0) / presupuestoPorCat[a.id] : -1
-      const rb = presupuestoPorCat[b.id] > 0 ? (gastoPorCat[b.id] ?? 0) / presupuestoPorCat[b.id] : -1
-      if (ra >= 1 && rb < 1) return -1  // over-budget first
-      if (rb >= 1 && ra < 1) return 1
-      const spentA = gastoPorCat[a.id] ?? 0
-      const spentB = gastoPorCat[b.id] ?? 0
-      return rb - ra || spentB - spentA  // then by % used desc, then by amount desc
+  const { gastoPorCat, movCountByCat, gastosNoCategoria } = useMemo(() => {
+    const gpc = {}
+    const mbc = {}
+    let gnc = 0
+    movimientos.filter(m => m.tipo === 'gasto').forEach(m => {
+      if (m.categoria_id) {
+        gpc[m.categoria_id] = (gpc[m.categoria_id] ?? 0) + Number(m.importe)
+        mbc[m.categoria_id] = (mbc[m.categoria_id] ?? 0) + 1
+      } else {
+        gnc += Number(m.importe)
+      }
     })
+    return { gastoPorCat: gpc, movCountByCat: mbc, gastosNoCategoria: gnc }
+  }, [movimientos])
+
+  const presupuestoPorCat = useMemo(
+    () => Object.fromEntries(presupuestos.map(p => [p.categoria_id, Number(p.importe)])),
+    [presupuestos]
+  )
+
+  const gastosCats = useMemo(() =>
+    categorias
+      .filter(c => c.tipo === 'gasto')
+      .sort((a, b) => {
+        const ra = presupuestoPorCat[a.id] > 0 ? (gastoPorCat[a.id] ?? 0) / presupuestoPorCat[a.id] : -1
+        const rb = presupuestoPorCat[b.id] > 0 ? (gastoPorCat[b.id] ?? 0) / presupuestoPorCat[b.id] : -1
+        if (ra >= 1 && rb < 1) return -1
+        if (rb >= 1 && ra < 1) return 1
+        const spentA = gastoPorCat[a.id] ?? 0
+        const spentB = gastoPorCat[b.id] ?? 0
+        return rb - ra || spentB - spentA
+      }),
+  [categorias, gastoPorCat, presupuestoPorCat])
 
   const totalPresupuestado = Object.values(presupuestoPorCat).reduce((s, v) => s + v, 0)
   const totalGastadoConPresupuesto = gastosCats
