@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useRef, useMemo } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { useAuth } from '../context/AuthContext'
 import { useLang } from '../context/LangContext'
-import { t, MONTHS } from '../i18n'
+import { t, tFmt, MONTHS } from '../i18n'
 import MovimientoModal from '../components/MovimientoModal'
 import ActivityPanel from '../components/ActivityPanel'
 import GraficasMes from '../components/GraficasMes'
@@ -308,6 +308,7 @@ export default function MesView() {
   // Usamos ref para que el canal no se re-suscriba al cambiar de mes
   const loadMesRef = useRef(loadMes)
   useEffect(() => { loadMesRef.current = loadMes }, [loadMes])
+  const realtimeDebounce = useRef(null)
 
   useEffect(() => {
     if (!hogarId) return
@@ -327,7 +328,10 @@ export default function MesView() {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'movimientos', filter: `hogar_id=eq.${hogarId}` },
-        () => loadMesRef.current?.()
+        () => {
+          if (realtimeDebounce.current) clearTimeout(realtimeDebounce.current)
+          realtimeDebounce.current = setTimeout(() => loadMesRef.current?.(), 400)
+        }
       )
       .subscribe()
 
@@ -951,9 +955,7 @@ export default function MesView() {
                       <>
                         <div className="budget-pace-row">
                           <span className="budget-pace-day">
-                            {lang === 'es'
-                              ? `Día ${todayDate.getDate()} de ${daysInMonth}`
-                              : `Day ${todayDate.getDate()} of ${daysInMonth}`}
+                            {tFmt(lang, 'day_of', { day: todayDate.getDate(), total: daysInMonth })}
                           </span>
                           <span className={`budget-pace-label ${paceCls}`}>{paceLabel}</span>
                         </div>
@@ -1345,12 +1347,12 @@ export default function MesView() {
 
       {/* FAB añadir movimiento */}
       <button
-        className={`fab${modalOpen || showActivity || showHelp ? ' fab-hidden' : ''}`}
+        className={`fab${modalOpen || showActivity || showHelp || showCatsModal || showImportModal ? ' fab-hidden' : ''}`}
         onClick={() => { setEditMov(null); setModalOpen(true) }}
         title={t(lang, 'new_movement')}
         aria-label={t(lang, 'new_movement')}
-        aria-hidden={modalOpen || showActivity || showHelp}
-        tabIndex={modalOpen || showActivity || showHelp ? -1 : 0}
+        aria-hidden={modalOpen || showActivity || showHelp || showCatsModal || showImportModal}
+        tabIndex={modalOpen || showActivity || showHelp || showCatsModal || showImportModal ? -1 : 0}
       >
         +
       </button>

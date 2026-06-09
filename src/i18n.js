@@ -75,6 +75,7 @@ const T = {
     forecast_eom: 'Proyección fin mes',
     sort_by_amount: 'Importe ↓',
     sort_by_date: 'Fecha ↓',
+    day_of: 'Día {day} de {total}',
   },
   en: {
     app_name: 'Couple finances',
@@ -152,11 +153,18 @@ const T = {
     forecast_eom: 'Month-end forecast',
     sort_by_amount: 'Amount ↓',
     sort_by_date: 'Date ↓',
+    day_of: 'Day {day} of {total}',
   },
 }
 
 export function t(lang, key) {
   return T[lang]?.[key] ?? T.es?.[key] ?? key
+}
+
+export function tFmt(lang, key, params) {
+  let str = t(lang, key)
+  Object.entries(params).forEach(([k, v]) => { str = str.replace(`{${k}}`, v) })
+  return str
 }
 
 export const MONTHS = {
