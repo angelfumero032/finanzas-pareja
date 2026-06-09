@@ -826,12 +826,6 @@ export default function MesView() {
                             )}
                           </button>
                           <div className="budget-amounts">
-                            <button
-                              className="budget-add-btn"
-                              onClick={e => { e.stopPropagation(); setEditMov(null); setQuickAddCatId(cat.id); setModalOpen(true) }}
-                              title={`${t(lang, 'new_movement')} — ${cat.nombre}`}
-                              aria-label={`${t(lang, 'new_movement')} — ${cat.nombre}`}
-                            >+</button>
                             <span className="budget-spent">{fmt(spent)}</span>
                             {editBudget?.catId === cat.id ? (
                               <input
