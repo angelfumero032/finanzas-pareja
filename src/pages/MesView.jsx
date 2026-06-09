@@ -483,6 +483,11 @@ export default function MesView() {
               categorias={categorias}
               trendData={trendData}
               fmt={fmt}
+              onSelectCat={catId => {
+                setFiltroCatId(catId)
+                setFiltroTipo(catId ? 'gasto' : 'all')
+                if (catId) movListRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+              }}
             />
 
             {/* Por categoría (gastos) */}

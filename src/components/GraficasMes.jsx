@@ -12,7 +12,7 @@ function polar(cx, cy, r, deg) {
   return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) }
 }
 
-function DonutChart({ slices, fmt, lang }) {
+function DonutChart({ slices, fmt, lang, onSelectCat }) {
   const [active, setActive] = useState(null)
   const total = slices.reduce((s, sl) => s + sl.value, 0)
   if (total === 0) return null
@@ -66,7 +66,11 @@ function DonutChart({ slices, fmt, lang }) {
               style={{ cursor: 'pointer', transition: 'opacity .15s' }}
               onMouseEnter={() => setActive(i)}
               onMouseLeave={() => setActive(null)}
-              onClick={() => setActive(active === i ? null : i)}
+              onClick={() => {
+                const next = active === i ? null : i
+                setActive(next)
+                onSelectCat?.(next !== null ? seg.catId : null)
+              }}
             />
           )
         )}
@@ -83,9 +87,14 @@ function DonutChart({ slices, fmt, lang }) {
           <li
             key={i}
             className={`legend-item${active === i ? ' legend-active' : ''}`}
+            style={{ cursor: 'pointer' }}
             onMouseEnter={() => setActive(i)}
             onMouseLeave={() => setActive(null)}
-            onClick={() => setActive(active === i ? null : i)}
+            onClick={() => {
+              const next = active === i ? null : i
+              setActive(next)
+              onSelectCat?.(next !== null ? seg.catId : null)
+            }}
           >
             <span className="legend-dot" style={{ background: seg.color }} />
             <span className="legend-name">{seg.name}</span>
@@ -134,10 +143,10 @@ function TrendBars({ data, fmt, lang }) {
   )
 }
 
-export default function GraficasMes({ lang, gastoPorCat, categorias, trendData, fmt }) {
+export default function GraficasMes({ lang, gastoPorCat, categorias, trendData, fmt, onSelectCat }) {
   const pieData = categorias
     .filter(c => c.tipo === 'gasto' && (gastoPorCat[c.id] ?? 0) > 0)
-    .map(c => ({ name: c.nombre, value: gastoPorCat[c.id] }))
+    .map(c => ({ name: c.nombre, value: gastoPorCat[c.id], catId: c.id }))
     .sort((a, b) => b.value - a.value)
 
   const hasTrend = trendData.some(d => d.income > 0 || d.expenses > 0)
@@ -151,7 +160,7 @@ export default function GraficasMes({ lang, gastoPorCat, categorias, trendData, 
       {pieData.length > 0 && (
         <div className="chart-block">
           <p className="chart-subtitle">{t(lang, 'spending_by_category')}</p>
-          <DonutChart slices={pieData} fmt={fmt} lang={lang} />
+          <DonutChart slices={pieData} fmt={fmt} lang={lang} onSelectCat={onSelectCat} />
         </div>
       )}
 
