@@ -739,6 +739,33 @@ html, body { overscroll-behavior: none; }
 .tipo-btn.tipo-active.tipo-gasto   { background: var(--expense-bg); border-color: var(--expense); color: var(--expense); }
 .tipo-btn.tipo-active.tipo-ingreso { background: var(--income-bg);  border-color: var(--income);  color: var(--income); }
 
+/* ── Importes rápidos en el modal ── */
+.quick-amounts {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+  margin-top: 0.35rem;
+}
+.quick-amount-btn {
+  background: var(--surface2);
+  border: 1.5px solid var(--border);
+  border-radius: 99px;
+  padding: 0.22rem 0.7rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--text2);
+  font-family: inherit;
+  transition: all 0.1s;
+}
+.quick-amount-btn:hover { background: var(--border); color: var(--text); }
+.quick-amount-btn:active { transform: scale(0.94); }
+.quick-amount-active {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 .modal-actions {
   display: flex;
   gap: 0.5rem;

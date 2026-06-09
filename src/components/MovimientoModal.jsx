@@ -108,12 +108,25 @@ export default function MovimientoModal({ open, onClose, onSave, onDelete, movim
               step="0.01"
               min="0.01"
               value={importe}
-              onChange={e => setImporte(e.target.value)}
+              onChange={e => setImporte(e.target.value.replace(',', '.'))}
+              onFocus={e => e.target.select()}
               required
               autoFocus={!movimiento}
               inputMode="decimal"
               placeholder="0.00"
             />
+            <div className="quick-amounts">
+              {[5, 10, 20, 50, 100, 200].map(v => (
+                <button
+                  key={v}
+                  type="button"
+                  className={`quick-amount-btn${importe === String(v) ? ' quick-amount-active' : ''}`}
+                  onClick={() => setImporte(String(v))}
+                >
+                  {v}
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="field">
