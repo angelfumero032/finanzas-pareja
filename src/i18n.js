@@ -47,6 +47,7 @@ const T = {
     spending_by_category: 'Gasto por categoría',
     monthly_trend: 'Tendencia 6 meses',
     export_csv: 'Exportar CSV',
+    filter_all: 'Todos',
   },
   en: {
     app_name: 'Couple finances',
@@ -96,6 +97,7 @@ const T = {
     spending_by_category: 'Spending by category',
     monthly_trend: '6-month trend',
     export_csv: 'Export CSV',
+    filter_all: 'All',
   },
 }
 

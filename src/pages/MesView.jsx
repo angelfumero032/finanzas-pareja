@@ -34,6 +34,9 @@ export default function MesView() {
   const [modalOpen, setModalOpen] = useState(false)
   const [editMov, setEditMov] = useState(null)
 
+  // Filtro de tipo en lista de movimientos
+  const [filtroTipo, setFiltroTipo] = useState('all')
+
   // Edición inline de presupuesto
   const [editBudget, setEditBudget] = useState(null) // { catId }
 
@@ -304,6 +307,10 @@ export default function MesView() {
   const deltaIngresos = prevTotals?.ingresos > 0 ? (totalIngresos - prevTotals.ingresos) / prevTotals.ingresos * 100 : null
   const deltaGastos   = prevTotals?.gastos   > 0 ? (totalGastos   - prevTotals.gastos)   / prevTotals.gastos   * 100 : null
 
+  const movimientosFiltrados = filtroTipo === 'all'
+    ? movimientos
+    : movimientos.filter(m => m.tipo === filtroTipo)
+
   const gastoPorCat = {}
   movimientos.filter(m => m.tipo === 'gasto' && m.categoria_id).forEach(m => {
     gastoPorCat[m.categoria_id] = (gastoPorCat[m.categoria_id] ?? 0) + Number(m.importe)
@@ -476,11 +483,25 @@ export default function MesView() {
                 </div>
               </div>
 
-              {movimientos.length === 0 ? (
+              {movimientos.length > 0 && (
+                <div className="filter-tabs">
+                  {['all', 'gasto', 'ingreso'].map(tipo => (
+                    <button
+                      key={tipo}
+                      className={`filter-tab${filtroTipo === tipo ? ' filter-tab-active' : ''}`}
+                      onClick={() => setFiltroTipo(tipo)}
+                    >
+                      {tipo === 'all' ? t(lang, 'filter_all') : tipo === 'gasto' ? t(lang, 'expense') : t(lang, 'income')}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {movimientosFiltrados.length === 0 ? (
                 <p className="empty-text">{t(lang, 'no_movements')}</p>
               ) : (
                 <div className="movements-list">
-                  {movimientos.map(m => {
+                  {movimientosFiltrados.map(m => {
                     const sub = subcatName(m.subcategoria_id)
                     return (
                       <button
