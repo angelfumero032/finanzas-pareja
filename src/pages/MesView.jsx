@@ -740,6 +740,61 @@ export default function MesView() {
     }
   }
 
+  // ── Presupuesto: sugerir límites desde la media de los últimos 3 meses ──
+  async function handleSuggestBudgets() {
+    const d3 = new Date(anio, mes - 4, 1)
+    const startStr = `${d3.getFullYear()}-${String(d3.getMonth() + 1).padStart(2, '0')}-01`
+    const dPrev = new Date(anio, mes - 1, 0)
+    const endStr = `${dPrev.getFullYear()}-${String(dPrev.getMonth() + 1).padStart(2, '0')}-${String(dPrev.getDate()).padStart(2, '0')}`
+    try {
+      const { data, error } = await supabase
+        .from('movimientos')
+        .select('categoria_id, importe, anio, mes')
+        .eq('hogar_id', hogarId)
+        .eq('tipo', 'gasto')
+        .gte('fecha', startStr)
+        .lte('fecha', endStr)
+      if (error) throw error
+      if (!data || data.length === 0) {
+        showToast(lang === 'es' ? 'Sin histórico para sugerir' : 'No history to suggest from')
+        return
+      }
+      const byCat = {}
+      const monthsByCat = {}
+      data.forEach(m => {
+        if (!m.categoria_id) return
+        byCat[m.categoria_id] = (byCat[m.categoria_id] ?? 0) + Number(m.importe)
+        ;(monthsByCat[m.categoria_id] ??= new Set()).add(`${m.anio}-${m.mes}`)
+      })
+      const rows = Object.entries(byCat)
+        .filter(([catId]) => !(presupuestoPorCat[catId] > 0))
+        .map(([catId, total]) => ({
+          hogar_id: hogarId,
+          categoria_id: catId,
+          anio,
+          mes,
+          importe: Math.ceil(total / monthsByCat[catId].size / 10) * 10,
+        }))
+        .filter(r => r.importe > 0)
+      if (rows.length === 0) {
+        showToast(lang === 'es' ? 'Todas las categorías con gasto ya tienen presupuesto' : 'All spending categories already have budgets')
+        return
+      }
+      const ok = window.confirm(lang === 'es'
+        ? `¿Crear ${rows.length} presupuesto(s) con la media de los últimos 3 meses? Podrás ajustarlos después.`
+        : `Create ${rows.length} budget(s) from the last 3 months’ average? You can adjust them later.`)
+      if (!ok) return
+      const { error: upErr } = await supabase
+        .from('presupuestos')
+        .upsert(rows, { onConflict: 'hogar_id,categoria_id,anio,mes' })
+      if (upErr) throw upErr
+      loadMes()
+      showToast(lang === 'es' ? `${rows.length} presupuesto(s) sugerido(s) ✓` : `${rows.length} budget(s) suggested ✓`)
+    } catch {
+      showToast(t(lang, 'save_error'), 'error')
+    }
+  }
+
   // ── Presupuesto: guardar desde el input inline ──
   async function handleSaveBudget(catId, rawValue) {
     const importe = Math.max(0, parseFloat(rawValue) || 0)
@@ -1674,6 +1729,17 @@ export default function MesView() {
                   <button className="btn-sm btn-secondary" onClick={handleCopyBudgetFromLastMonth}>
                     {t(lang, 'copy_budget_prev')}
                   </button>
+                  {gastosCats.some(c => (gastoPorCat[c.id] ?? 0) > 0 && !(presupuestoPorCat[c.id] > 0)) && (
+                    <button
+                      className="btn-sm btn-secondary"
+                      onClick={handleSuggestBudgets}
+                      title={lang === 'es'
+                        ? 'Crear presupuestos con la media de gasto de los últimos 3 meses'
+                        : 'Create budgets from the last 3 months’ spending average'}
+                    >
+                      {lang === 'es' ? '✨ Sugerir' : '✨ Suggest'}
+                    </button>
+                  )}
                   {presupuestos.length > 0 && mes < 12 && (
                     <button
                       className="btn-sm btn-secondary"
