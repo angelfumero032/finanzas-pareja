@@ -2974,6 +2974,54 @@ kbd {
   gap: 0.45rem;
 }
 
+/* ── Búsqueda global ── */
+.global-search-card { max-width: 520px; min-height: 280px; }
+.global-search-results {
+  display: flex;
+  flex-direction: column;
+  margin-top: 0.4rem;
+  max-height: 55vh;
+  overflow-y: auto;
+}
+.global-search-row {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.5rem 0.3rem;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  background: none;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  width: 100%;
+  transition: background 0.12s;
+}
+.global-search-row:hover { background: var(--surface2); }
+.global-search-row:last-child { border-bottom: none; }
+.gs-month {
+  flex-shrink: 0;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  border-radius: 5px;
+  padding: 0.15rem 0.4rem;
+  letter-spacing: 0.03em;
+}
+.gs-concept {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.87rem;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.gs-note { color: var(--text3); font-size: 0.78rem; }
+.gs-amount { flex-shrink: 0; font-weight: 700; font-size: 0.87rem; font-variant-numeric: tabular-nums; }
+
 /* ── Por asignar (YNAB-style) ── */
 .assign-row {
   display: flex;

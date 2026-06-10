@@ -10,6 +10,7 @@ import CategoriasModal from '../components/CategoriasModal'
 import ImportarCSVModal from '../components/ImportarCSVModal'
 import PlantillasModal from '../components/PlantillasModal'
 import AhorroSection from '../components/AhorroSection'
+import BusquedaGlobal from '../components/BusquedaGlobal'
 
 const CAT_PALETTE = [
   '#6366f1', '#f59e0b', '#10b981', '#ef4444',
@@ -138,6 +139,9 @@ export default function MesView() {
 
   // CSV import modal
   const [showImportModal, setShowImportModal] = useState(false)
+
+  // Búsqueda global entre meses
+  const [showGlobalSearch, setShowGlobalSearch] = useState(false)
 
   // Toast notifications (supports undo action)
   const [toast, setToast] = useState(null)
@@ -356,10 +360,10 @@ export default function MesView() {
 
   // Bloquear scroll del body cuando hay un panel/modal abierto (fix iOS)
   useEffect(() => {
-    const locked = modalOpen || showActivity || showHelp || showCatsModal || showImportModal || showPlantillasModal
+    const locked = modalOpen || showActivity || showHelp || showCatsModal || showImportModal || showPlantillasModal || showGlobalSearch
     document.body.style.overflow = locked ? 'hidden' : ''
     return () => { document.body.style.overflow = '' }
-  }, [modalOpen, showActivity, showHelp, showCatsModal, showImportModal, showPlantillasModal])
+  }, [modalOpen, showActivity, showHelp, showCatsModal, showImportModal, showPlantillasModal, showGlobalSearch])
 
   // ── Tendencia: últimos 6 meses ──
   const loadTrend = useCallback(async () => {
@@ -561,6 +565,7 @@ export default function MesView() {
       if (e.key === 'y' || e.key === 'Y') setShowYearView(v => !v)
       if (e.key === 'g' || e.key === 'G') document.querySelector('.section-charts')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
       if (e.key === 'h' || e.key === 'H') document.querySelector('.section-ahorro')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      if (e.key === 'b' || e.key === 'B') setShowGlobalSearch(true)
       if (e.key === 'p' || e.key === 'P') { setFiltroPendiente(v => !v); setFiltroTipo(t => t === 'all' ? 'gasto' : t) }
       if (e.key === 'f' || e.key === 'F') { setFiltroFijo(v => v === true ? null : true) }
       if (e.key === 'x' || e.key === 'X') { setFiltroTipo('all'); setBusqueda(''); setFiltroCatId(null); setFiltroFijo(null); setFiltroPendiente(false); setFilterDate(null) }
@@ -1341,6 +1346,14 @@ export default function MesView() {
             {plantillasNoGeneradas.length > 0 && (
               <span className="campana-badge">{plantillasNoGeneradas.length}</span>
             )}
+          </button>
+          <button
+            className="btn-icon"
+            onClick={() => setShowGlobalSearch(true)}
+            title={lang === 'es' ? 'Buscar en todos los meses' : 'Search all months'}
+            aria-label={lang === 'es' ? 'Buscar en todos los meses' : 'Search all months'}
+          >
+            🔍
           </button>
           <button className="campana-btn" onClick={handleOpenActivity} title={t(lang, 'activity_title')}>
             🔔
@@ -2812,6 +2825,23 @@ export default function MesView() {
         presupuestoPorCat={presupuestoPorCat}
       />
 
+      {/* Búsqueda global */}
+      <BusquedaGlobal
+        open={showGlobalSearch}
+        onClose={() => setShowGlobalSearch(false)}
+        hogarId={hogarId}
+        lang={lang}
+        fmt={fmt}
+        catMap={catMap}
+        onGo={(m) => {
+          setAnio(m.anio)
+          setMes(m.mes)
+          setBusqueda(m.concepto || String(Number(m.importe).toFixed(2)))
+          setFiltroTipo('all')
+          setTimeout(() => movListRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 250)
+        }}
+      />
+
       {/* Panel de actividad */}
       <ActivityPanel
         open={showActivity}
@@ -2842,6 +2872,7 @@ export default function MesView() {
                   ['Y', lang === 'es' ? 'Resumen anual' : 'Year summary'],
                   ['G', lang === 'es' ? 'Ir a gráficas' : 'Go to charts'],
                   ['H', lang === 'es' ? 'Ir a la hucha común' : 'Go to shared pot'],
+                  ['B', lang === 'es' ? 'Buscar en todos los meses' : 'Search all months'],
                   ['P', lang === 'es' ? 'Filtrar pendientes' : 'Toggle pending filter'],
                   ['F', lang === 'es' ? 'Filtrar gastos fijos' : 'Toggle fixed filter'],
                   ['X', lang === 'es' ? 'Limpiar todos los filtros' : 'Clear all filters'],
