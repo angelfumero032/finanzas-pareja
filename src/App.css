@@ -2933,6 +2933,77 @@ kbd {
   gap: 0.45rem;
 }
 
+/* ── Por asignar (YNAB-style) ── */
+.assign-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--r-sm);
+  font-size: 0.8rem;
+  margin-bottom: 0.6rem;
+}
+.assign-label { font-weight: 700; text-transform: uppercase; font-size: 0.67rem; letter-spacing: 0.06em; }
+.assign-amount { font-weight: 800; font-size: 0.95rem; }
+.assign-hint { color: var(--text3); font-size: 0.73rem; }
+.assign-free {
+  background: color-mix(in srgb, var(--accent) 7%, var(--surface));
+  border: 1px dashed color-mix(in srgb, var(--accent) 40%, var(--border));
+}
+.assign-free .assign-label, .assign-free .assign-amount { color: var(--accent); }
+.assign-over {
+  background: color-mix(in srgb, var(--warn) 8%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--warn) 30%, var(--border));
+}
+.assign-over .assign-label, .assign-over .assign-amount { color: var(--warn); }
+.assign-done {
+  background: color-mix(in srgb, var(--income) 7%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--income) 25%, var(--border));
+  color: var(--income);
+  font-weight: 600;
+}
+
+/* ── Secciones plegables ── */
+.section-collapse-btn { font-size: 0.85rem; padding: 0.3rem 0.4rem; }
+.section-collapsed-summary {
+  display: block;
+  width: 100%;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.82rem;
+  color: var(--text2);
+  text-align: left;
+  padding: 0.1rem 0.2rem;
+}
+.section-collapsed-summary:hover { color: var(--text); }
+
+/* ── Micro-interacciones (Copilot-style) ── */
+.summary-card {
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+.summary-card:hover {
+  transform: translateY(-1.5px);
+  box-shadow: var(--shadow-md);
+}
+.summary-value, .movement-amount, .budget-spent, .ahorro-total-value,
+.goal-amounts, .movements-footer-total, .movements-footer-exp, .movements-footer-inc {
+  font-variant-numeric: tabular-nums;
+}
+@keyframes sectionIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.section { animation: sectionIn 0.25s ease both; }
+.movement-item:active { transform: scale(0.995); }
+.btn-primary:active, .btn-secondary:active, .btn-pot:active { transform: scale(0.97); }
+@media (prefers-reduced-motion: reduce) {
+  .section { animation: none; }
+  .summary-card, .movement-item { transition: none; }
+}
+
 /* ── Hucha común (shared savings pot) + objetivos ── */
 .section-ahorro {
   background: linear-gradient(160deg, var(--surface) 55%, color-mix(in srgb, var(--income) 6%, var(--surface)));

@@ -82,6 +82,16 @@ export default function MesView() {
   // Budget section: hide zero-spend no-budget categories
   const [hideZeroCats, setHideZeroCats] = useState(false)
 
+  // Collapsible sections (Monarch-style: hide what you don't use)
+  const [budgetCollapsed, setBudgetCollapsed] = useState(() => localStorage.getItem('sec_budget_collapsed') === '1')
+  const [movsCollapsed, setMovsCollapsed] = useState(() => localStorage.getItem('sec_movs_collapsed') === '1')
+  function toggleBudgetSection() {
+    setBudgetCollapsed(v => { localStorage.setItem('sec_budget_collapsed', v ? '' : '1'); return !v })
+  }
+  function toggleMovsSection() {
+    setMovsCollapsed(v => { localStorage.setItem('sec_movs_collapsed', v ? '' : '1'); return !v })
+  }
+
   // Budget category search
   const [budgetSearch, setBudgetSearch] = useState('')
 
@@ -1629,8 +1639,56 @@ export default function MesView() {
                   >
                     ⚙
                   </button>
+                  <button
+                    className="btn-icon section-collapse-btn"
+                    onClick={toggleBudgetSection}
+                    aria-expanded={!budgetCollapsed}
+                    title={budgetCollapsed ? (lang === 'es' ? 'Mostrar sección' : 'Show section') : (lang === 'es' ? 'Plegar sección' : 'Collapse section')}
+                  >
+                    {budgetCollapsed ? '▸' : '▾'}
+                  </button>
                 </div>
               </div>
+
+              {budgetCollapsed && totalPresupuestado > 0 && (
+                <button className="section-collapsed-summary" onClick={toggleBudgetSection}>
+                  {fmt(totalGastadoConPresupuesto)} / {fmt(totalPresupuestado)}
+                </button>
+              )}
+
+              {!budgetCollapsed && <>
+
+              {/* Por asignar (YNAB: dale un destino a cada euro) */}
+              {totalIngresos > 0 && totalPresupuestado > 0 && (() => {
+                const porAsignar = totalIngresos - totalPresupuestado
+                if (Math.abs(porAsignar) < 0.5) {
+                  return (
+                    <div className="assign-row assign-done">
+                      <span>✓ {lang === 'es' ? 'Todo el ingreso tiene destino' : 'Every euro has a job'}</span>
+                    </div>
+                  )
+                }
+                if (porAsignar > 0) {
+                  return (
+                    <div className="assign-row assign-free">
+                      <span className="assign-label">{lang === 'es' ? 'Por asignar' : 'To assign'}</span>
+                      <span className="assign-amount">{fmt(porAsignar)}</span>
+                      <span className="assign-hint">
+                        {lang === 'es' ? 'dale un destino: presupuesto u hucha' : 'give it a job: budget or pot'}
+                      </span>
+                    </div>
+                  )
+                }
+                return (
+                  <div className="assign-row assign-over">
+                    <span className="assign-label">{lang === 'es' ? 'Presupuestado de más' : 'Over-assigned'}</span>
+                    <span className="assign-amount">{fmt(-porAsignar)}</span>
+                    <span className="assign-hint">
+                      {lang === 'es' ? 'el presupuesto supera los ingresos del mes' : 'budgets exceed this month’s income'}
+                    </span>
+                  </div>
+                )
+              })()}
 
               {presupuestos.length === 0 && totalGastos > 0 && !loading && (
                 <div className="budget-setup-banner">
@@ -1911,6 +1969,7 @@ export default function MesView() {
                   </div>
                 </div>
               )}
+              </>}
             </section>
 
 
@@ -1933,8 +1992,24 @@ export default function MesView() {
                   >
                     {t(lang, 'add_movement')}
                   </button>
+                  <button
+                    className="btn-icon section-collapse-btn"
+                    onClick={toggleMovsSection}
+                    aria-expanded={!movsCollapsed}
+                    title={movsCollapsed ? (lang === 'es' ? 'Mostrar sección' : 'Show section') : (lang === 'es' ? 'Plegar sección' : 'Collapse section')}
+                  >
+                    {movsCollapsed ? '▸' : '▾'}
+                  </button>
                 </div>
               </div>
+
+              {movsCollapsed && movimientos.length > 0 && (
+                <button className="section-collapsed-summary" onClick={toggleMovsSection}>
+                  {movimientos.length} · {totalGastos > 0 ? `−${fmt(totalGastos)}` : ''} {totalIngresos > 0 ? `+${fmt(totalIngresos)}` : ''}
+                </button>
+              )}
+
+              {!movsCollapsed && <>
 
               {movimientos.length > 0 && (
                 <>
@@ -2226,6 +2301,7 @@ export default function MesView() {
                   )}
                 </div>
               )}
+              </>}
             </section>
             {/* Gráficas */}
             <GraficasMes
