@@ -4,7 +4,7 @@ import { t } from '../i18n'
 
 // Hucha común: fondo de ahorro compartido + objetivos.
 // Resiliente: si la migración 004 no está aplicada, la sección no se muestra.
-export default function AhorroSection({ lang, hogarId, userId, fmt, balance, anio, mes, isCurrentMonth, showToast }) {
+export default function AhorroSection({ lang, hogarId, userId, fmt, balance, anio, mes, isCurrentMonth, showToast, categorias = [], order, onMoveUp, onMoveDown }) {
   const [available, setAvailable] = useState(true) // tables exist?
   const [aportes, setAportes] = useState([])       // all-time
   const [objetivos, setObjetivos] = useState([])
@@ -80,6 +80,22 @@ export default function AhorroSection({ lang, hogarId, userId, fmt, balance, ani
       creado_por: userId ?? null,
     })
     if (error) { showToast(t(lang, 'save_error'), 'error'); return }
+    // El aporte cuenta en el balance del mes: se registra como movimiento
+    // (gasto si entra en la hucha, ingreso si se retira)
+    const ahorroCat = categorias.find(c => c.tipo === 'gasto' && /^ahorro$/i.test(c.nombre.trim()))
+    const objetivoNombre = aporteObjetivo ? objetivos.find(o => o.id === aporteObjetivo)?.nombre : null
+    await supabase.from('movimientos').insert({
+      hogar_id: hogarId,
+      tipo: n > 0 ? 'gasto' : 'ingreso',
+      importe: Math.abs(n),
+      fecha: new Date().toISOString().slice(0, 10),
+      categoria_id: n > 0 ? (ahorroCat?.id ?? null) : null,
+      concepto: n > 0
+        ? `🐷 ${objetivoNombre ?? (lang === 'es' ? 'Hucha común' : 'Shared pot')}`
+        : `🐷 ${lang === 'es' ? 'Retirada de la hucha' : 'Pot withdrawal'}`,
+      nota: aporteNota.trim() || null,
+      creado_por: userId ?? null,
+    })
     setShowAporte(false); setAporteImporte(''); setAporteObjetivo(''); setAporteNota('')
     showToast(t(lang, 'saved_ok'))
     load()
@@ -125,11 +141,12 @@ export default function AhorroSection({ lang, hogarId, userId, fmt, balance, ani
 
   if (!available || (loading && aportes.length === 0 && objetivos.length === 0)) return null
 
-  const puedeAhorrar = isCurrentMonth && balance > 0 ? balance - Math.max(0, ahorradoEsteMes) : 0
+  // El balance ya descuenta los aportes (se registran como movimiento)
+  const puedeAhorrar = isCurrentMonth && balance > 0 ? balance : 0
   const es = lang === 'es'
 
   return (
-    <section className="section section-ahorro">
+    <section className="section section-ahorro" style={order ? { order } : undefined}>
       <div className="section-header">
         <h2 className="section-title">
           <span aria-hidden="true">🐷</span> {es ? 'Hucha común' : 'Shared pot'}
@@ -138,6 +155,8 @@ export default function AhorroSection({ lang, hogarId, userId, fmt, balance, ani
           <button className="btn-sm btn-pot" onClick={() => setShowAporte(v => !v)}>
             {es ? '+ Aportar' : '+ Add to pot'}
           </button>
+          {onMoveUp && <button className="btn-icon section-move-btn" onClick={onMoveUp} title={es ? 'Subir sección' : 'Move up'}>↑</button>}
+          {onMoveDown && <button className="btn-icon section-move-btn" onClick={onMoveDown} title={es ? 'Bajar sección' : 'Move down'}>↓</button>}
           <button className="btn-icon" onClick={toggleExpanded} aria-expanded={expanded}>
             {expanded ? '▾' : '▸'}
           </button>

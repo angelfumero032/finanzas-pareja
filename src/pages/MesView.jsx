@@ -82,6 +82,32 @@ export default function MesView() {
   // Budget section: hide zero-spend no-budget categories
   const [hideZeroCats, setHideZeroCats] = useState(false)
 
+  // Section order (Monarch-style modular dashboard; flex `order`, persisted)
+  const DEFAULT_SECTION_ORDER = ['ahorro', 'budget', 'movs', 'charts']
+  const [sectionOrder, setSectionOrder] = useState(() => {
+    try {
+      const s = JSON.parse(localStorage.getItem('sectionOrder'))
+      if (Array.isArray(s) && s.length === 4 && DEFAULT_SECTION_ORDER.every(k => s.includes(k))) return s
+    } catch { /* ignore */ }
+    return DEFAULT_SECTION_ORDER
+  })
+  function moveSection(key, dir) {
+    setSectionOrder(prev => {
+      const i = prev.indexOf(key)
+      const j = i + dir
+      if (i < 0 || j < 0 || j >= prev.length) return prev
+      const next = [...prev]
+      ;[next[i], next[j]] = [next[j], next[i]]
+      localStorage.setItem('sectionOrder', JSON.stringify(next))
+      return next
+    })
+  }
+  const orderOf = (key) => sectionOrder.indexOf(key) + 1
+  const moveProps = (key) => ({
+    onMoveUp: sectionOrder.indexOf(key) > 0 ? () => moveSection(key, -1) : null,
+    onMoveDown: sectionOrder.indexOf(key) < sectionOrder.length - 1 ? () => moveSection(key, 1) : null,
+  })
+
   // Collapsible sections (Monarch-style: hide what you don't use)
   const [budgetCollapsed, setBudgetCollapsed] = useState(() => localStorage.getItem('sec_budget_collapsed') === '1')
   const [movsCollapsed, setMovsCollapsed] = useState(() => localStorage.getItem('sec_movs_collapsed') === '1')
@@ -1735,10 +1761,13 @@ export default function MesView() {
               mes={mes}
               isCurrentMonth={isCurrentMonth}
               showToast={showToast}
+              categorias={categorias}
+              order={orderOf('ahorro')}
+              {...moveProps('ahorro')}
             />
 
             {/* Por categoría (gastos) */}
-            <section className="section">
+            <section className="section" style={{ order: orderOf('budget') }}>
               <div className="section-header">
                 <h2 className="section-title">{t(lang, 'budget_section')}</h2>
                 <div className="section-header-actions">
@@ -1782,6 +1811,8 @@ export default function MesView() {
                   >
                     ⚙
                   </button>
+                  {moveProps('budget').onMoveUp && <button className="btn-icon section-move-btn" onClick={moveProps('budget').onMoveUp} title={lang === 'es' ? 'Subir sección' : 'Move up'}>↑</button>}
+                  {moveProps('budget').onMoveDown && <button className="btn-icon section-move-btn" onClick={moveProps('budget').onMoveDown} title={lang === 'es' ? 'Bajar sección' : 'Move down'}>↓</button>}
                   <button
                     className="btn-icon section-collapse-btn"
                     onClick={toggleBudgetSection}
@@ -2117,7 +2148,7 @@ export default function MesView() {
 
 
             {/* Movimientos */}
-            <section className="section" ref={movListRef}>
+            <section className="section" ref={movListRef} style={{ order: orderOf('movs') }}>
               <div className="section-header">
                 <h2 className="section-title">{t(lang, 'movements_section')}</h2>
                 <div className="section-header-actions">
@@ -2135,6 +2166,8 @@ export default function MesView() {
                   >
                     {t(lang, 'add_movement')}
                   </button>
+                  {moveProps('movs').onMoveUp && <button className="btn-icon section-move-btn" onClick={moveProps('movs').onMoveUp} title={lang === 'es' ? 'Subir sección' : 'Move up'}>↑</button>}
+                  {moveProps('movs').onMoveDown && <button className="btn-icon section-move-btn" onClick={moveProps('movs').onMoveDown} title={lang === 'es' ? 'Bajar sección' : 'Move down'}>↓</button>}
                   <button
                     className="btn-icon section-collapse-btn"
                     onClick={toggleMovsSection}
@@ -2471,10 +2504,12 @@ export default function MesView() {
                 setFiltroTipo('all')
                 if (dateStr) movListRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
               }}
+              order={orderOf('charts')}
+              {...moveProps('charts')}
             />
 
             {/* Resumen anual */}
-            <section className="section section-year">
+            <section className="section section-year" style={{ order: 9 }}>
               <div className="section-header">
                 <h2 className="section-title">{lang === 'es' ? `Año ${anio}` : `Year ${anio}`}</h2>
                 <div className="section-header-actions">

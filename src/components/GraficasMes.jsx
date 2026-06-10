@@ -273,7 +273,7 @@ function SpendingCalendar({ byDay, anio, mes, lang, fmt, onSelectDate, selectedD
   )
 }
 
-export default function GraficasMes({ lang, gastoPorCat, categorias, trendData, fmt, onSelectCat, catColors, catMap, insights, selectedCatId, spendingByDay, anio, mes, onSelectDate, selectedDate }) {
+export default function GraficasMes({ lang, gastoPorCat, categorias, trendData, fmt, onSelectCat, catColors, catMap, insights, selectedCatId, spendingByDay, anio, mes, onSelectDate, selectedDate, order, onMoveUp, onMoveDown }) {
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem('sec_charts_collapsed') === '1')
   function toggleCollapsed() {
     setCollapsed(v => { localStorage.setItem('sec_charts_collapsed', v ? '' : '1'); return !v })
@@ -294,17 +294,21 @@ export default function GraficasMes({ lang, gastoPorCat, categorias, trendData, 
   if (pieData.length === 0 && !hasTrend && !insights && !hasCal) return null
 
   return (
-    <section className="section section-charts">
+    <section className="section section-charts" style={order ? { order } : undefined}>
       <div className="section-header">
         <h2 className="section-title">{t(lang, 'charts_section')}</h2>
-        <button
-          className="btn-icon section-collapse-btn"
-          onClick={toggleCollapsed}
-          aria-expanded={!collapsed}
-          title={collapsed ? (lang === 'es' ? 'Mostrar sección' : 'Show section') : (lang === 'es' ? 'Plegar sección' : 'Collapse section')}
-        >
-          {collapsed ? '▸' : '▾'}
-        </button>
+        <div className="section-header-actions">
+          {onMoveUp && <button className="btn-icon section-move-btn" onClick={onMoveUp} title={lang === 'es' ? 'Subir sección' : 'Move up'}>↑</button>}
+          {onMoveDown && <button className="btn-icon section-move-btn" onClick={onMoveDown} title={lang === 'es' ? 'Bajar sección' : 'Move down'}>↓</button>}
+          <button
+            className="btn-icon section-collapse-btn"
+            onClick={toggleCollapsed}
+            aria-expanded={!collapsed}
+            title={collapsed ? (lang === 'es' ? 'Mostrar sección' : 'Show section') : (lang === 'es' ? 'Plegar sección' : 'Collapse section')}
+          >
+            {collapsed ? '▸' : '▾'}
+          </button>
+        </div>
       </div>
 
       {!collapsed && <>

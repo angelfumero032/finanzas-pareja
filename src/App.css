@@ -2987,8 +2987,14 @@ kbd {
   font-weight: 600;
 }
 
-/* ── Secciones plegables ── */
+/* ── Secciones plegables / reordenables ── */
 .section-collapse-btn { font-size: 0.85rem; padding: 0.3rem 0.4rem; }
+.section-move-btn {
+  font-size: 0.78rem;
+  padding: 0.25rem 0.3rem;
+  opacity: 0.45;
+}
+.section-move-btn:hover { opacity: 1; }
 .section-collapsed-summary {
   display: block;
   width: 100%;
