@@ -9,6 +9,7 @@ import GraficasMes from '../components/GraficasMes'
 import CategoriasModal from '../components/CategoriasModal'
 import ImportarCSVModal from '../components/ImportarCSVModal'
 import PlantillasModal from '../components/PlantillasModal'
+import AhorroSection from '../components/AhorroSection'
 
 const CAT_PALETTE = [
   '#6366f1', '#f59e0b', '#10b981', '#ef4444',
@@ -999,13 +1000,6 @@ export default function MesView() {
     return map
   }, [gastosItems])
 
-  const noSpendDays = useMemo(() => {
-    if (!isCurrentMonth) return null
-    const daysElapsed = todayDate.getDate()
-    const daysWithSpending = new Set(gastosItems.map(m => m.fecha)).size
-    return Math.max(0, daysElapsed - daysWithSpending)
-  }, [isCurrentMonth, gastosItems, todayDate])
-
   const thisWeekStats = useMemo(() => {
     if (!isCurrentMonth) return null
     // Monday-first week containing today
@@ -1207,22 +1201,16 @@ export default function MesView() {
           </div>
         </div>
 
-        {/* No-spend days + days remaining (current month only) */}
-        {isCurrentMonth && !loading && (noSpendDays > 0 || true) && (() => {
+        {/* Days remaining (current month only) */}
+        {isCurrentMonth && !loading && (() => {
           const daysInMonth = new Date(anio, mes, 0).getDate()
           const daysLeft = daysInMonth - todayDate.getDate()
+          if (daysLeft <= 0) return null
           return (
             <div className="month-stats-row">
-              {noSpendDays > 0 && (
-                <span className="month-stat-chip month-stat-nospend" title={lang === 'es' ? 'Días sin gasto este mes' : 'No-spend days this month'}>
-                  🎯 {noSpendDays} {lang === 'es' ? 'sin gasto' : 'no-spend'}
-                </span>
-              )}
-              {daysLeft > 0 && (
-                <span className="month-stat-chip month-stat-daysleft" title={lang === 'es' ? 'Días restantes del mes' : 'Days remaining in month'}>
-                  📅 {daysLeft} {lang === 'es' ? 'días restantes' : 'days left'}
-                </span>
-              )}
+              <span className="month-stat-chip month-stat-daysleft" title={lang === 'es' ? 'Días restantes del mes' : 'Days remaining in month'}>
+                📅 {daysLeft} {lang === 'es' ? 'días restantes' : 'days left'}
+              </span>
             </div>
           )
         })()}
@@ -1392,40 +1380,25 @@ export default function MesView() {
           </div>
         )}
 
-        {gastosPorUsuario && totalGastos > 0 && (() => {
-          const [a, b] = gastosPorUsuario
-          const settle = a && b ? Math.abs(a.total - b.total) / 2 : 0
-          const debtor = a && b ? (a.total > b.total ? b : a) : null
-          const creditor = a && b ? (a.total > b.total ? a : b) : null
-          return (
-            <div className="by-user-section">
-              <div className="by-user-row">
-                {gastosPorUsuario.map(u => (
-                  <div key={u.id} className="by-user-item">
-                    <span className="by-user-name">{u.nombre}</span>
-                    <span className="by-user-amt">{fmt(u.total)}</span>
-                    <div className="by-user-bar-track">
-                      <div
-                        className="by-user-bar-fill"
-                        style={{ width: `${Math.round(u.total / totalGastos * 100)}%` }}
-                      />
-                    </div>
-                    <span className="by-user-pct">{Math.round(u.total / totalGastos * 100)}%</span>
+        {gastosPorUsuario && totalGastos > 0 && (
+          <div className="by-user-section">
+            <div className="by-user-row">
+              {gastosPorUsuario.map(u => (
+                <div key={u.id} className="by-user-item">
+                  <span className="by-user-name">{u.nombre}</span>
+                  <span className="by-user-amt">{fmt(u.total)}</span>
+                  <div className="by-user-bar-track">
+                    <div
+                      className="by-user-bar-fill"
+                      style={{ width: `${Math.round(u.total / totalGastos * 100)}%` }}
+                    />
                   </div>
-                ))}
-              </div>
-              {settle > 0.5 && debtor && creditor && (
-                <div className="settle-row">
-                  <span className="settle-label">
-                    {lang === 'es'
-                      ? <>{debtor.nombre} debe {fmt(settle)} a {creditor.nombre}</>
-                      : <>{debtor.nombre} owes {fmt(settle)} to {creditor.nombre}</>}
-                  </span>
+                  <span className="by-user-pct">{Math.round(u.total / totalGastos * 100)}%</span>
                 </div>
-              )}
+              ))}
             </div>
-          )
-        })()}
+          </div>
+        )}
 
         {/* Month note */}
         {!loading && monthNoteKey && (
@@ -1584,21 +1557,6 @@ export default function MesView() {
           </div>
         )}
 
-        {showInstallBanner && (
-          <div className="install-banner" role="banner">
-            <span className="install-banner-icon" aria-hidden="true">📲</span>
-            <span className="install-banner-text">
-              {lang === 'es'
-                ? 'Instala la app en tu dispositivo para acceso rápido'
-                : 'Install this app on your device for quick access'}
-            </span>
-            <button className="install-banner-btn btn-sm btn-primary" onClick={handleInstall}>
-              {lang === 'es' ? 'Instalar' : 'Install'}
-            </button>
-            <button className="install-banner-close btn-icon" onClick={dismissInstall} aria-label={t(lang, 'close')}>✕</button>
-          </div>
-        )}
-
         {loading ? (
           <div className="skeleton-wrap" aria-hidden="true">
             <div className="skeleton-section">
@@ -1624,6 +1582,19 @@ export default function MesView() {
           </div>
         ) : (
           <>
+            {/* Hucha común + objetivos (constante en todos los meses) */}
+            <AhorroSection
+              lang={lang}
+              hogarId={hogarId}
+              userId={profile?.id}
+              fmt={fmt}
+              balance={balance}
+              anio={anio}
+              mes={mes}
+              isCurrentMonth={isCurrentMonth}
+              showToast={showToast}
+            />
+
             {/* Por categoría (gastos) */}
             <section className="section">
               <div className="section-header">
@@ -2390,6 +2361,16 @@ export default function MesView() {
               )}
             </section>
           </>
+        )}
+
+        {/* Discreet PWA install link */}
+        {showInstallBanner && (
+          <div className="install-link-row">
+            <button className="install-link" onClick={handleInstall}>
+              <span aria-hidden="true">📲</span> {lang === 'es' ? 'Instalar como app' : 'Install as app'}
+            </button>
+            <button className="install-link-dismiss" onClick={dismissInstall} aria-label={t(lang, 'close')}>✕</button>
+          </div>
         )}
       </main>
 

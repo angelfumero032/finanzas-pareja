@@ -340,7 +340,7 @@ html, body { overscroll-behavior: none; }
 .summary-value { font-size: 1.2rem; font-weight: 700; letter-spacing: -0.01em; }
 
 .income-card  .summary-value { color: var(--income); }
-.expense-card .summary-value { color: var(--expense); }
+.expense-card .summary-value { color: var(--text); }
 .balance-pos  .summary-value { color: var(--income); }
 .balance-neg  .summary-value { color: var(--expense); }
 
@@ -435,7 +435,7 @@ html, body { overscroll-behavior: none; }
 .by-user-amt {
   font-size: 0.9rem;
   font-weight: 700;
-  color: var(--expense);
+  color: var(--text);
   text-align: right;
 }
 .by-user-bar-track {
@@ -448,7 +448,7 @@ html, body { overscroll-behavior: none; }
 }
 .by-user-bar-fill {
   height: 100%;
-  background: var(--expense);
+  background: var(--accent);
   border-radius: 99px;
   opacity: 0.5;
 }
@@ -459,16 +459,6 @@ html, body { overscroll-behavior: none; }
   text-align: right;
 }
 .by-user-section { display: flex; flex-direction: column; gap: 0.35rem; }
-.settle-row {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.3rem 0.5rem;
-  background: color-mix(in srgb, var(--warn) 8%, var(--surface));
-  border: 1px solid color-mix(in srgb, var(--warn) 25%, var(--border));
-  border-radius: 6px;
-}
-.settle-label { font-size: 0.8rem; color: var(--text2); }
 
 /* ── Secciones ── */
 .section {
@@ -1002,38 +992,38 @@ html, body { overscroll-behavior: none; }
 .welcome-close:hover { background: var(--border); color: var(--text); }
 .welcome-dismiss { align-self: flex-start; }
 
-/* ── PWA install banner ── */
-.install-banner {
+/* ── PWA install: discreet footer link ── */
+.install-link-row {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
-  background: color-mix(in srgb, var(--accent) 9%, var(--surface));
-  border: 1.5px solid color-mix(in srgb, var(--accent) 30%, var(--border));
-  border-radius: var(--r);
-  padding: 0.65rem 0.75rem;
-  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.2rem 0;
 }
-.install-banner-icon { font-size: 1.1rem; flex-shrink: 0; }
-.install-banner-text {
-  flex: 1;
-  font-size: 0.85rem;
-  color: var(--text2);
-  min-width: 0;
+.install-link {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.76rem;
+  color: var(--text3);
+  font-family: inherit;
+  padding: 0.15rem 0.3rem;
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
 }
-.install-banner-btn { flex-shrink: 0; }
-.install-banner-close {
-  flex-shrink: 0;
+.install-link:hover { color: var(--accent); }
+.install-link-dismiss {
   background: none;
   border: none;
   cursor: pointer;
   color: var(--text3);
-  font-size: 0.85rem;
-  padding: 0.15rem 0.3rem;
-  border-radius: 4px;
-  font-family: inherit;
+  font-size: 0.7rem;
+  padding: 0.1rem 0.25rem;
   line-height: 1;
+  font-family: inherit;
+  opacity: 0.7;
 }
-.install-banner-close:hover { background: var(--border); color: var(--text); }
+.install-link-dismiss:hover { opacity: 1; color: var(--text); }
 
 /* ── Estado vacío / carga ── */
 .loading-row { text-align: center; padding: 2rem; color: var(--text2); }
@@ -1095,7 +1085,7 @@ html, body { overscroll-behavior: none; }
 }
 .movements-footer-count { color: var(--text3); font-variant-numeric: tabular-nums; }
 .movements-footer-total { font-weight: 600; color: var(--text); margin-left: auto; }
-.movements-footer-exp { font-weight: 600; color: var(--expense); margin-left: auto; }
+.movements-footer-exp { font-weight: 600; color: var(--text2); margin-left: auto; }
 .movements-footer-inc { font-weight: 600; color: var(--income); }
 
 .movement-item {
@@ -1173,7 +1163,7 @@ html, body { overscroll-behavior: none; }
 .cat-suggest-chip:hover { background: var(--accent); color: #fff; }
 
 .movement-amount { font-size: 1rem; font-weight: 700; flex-shrink: 0; letter-spacing: -0.01em; }
-.amount-expense  { color: var(--expense); }
+.amount-expense  { color: var(--text); }
 .amount-income   { color: var(--income); }
 .movement-running-bal { font-size: 0.65rem; color: var(--text3); font-weight: 500; text-align: right; }
 
@@ -1594,7 +1584,7 @@ html, body { overscroll-behavior: none; }
 .year-cell-exp {
   font-size: 0.78rem;
   font-weight: 600;
-  color: var(--expense);
+  color: var(--text2);
 }
 .year-cell-bal {
   font-size: 0.65rem;
@@ -1617,7 +1607,7 @@ html, body { overscroll-behavior: none; }
 }
 .year-avg-label { flex-shrink: 0; }
 .year-avg-inc { color: var(--income); font-weight: 600; }
-.year-avg-exp { color: var(--expense); font-weight: 600; }
+.year-avg-exp { color: var(--text2); font-weight: 600; }
 .year-cell-best { font-size: 0.55rem; line-height: 1; display: inline-block; }
 .year-totals-row {
   display: flex;
@@ -1632,7 +1622,7 @@ html, body { overscroll-behavior: none; }
 }
 .year-totals-item { font-weight: 600; }
 .year-totals-inc { color: var(--income); }
-.year-totals-exp { color: var(--expense); }
+.year-totals-exp { color: var(--text2); }
 .year-totals-sep { color: var(--text3); }
 
 /* ── Insights grid ── */
@@ -1774,11 +1764,11 @@ html, body { overscroll-behavior: none; }
 .spend-cal-day:hover { transform: scale(1.12); border-color: var(--border); z-index: 1; position: relative; }
 .spend-cal-sel { border-color: var(--accent) !important; box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 25%, transparent); }
 .heat-0 { background: var(--surface); color: var(--text3); opacity: 0.6; }
-.heat-1 { background: color-mix(in srgb, #ef4444 14%, var(--surface)); }
-.heat-2 { background: color-mix(in srgb, #ef4444 30%, var(--surface)); }
-.heat-3 { background: color-mix(in srgb, #ef4444 52%, var(--surface)); }
-.heat-4 { background: color-mix(in srgb, #ef4444 74%, var(--surface)); color: #fff; }
-.heat-5 { background: #ef4444; color: #fff; }
+.heat-1 { background: color-mix(in srgb, var(--accent) 14%, var(--surface)); }
+.heat-2 { background: color-mix(in srgb, var(--accent) 30%, var(--surface)); }
+.heat-3 { background: color-mix(in srgb, var(--accent) 52%, var(--surface)); }
+.heat-4 { background: color-mix(in srgb, var(--accent) 74%, var(--surface)); color: #fff; }
+.heat-5 { background: var(--accent); color: #fff; }
 .spend-cal-clear-btn {
   margin-top: 0.5rem;
   font-size: 0.75rem;
@@ -2622,7 +2612,6 @@ kbd {
   color: var(--text2);
   white-space: nowrap;
 }
-.month-stat-nospend { border-color: color-mix(in srgb, var(--income) 30%, var(--border)); color: var(--income); }
 .month-stat-daysleft { border-color: var(--border); }
 
 /* ── This week mini-summary ── */
@@ -2638,7 +2627,7 @@ kbd {
   flex-shrink: 0;
 }
 .this-week-exp {
-  color: var(--expense);
+  color: var(--text2);
   font-weight: 600;
 }
 .this-week-inc {
@@ -2846,7 +2835,7 @@ kbd {
 .plantilla-importe {
   font-size: 0.88rem;
   font-weight: 700;
-  color: var(--expense);
+  color: var(--text);
   flex-shrink: 0;
 }
 .plantilla-meta {
@@ -2943,6 +2932,181 @@ kbd {
   flex-direction: column;
   gap: 0.45rem;
 }
+
+/* ── Hucha común (shared savings pot) + objetivos ── */
+.section-ahorro {
+  background: linear-gradient(160deg, var(--surface) 55%, color-mix(in srgb, var(--income) 6%, var(--surface)));
+  border-color: color-mix(in srgb, var(--income) 22%, var(--border));
+}
+.btn-pot {
+  background: color-mix(in srgb, var(--income) 12%, var(--surface));
+  color: var(--income);
+  border: 1.5px solid color-mix(in srgb, var(--income) 35%, var(--border));
+  border-radius: 99px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s;
+}
+.btn-pot:hover { background: color-mix(in srgb, var(--income) 22%, var(--surface)); }
+.ahorro-totals {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.6rem;
+}
+.ahorro-total-main { display: flex; flex-direction: column; gap: 0.1rem; }
+.ahorro-total-label {
+  font-size: 0.67rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text3);
+}
+.ahorro-total-value {
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: var(--income);
+  letter-spacing: -0.02em;
+}
+.ahorro-total-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
+}
+.ahorro-mes { font-size: 0.78rem; color: var(--text2); font-weight: 600; }
+.ahorro-hint-btn {
+  background: none;
+  border: 1px dashed color-mix(in srgb, var(--income) 45%, var(--border));
+  border-radius: 99px;
+  color: var(--income);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.2rem 0.65rem;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s;
+}
+.ahorro-hint-btn:hover { background: color-mix(in srgb, var(--income) 10%, transparent); }
+.ahorro-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 0.65rem;
+  margin-bottom: 0.65rem;
+}
+.ahorro-input {
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 0.42rem 0.65rem;
+  font-size: 0.95rem;
+  font-family: inherit;
+  color: var(--text);
+  background: var(--surface);
+  outline: none;
+}
+.ahorro-input:focus { border-color: var(--income); }
+.ahorro-form-actions { display: flex; gap: 0.4rem; justify-content: flex-end; }
+.goals-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0.35rem 0 0.4rem;
+}
+.goals-title {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--text3);
+}
+.goal-row {
+  padding: 0.5rem 0;
+  border-top: 1px solid var(--border);
+}
+.goal-row-top {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.goal-name {
+  flex: 1;
+  min-width: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0;
+}
+.goal-name:hover { color: var(--accent); }
+.goal-amounts { font-size: 0.85rem; color: var(--text); flex-shrink: 0; }
+.goal-target { color: var(--text3); font-size: 0.78rem; }
+.goal-contribute-btn {
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 50%;
+  border: 1.5px solid color-mix(in srgb, var(--income) 35%, var(--border));
+  background: color-mix(in srgb, var(--income) 8%, var(--surface));
+  color: var(--income);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+.goal-contribute-btn:hover { background: var(--income); color: #fff; }
+.goal-bar-wrap { display: flex; align-items: center; gap: 0.4rem; margin-top: 0.35rem; }
+.goal-bar-track {
+  flex: 1;
+  height: 6px;
+  background: var(--border);
+  border-radius: 99px;
+  overflow: hidden;
+}
+.goal-bar-fill {
+  height: 100%;
+  background: var(--income);
+  opacity: 0.8;
+  border-radius: 99px;
+  transition: width 0.35s ease;
+}
+.goal-bar-done { opacity: 1; }
+.goal-pct { font-size: 0.7rem; font-weight: 600; color: var(--income); min-width: 2.4rem; text-align: right; }
+.goal-hint { display: block; font-size: 0.71rem; color: var(--text3); margin-top: 0.2rem; }
+.aportes-recent {
+  margin-top: 0.6rem;
+  border-top: 1px solid var(--border);
+  padding-top: 0.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+.aporte-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.76rem;
+  color: var(--text2);
+}
+.aporte-fecha { color: var(--text3); flex-shrink: 0; font-variant-numeric: tabular-nums; }
+.aporte-desc { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.aporte-importe { font-weight: 600; flex-shrink: 0; }
 
 /* ── Modo oscuro ── */
 @media (prefers-color-scheme: dark) {
