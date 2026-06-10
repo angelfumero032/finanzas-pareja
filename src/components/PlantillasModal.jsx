@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { t } from '../i18n'
 
+const FREQ_OPTIONS = ['mensual', 'bimestral', 'trimestral', 'semestral', 'anual']
+const FREQ_PERIOD = { mensual: 1, bimestral: 2, trimestral: 3, semestral: 6, anual: 12 }
+
 export default function PlantillasModal({ open, onClose, lang, hogarId, categorias, subcategorias, onRefresh }) {
   const [plantillas, setPlantillas] = useState([])
   const [saving, setSaving] = useState(null)
@@ -14,6 +17,8 @@ export default function PlantillasModal({ open, onClose, lang, hogarId, categori
   const [newSubcatId, setNewSubcatId] = useState('')
   const [newDia, setNewDia] = useState(1)
   const [newNota, setNewNota] = useState('')
+  const [newFrecuencia, setNewFrecuencia] = useState('mensual')
+  const [newMesInicio, setNewMesInicio] = useState(new Date().getMonth() + 1)
 
   // Inline edit state
   const [editData, setEditData] = useState({})
@@ -44,7 +49,11 @@ export default function PlantillasModal({ open, onClose, lang, hogarId, categori
   if (!open) return null
 
   const catsFiltradas = categorias.filter(c => c.tipo === 'gasto')
-  const totalMensual = plantillas.filter(p => p.activa).reduce((s, p) => s + Number(p.importe), 0)
+
+  // Monthly-equivalent total for active templates
+  const totalMensualEquiv = plantillas
+    .filter(p => p.activa)
+    .reduce((s, p) => s + Number(p.importe) / (FREQ_PERIOD[p.frecuencia ?? 'mensual'] ?? 1), 0)
 
   async function handleAdd(e) {
     e.preventDefault()
@@ -63,10 +72,13 @@ export default function PlantillasModal({ open, onClose, lang, hogarId, categori
         nota: newNota.trim() || null,
         activa: true,
         orden: maxOrden + 1,
+        frecuencia: newFrecuencia,
+        mes_inicio: newMesInicio,
       })
       if (error) throw error
       setNewNombre(''); setNewImporte(''); setNewCatId('')
       setNewSubcatId(''); setNewDia(1); setNewNota('')
+      setNewFrecuencia('mensual'); setNewMesInicio(new Date().getMonth() + 1)
       await reload()
       onRefresh?.()
     } finally {
@@ -106,6 +118,8 @@ export default function PlantillasModal({ open, onClose, lang, hogarId, categori
       subcategoria_id: p.subcategoria_id ?? '',
       dia_mes: p.dia_mes ?? 1,
       nota: p.nota ?? '',
+      frecuencia: p.frecuencia ?? 'mensual',
+      mes_inicio: p.mes_inicio ?? 1,
     })
   }
 
@@ -121,6 +135,8 @@ export default function PlantillasModal({ open, onClose, lang, hogarId, categori
         subcategoria_id: editData.subcategoria_id || null,
         dia_mes: editData.dia_mes,
         nota: editData.nota.trim() || null,
+        frecuencia: editData.frecuencia,
+        mes_inicio: editData.mes_inicio,
       }).eq('id', id)
       setPlantillas(prev => prev.map(p => p.id === id ? {
         ...p, ...editData,
@@ -141,6 +157,11 @@ export default function PlantillasModal({ open, onClose, lang, hogarId, categori
   const newSubcatsFiltradas = subcategorias.filter(s => s.categoria_id === newCatId)
   const editSubcatsFiltradas = subcategorias.filter(s => s.categoria_id === (editData.categoria_id || ''))
 
+  const freqLabel = (f) => t(lang, `freq_${f ?? 'mensual'}`)
+  const monthNames = lang === 'es'
+    ? ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
+    : ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+
   return (
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="modal-card plantillas-modal-card">
@@ -153,14 +174,14 @@ export default function PlantillasModal({ open, onClose, lang, hogarId, categori
 
         <p className="plantillas-desc">
           {lang === 'es'
-            ? 'Define tus gastos fijos mensuales. Úsalos para generar los gastos de cualquier mes con un clic.'
-            : 'Define your monthly fixed expenses. Use them to populate any month with one click.'}
+            ? 'Define tus gastos recurrentes. Úsalos para generar los gastos de cualquier mes con un clic.'
+            : 'Define your recurring expenses. Use them to populate any month with one click.'}
         </p>
 
-        {plantillas.length > 0 && (
+        {plantillas.filter(p => p.activa).length > 0 && (
           <div className="plantillas-total">
-            <span>{lang === 'es' ? 'Total mensual activo' : 'Active monthly total'}</span>
-            <strong>{fmtImp(totalMensual)}</strong>
+            <span>{lang === 'es' ? '~Equiv. mensual activo' : '~Active monthly equiv.'}</span>
+            <strong>{fmtImp(totalMensualEquiv)}</strong>
           </div>
         )}
 
@@ -203,6 +224,25 @@ export default function PlantillasModal({ open, onClose, lang, hogarId, categori
                         <option key={d} value={d}>{lang === 'es' ? `Día ${d}` : `Day ${d}`}</option>
                       ))}
                     </select>
+                  </div>
+                  <div className="plantilla-edit-row">
+                    <select
+                      className="plantilla-edit-select"
+                      value={editData.frecuencia}
+                      onChange={e => setEditData(d => ({ ...d, frecuencia: e.target.value }))}
+                    >
+                      {FREQ_OPTIONS.map(f => <option key={f} value={f}>{freqLabel(f)}</option>)}
+                    </select>
+                    {editData.frecuencia !== 'mensual' && (
+                      <select
+                        className="plantilla-edit-select"
+                        value={editData.mes_inicio}
+                        onChange={e => setEditData(d => ({ ...d, mes_inicio: Number(e.target.value) }))}
+                        title={t(lang, 'freq_mes_inicio')}
+                      >
+                        {monthNames.map((m, i) => <option key={i + 1} value={i + 1}>{m}</option>)}
+                      </select>
+                    )}
                   </div>
                   <div className="plantilla-edit-row">
                     <select
@@ -254,6 +294,12 @@ export default function PlantillasModal({ open, onClose, lang, hogarId, categori
                       )}
                       <span className="plantilla-dia">
                         {lang === 'es' ? `Día ${p.dia_mes ?? 1}` : `Day ${p.dia_mes ?? 1}`}
+                      </span>
+                      <span className={`plantilla-freq-badge${(p.frecuencia ?? 'mensual') !== 'mensual' ? ' plantilla-freq-badge-nonmonthly' : ''}`}>
+                        {freqLabel(p.frecuencia)}
+                        {(p.frecuencia ?? 'mensual') !== 'mensual' && p.mes_inicio
+                          ? ` · ${monthNames[(p.mes_inicio ?? 1) - 1]}`
+                          : ''}
                       </span>
                       {p.nota && <span className="plantilla-nota">{p.nota}</span>}
                     </div>
@@ -327,6 +373,25 @@ export default function PlantillasModal({ open, onClose, lang, hogarId, categori
                   <option key={d} value={d}>{lang === 'es' ? `Día ${d}` : `Day ${d}`}</option>
                 ))}
               </select>
+            </div>
+            <div className="plantilla-edit-row">
+              <select
+                className="plantilla-edit-select"
+                value={newFrecuencia}
+                onChange={e => setNewFrecuencia(e.target.value)}
+              >
+                {FREQ_OPTIONS.map(f => <option key={f} value={f}>{freqLabel(f)}</option>)}
+              </select>
+              {newFrecuencia !== 'mensual' && (
+                <select
+                  className="plantilla-edit-select"
+                  value={newMesInicio}
+                  onChange={e => setNewMesInicio(Number(e.target.value))}
+                  title={t(lang, 'freq_mes_inicio')}
+                >
+                  {monthNames.map((m, i) => <option key={i + 1} value={i + 1}>{m}</option>)}
+                </select>
+              )}
             </div>
             <div className="plantilla-edit-row">
               <select

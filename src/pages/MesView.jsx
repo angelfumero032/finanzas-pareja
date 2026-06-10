@@ -55,6 +55,7 @@ export default function MesView() {
   const [busqueda, setBusqueda] = useState('')
   const [filtroCatId, setFiltroCatId] = useState(null)
   const [sortMovs, setSortMovs] = useState(() => localStorage.getItem('sortMovs') ?? 'fecha')
+  const [sortDir, setSortDir] = useState(() => localStorage.getItem('sortDir') ?? 'desc')
   const [compactMode, setCompactMode] = useState(() => localStorage.getItem('compactMode') === '1')
   const [filterDate, setFilterDate] = useState(null)
 
@@ -74,6 +75,7 @@ export default function MesView() {
 
   // Categoría pre-seleccionada al abrir modal desde una fila de presupuesto
   const [quickAddCatId, setQuickAddCatId] = useState(null)
+  const [quickAddSubcatId, setQuickAddSubcatId] = useState(null)
 
   // Help overlay (atajos de teclado)
   const [showHelp, setShowHelp] = useState(false)
@@ -150,6 +152,10 @@ export default function MesView() {
 
   // Menú ⋯ de cabecera
   const [showMenu, setShowMenu] = useState(false)
+
+  // Menú contextual rápido (longpress en movimiento)
+  const [ctxMenu, setCtxMenu] = useState(null) // { m, x, y }
+  const longPressTimer = useRef(null)
 
 
   // Toast notifications (supports undo action)
@@ -291,6 +297,10 @@ export default function MesView() {
         .filter(c => c.tipo === 'gasto')
         .map((c, i) => [c.id, c.color || CAT_PALETTE[i % CAT_PALETTE.length]])
     ),
+  [categorias])
+
+  const catIconMap = useMemo(() =>
+    Object.fromEntries(categorias.filter(c => c.icono).map(c => [c.id, c.icono])),
   [categorias])
 
   // Nombres traducidos al idioma de la vista (la BD no se toca)
@@ -487,6 +497,12 @@ export default function MesView() {
   const loadMesRef = useRef(loadMes)
   useEffect(() => { loadMesRef.current = loadMes }, [loadMes])
   const realtimeDebounce = useRef(null)
+  const usuariosRef = useRef(usuarios)
+  useEffect(() => { usuariosRef.current = usuarios }, [usuarios])
+  const langRef = useRef(lang)
+  useEffect(() => { langRef.current = lang }, [lang])
+  const showToastRef = useRef(showToast)
+  useEffect(() => { showToastRef.current = showToast }, [showToast])
 
   useEffect(() => {
     if (!hogarId) return
@@ -500,6 +516,11 @@ export default function MesView() {
           setActividades(prev => [payload.new, ...prev].slice(0, 50))
           if (payload.new.actor_id !== profile?.id) {
             setUnread(n => n + 1)
+            const actor = usuariosRef.current.find(u => u.id === payload.new.actor_id)
+            const currentLang = langRef.current
+            const name = actor?.nombre ?? (currentLang === 'es' ? 'Tu pareja' : 'Your partner')
+            const detail = payload.new.detalle ?? ''
+            showToastRef.current(`${name}: ${detail}`, 'info')
           }
         }
       )
@@ -635,6 +656,18 @@ export default function MesView() {
     }
   }
 
+  async function handleSaveAndAnotherMov(data) {
+    try {
+      const { error } = await supabase.from('movimientos').insert(data)
+      if (error) throw error
+      showToast(t(lang, 'saved_ok'))
+      loadMes()
+      // modal stays open — MovimientoModal resets its own fields
+    } catch {
+      showToast(t(lang, 'save_error'), 'error')
+    }
+  }
+
   function handleDeleteMov(id) {
     const mov = movimientos.find(m => m.id === id)
     if (!mov) return
@@ -753,6 +786,22 @@ export default function MesView() {
     }
   }
 
+  async function handleMarkAllCollected() {
+    const ids = ingresosPendientes.map(m => m.id)
+    if (ids.length === 0) return
+    try {
+      const { error } = await supabase
+        .from('movimientos')
+        .update({ pendiente: false })
+        .in('id', ids)
+      if (error) throw error
+      setMovimientos(prev => prev.map(m => ids.includes(m.id) ? { ...m, pendiente: false } : m))
+      showToast(t(lang, 'saved_ok'))
+    } catch {
+      showToast(t(lang, 'save_error'), 'error')
+    }
+  }
+
   // ── Presupuesto: aplicar al resto del año ──
   async function handleApplyBudgetToYear() {
     if (presupuestos.length === 0) return
@@ -813,7 +862,7 @@ export default function MesView() {
         )
       if (upsertErr) throw upsertErr
       loadMes()
-      showToast(t(lang, 'saved_ok'))
+      showToast(lang === 'es' ? `${data.length} presupuesto(s) copiado(s) ✓` : `${data.length} budget(s) copied ✓`)
     } catch {
       showToast(t(lang, 'save_error'), 'error')
     }
@@ -1082,20 +1131,28 @@ export default function MesView() {
     : null
 
   // Which active plantillas are not yet in this month's movements
+  // Returns true if a recurring template applies in the given month number (1-12)
+  function plantillaAplicaEnMes(p, mesNum) {
+    if (!p.activa) return false
+    const period = { mensual: 1, bimestral: 2, trimestral: 3, semestral: 6, anual: 12 }[p.frecuencia ?? 'mensual'] ?? 1
+    if (period === 1) return true
+    const inicio = p.mes_inicio ?? 1
+    return ((mesNum - inicio + 12) % period) === 0
+  }
+
   const plantillasNoGeneradas = useMemo(() => {
-    const activasIds = plantillas.filter(p => p.activa).map(p => p.id)
-    if (activasIds.length === 0) return []
-    // A template is "loaded" if there's a movement in this month with matching concepto OR categoria_id
-    // We use a simple heuristic: a template is present if any fijo movement in this month
-    // has the same categoria_id and importe (approximate match)
+    // Filter to templates that apply this month (by frequency)
+    const aplicables = plantillas.filter(p => plantillaAplicaEnMes(p, mes))
+    if (aplicables.length === 0) return []
+    // A template is "loaded" if there's a fijo movement this month with matching categoria_id and importe
     const fijosDelMes = gastosItems.filter(m => m.es_fijo)
-    return plantillas.filter(p => p.activa).filter(p => {
+    return aplicables.filter(p => {
       return !fijosDelMes.some(m =>
         m.categoria_id === p.categoria_id &&
         Math.abs(Number(m.importe) - Number(p.importe)) < 0.01
       )
     })
-  }, [plantillas, gastosItems])
+  }, [plantillas, gastosItems, mes])
 
   // ── Autocargar gastos fijos como pendientes al entrar al mes actual ──
   // Decisión Ángel 2026-06-10: se insertan solos marcados "Pendiente"; se
@@ -1105,7 +1162,7 @@ export default function MesView() {
   useEffect(() => { autoLoadTried.current = false }, [anio, mes])
   useEffect(() => {
     if (!isCurrentMonth || loading || autoLoadTried.current || !hogarId) return
-    const activas = plantillas.filter(p => p.activa)
+    const activas = plantillas.filter(p => plantillaAplicaEnMes(p, mes))
     if (activas.length === 0 || plantillasNoGeneradas.length !== activas.length) return
     const marker = `autofijos_${hogarId}_${anio}_${mes}`
     if (localStorage.getItem(marker)) return
@@ -1128,6 +1185,8 @@ export default function MesView() {
   const deltaGastos   = prevTotals?.gastos   > 0 ? (totalGastos   - prevTotals.gastos)   / prevTotals.gastos   * 100 : null
   // Rollover: balance from the previous month (shows if they saved or overspent last month)
   const rolloverBalance = prevTotals ? prevTotals.ingresos - prevTotals.gastos : null
+  const deltaBalance = rolloverBalance !== null && rolloverBalance !== 0
+    ? balance - rolloverBalance : null
 
   const movimientosFiltrados = useMemo(() => {
     let list = movimientos
@@ -1152,10 +1211,14 @@ export default function MesView() {
         )
       })
     if (sortMovs === 'importe') {
-      list = [...list].sort((a, b) => Number(b.importe) - Number(a.importe))
+      list = [...list].sort((a, b) => sortDir === 'desc'
+        ? Number(b.importe) - Number(a.importe)
+        : Number(a.importe) - Number(b.importe))
+    } else if (sortDir === 'asc') {
+      list = [...list].sort((a, b) => a.fecha.localeCompare(b.fecha) || (a.creado_en ?? '').localeCompare(b.creado_en ?? ''))
     }
     return list
-  }, [movimientos, filtroTipo, filtroCatId, busqueda, sortMovs, catMap, subcatMap, usuarios, profile?.id, lang, filtroFijo, filtroPendiente, filterDate])
+  }, [movimientos, filtroTipo, filtroCatId, busqueda, sortMovs, sortDir, catMap, subcatMap, usuarios, profile?.id, lang, filtroFijo, filtroPendiente, filterDate])
 
   const totalFiltrado = useMemo(
     () => movimientosFiltrados.reduce((s, m) => s + Number(m.importe), 0),
@@ -1192,6 +1255,16 @@ export default function MesView() {
     if (sortMovs === 'importe') {
       return movimientosFiltrados.map(m => ({ type: 'item', m }))
     }
+    // Running balance: only when sorted by date and no active filters
+    const showRunning = !hayFiltroActivo && sortMovs === 'fecha'
+    // Start from 0; compute chronologically (oldest first) then reverse display order
+    const ordered = sortDir === 'desc' ? [...movimientosFiltrados].reverse() : [...movimientosFiltrados]
+    let bal = 0
+    const balMap = new Map()
+    for (const m of ordered) {
+      bal += m.tipo === 'ingreso' ? Number(m.importe) : -Number(m.importe)
+      balMap.set(m.id, bal)
+    }
     const result = []
     let currentDate = null
     for (const m of movimientosFiltrados) {
@@ -1199,10 +1272,10 @@ export default function MesView() {
         currentDate = m.fecha
         result.push({ type: 'header', date: m.fecha })
       }
-      result.push({ type: 'item', m })
+      result.push({ type: 'item', m, runningBal: showRunning ? balMap.get(m.id) : null })
     }
     return result
-  }, [movimientosFiltrados, sortMovs])
+  }, [movimientosFiltrados, sortMovs, sortDir, hayFiltroActivo])
 
   const { gastoPorCat, gastoPendientePorCat, movCountByCat, gastosNoCategoria, gastoPorSubcat } = useMemo(() => {
     const gpc = {}
@@ -1268,7 +1341,7 @@ export default function MesView() {
       totals[m.fecha] = (totals[m.fecha] ?? 0) + (m.tipo === 'gasto' ? -Number(m.importe) : Number(m.importe))
     })
     return totals
-  }, [movimientosFiltrados, sortMovs])
+  }, [movimientosFiltrados, sortMovs, sortDir])
 
   const spendingInsights = useMemo(() => {
     if (gastosItems.length === 0) return null
@@ -1333,6 +1406,19 @@ export default function MesView() {
 
   function catName(id) { return catMap.get(id) ?? t(lang, 'no_category') }
   function subcatName(id) { return id ? (subcatMap.get(id) ?? '') : '' }
+  function highlightText(text, query) {
+    if (!query || !query.trim() || !text) return text
+    const q = query.trim()
+    const idx = text.toLowerCase().indexOf(q.toLowerCase())
+    if (idx === -1) return text
+    return (
+      <>
+        {text.slice(0, idx)}
+        <mark className="search-highlight">{text.slice(idx, idx + q.length)}</mark>
+        {text.slice(idx + q.length)}
+      </>
+    )
+  }
   function formatFecha(dateStr) {
     const todayStr = todayDate.toISOString().slice(0, 10)
     const yesterdayStr = new Date(todayDate.getFullYear(), todayDate.getMonth(), todayDate.getDate() - 1).toISOString().slice(0, 10)
@@ -1502,10 +1588,10 @@ export default function MesView() {
                 {tFmt(lang, 'pending_income_count', { n: ingresosPendientes.length })} · {fmt(totalPendienteIngresos)}
               </button>
             )}
-            {rolloverBalance !== null && rolloverBalance !== 0 && (totalIngresos > 0 || totalGastos > 0) && (
-              <span className={`summary-rollover ${rolloverBalance >= 0 ? 'delta-pos' : 'delta-neg'}`}
-                title={t(lang, 'rollover_hint')}>
-                {rolloverBalance >= 0 ? '↑' : '↓'} {fmt(Math.abs(rolloverBalance))} {lang === 'es' ? 'mes ant.' : 'prev.'}
+            {deltaBalance !== null && (totalIngresos > 0 || totalGastos > 0) && (
+              <span className={`summary-rollover ${deltaBalance >= 0 ? 'delta-pos' : 'delta-neg'}`}
+                title={lang === 'es' ? `Balance mes anterior: ${fmt(rolloverBalance)}` : `Previous month balance: ${fmt(rolloverBalance)}`}>
+                {deltaBalance >= 0 ? '▲' : '▼'} {fmt(Math.abs(deltaBalance))} {lang === 'es' ? 'vs mes ant.' : 'vs prev.'}
               </span>
             )}
           </div>
@@ -2159,10 +2245,10 @@ export default function MesView() {
                               if (next) movListRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
                             }}
                           >
-                            <span
-                              className="budget-cat-dot"
-                              style={{ background: catColorMap[cat.id] ?? '#94a3b8' }}
-                            />
+                            {catIconMap[cat.id]
+                              ? <span className="cat-icon-emoji">{catIconMap[cat.id]}</span>
+                              : <span className="budget-cat-dot" style={{ background: catColorMap[cat.id] ?? '#94a3b8' }} />
+                            }
                             {cat.nombre}
                             {(movCountByCat[cat.id] ?? 0) > 0 && (
                               <span className="budget-cat-count">{movCountByCat[cat.id]}</span>
@@ -2217,7 +2303,7 @@ export default function MesView() {
                                 </button>
                                 <button
                                   className="budget-add-btn"
-                                  onClick={e => { e.stopPropagation(); setEditMov(null); setQuickAddCatId(cat.id); setModalOpen(true) }}
+                                  onClick={e => { e.stopPropagation(); setEditMov(null); setQuickAddCatId(cat.id); setQuickAddSubcatId(null); setModalOpen(true) }}
                                   title={`${t(lang, 'new_movement')} — ${cat.nombre}`}
                                   aria-label={`${t(lang, 'new_movement')} — ${cat.nombre}`}
                                 >+</button>
@@ -2296,6 +2382,12 @@ export default function MesView() {
                                         )
                                       )}
                                       <span className="budget-subcat-pct">{subPct}%</span>
+                                      <button
+                                        className="budget-add-btn budget-add-btn-sm"
+                                        onClick={e => { e.stopPropagation(); setEditMov(null); setQuickAddCatId(cat.id); setQuickAddSubcatId(s.id); setModalOpen(true) }}
+                                        title={`${t(lang, 'new_movement')} — ${subcatMap.get(s.id) ?? s.nombre}`}
+                                        aria-label={`${t(lang, 'new_movement')} — ${subcatMap.get(s.id) ?? s.nombre}`}
+                                      >+</button>
                                     </div>
                                     {subBudget > 0 && (
                                       <div className="budget-bar-track budget-bar-track-sm">
@@ -2414,16 +2506,42 @@ export default function MesView() {
                       )}
                     </div>
                     <button
-                      className={`sort-btn${sortMovs === 'importe' ? ' sort-btn-active' : ''}`}
-                      onClick={() => setSortMovs(s => {
-        const next = s === 'fecha' ? 'importe' : 'fecha'
-        localStorage.setItem('sortMovs', next)
-        return next
-      })}
-                      title={sortMovs === 'fecha' ? t(lang, 'sort_by_amount') : t(lang, 'sort_by_date')}
+                      className={`sort-btn${sortMovs === 'fecha' ? ' sort-btn-active' : ''}`}
+                      onClick={() => {
+                        if (sortMovs === 'fecha') {
+                          const d = sortDir === 'desc' ? 'asc' : 'desc'
+                          setSortDir(d); localStorage.setItem('sortDir', d)
+                        } else {
+                          setSortMovs('fecha'); localStorage.setItem('sortMovs', 'fecha')
+                          setSortDir('desc'); localStorage.setItem('sortDir', 'desc')
+                        }
+                      }}
                     >
-                      {sortMovs === 'fecha' ? t(lang, 'sort_by_date') : t(lang, 'sort_by_amount')}
+                      {t(lang, 'sort_by_date')}{sortMovs === 'fecha' ? (sortDir === 'desc' ? ' ↓' : ' ↑') : ''}
                     </button>
+                    <button
+                      className={`sort-btn${sortMovs === 'importe' ? ' sort-btn-active' : ''}`}
+                      onClick={() => {
+                        if (sortMovs === 'importe') {
+                          const d = sortDir === 'desc' ? 'asc' : 'desc'
+                          setSortDir(d); localStorage.setItem('sortDir', d)
+                        } else {
+                          setSortMovs('importe'); localStorage.setItem('sortMovs', 'importe')
+                          setSortDir('desc'); localStorage.setItem('sortDir', 'desc')
+                        }
+                      }}
+                    >
+                      {t(lang, 'sort_by_amount')}{sortMovs === 'importe' ? (sortDir === 'desc' ? ' ↓' : ' ↑') : ''}
+                    </button>
+                    {isCurrentMonth && movimientos.some(m => m.fecha === todayStr) && (
+                      <button
+                        className={`sort-btn${filterDate === todayStr ? ' sort-btn-active' : ''}`}
+                        onClick={() => setFilterDate(filterDate === todayStr ? null : todayStr)}
+                        title={t(lang, 'today')}
+                      >
+                        {t(lang, 'today')}
+                      </button>
+                    )}
                     <button
                       className={`sort-btn${compactMode ? ' sort-btn-active' : ''}`}
                       onClick={() => setCompactMode(v => { const next = !v; localStorage.setItem('compactMode', next ? '1' : ''); return next })}
@@ -2442,11 +2560,14 @@ export default function MesView() {
                       </button>
                     </div>
                   )}
-                  {filtroPendiente && ingresosPendientes.length > 0 && filtroTipo === 'ingreso' && (
+                  {filtroPendiente && ingresosPendientes.length > 0 && filtroTipo !== 'gasto' && (
                     <div className="pending-actions-row pending-actions-row-income">
                       <span className="pending-actions-label">
                         {tFmt(lang, 'pending_income_count', { n: ingresosPendientes.length })} · {fmt(totalPendienteIngresos)}
                       </span>
+                      <button className="btn-sm btn-mark-all-paid btn-mark-all-collected" onClick={handleMarkAllCollected}>
+                        {t(lang, 'mark_all_collected')}
+                      </button>
                     </div>
                   )}
                   <div className="search-wrap">
@@ -2493,7 +2614,10 @@ export default function MesView() {
                               onClick={() => setFiltroCatId(active ? null : cid)}
                               aria-pressed={active}
                             >
-                              <span className="cat-chip-dot" aria-hidden="true" />
+                              {catIconMap[cid]
+                                ? <span className="cat-chip-emoji" aria-hidden="true">{catIconMap[cid]}</span>
+                                : <span className="cat-chip-dot" aria-hidden="true" />
+                              }
                               {name}
                               {cnt > 1 && <span className="cat-chip-count">{cnt}</span>}
                             </button>
@@ -2510,10 +2634,22 @@ export default function MesView() {
                   )}
                   {filterDate && (
                     <div className="cat-filter-chip cat-filter-chip-date">
-                      <span>📅 {filterDate}</span>
+                      <span>📅 {filterDate === todayStr ? t(lang, 'today') : filterDate}</span>
                       <button className="search-clear" onClick={() => setFilterDate(null)}>×</button>
                     </div>
                   )}
+                  {filterDate === todayStr && isCurrentMonth && movimientosFiltrados.length > 0 && (() => {
+                    const todayGastos = movimientosFiltrados.filter(m => m.tipo === 'gasto' && !m.pendiente).reduce((s, m) => s + Number(m.importe), 0)
+                    const avgDay = todayDate.getDate() > 1 ? totalGastos / todayDate.getDate() : 0
+                    if (todayGastos === 0 || avgDay === 0) return null
+                    const ratio = todayGastos / avgDay
+                    const cls = ratio > 1.5 ? 'delta-neg' : ratio < 0.7 ? 'delta-pos' : ''
+                    return (
+                      <span className={`today-vs-avg ${cls}`}>
+                        {fmt(todayGastos)} · {ratio > 1 ? '▲' : '▼'}{Math.abs(ratio - 1) > 0.01 ? ` ${Math.round(Math.abs(ratio - 1) * 100)}% vs media` : ' media'}
+                      </span>
+                    )
+                  })()}
                   {hayFiltroActivo && movimientosFiltrados.length > 0 && (
                     <p className="filter-summary">
                       {movimientosFiltrados.length} · {fmt(totalFiltrado)}
@@ -2585,6 +2721,7 @@ export default function MesView() {
                     }
                     const m = entry.m
                     const sub = subcatName(m.subcategoria_id)
+                    const rb = entry.runningBal
                     return (
                       <div
                         key={m.id}
@@ -2592,7 +2729,17 @@ export default function MesView() {
                       >
                       <button
                         className={`movement-item${m.pendiente ? ' movement-item-pending' : ''}`}
-                        onClick={() => { setEditMov(m); setModalOpen(true) }}
+                        onClick={() => { if (ctxMenu?.m.id === m.id) { setCtxMenu(null); return }; setEditMov(m); setModalOpen(true) }}
+                        onContextMenu={e => { e.preventDefault(); setCtxMenu({ m, x: e.clientX, y: e.clientY }) }}
+                        onTouchStart={e => {
+                          const touch = e.touches[0]
+                          longPressTimer.current = setTimeout(() => {
+                            navigator.vibrate?.(30)
+                            setCtxMenu({ m, x: touch.clientX, y: touch.clientY })
+                          }, 450)
+                        }}
+                        onTouchEnd={() => { if (longPressTimer.current) clearTimeout(longPressTimer.current) }}
+                        onTouchMove={() => { if (longPressTimer.current) clearTimeout(longPressTimer.current) }}
                       >
                         <div className="movement-left">
                           {(sortMovs === 'importe' || usuarios.length > 1) && (
@@ -2610,13 +2757,13 @@ export default function MesView() {
                             </div>
                           )}
                           <span className="movement-title">
-                            {m.categoria_id && catColorMap[m.categoria_id] && (
-                              <span
-                                className="movement-cat-dot"
-                                style={{ background: catColorMap[m.categoria_id] }}
-                              />
+                            {m.categoria_id && (catIconMap[m.categoria_id]
+                              ? <span className="cat-icon-emoji cat-icon-emoji-sm">{catIconMap[m.categoria_id]}</span>
+                              : catColorMap[m.categoria_id] && <span className="movement-cat-dot" style={{ background: catColorMap[m.categoria_id] }} />
                             )}
-                            {m.concepto || catName(m.categoria_id)}
+                            {busqueda.trim()
+                              ? highlightText(m.concepto || catName(m.categoria_id), busqueda.trim())
+                              : (m.concepto || catName(m.categoria_id))}
                           </span>
                           {m.concepto && (
                             <span className="movement-cat">
@@ -2637,6 +2784,11 @@ export default function MesView() {
                           <span className={`movement-amount ${m.tipo === 'gasto' ? 'amount-expense' : 'amount-income'}${m.pendiente ? ' amount-pending' : ''}`}>
                             {m.tipo === 'gasto' ? '-' : '+'}{fmt(Number(m.importe))}
                           </span>
+                          {rb != null && (
+                            <span className={`movement-running-bal${rb < 0 ? ' running-bal-neg' : ''}`}>
+                              {fmt(rb)}
+                            </span>
+                          )}
                         </div>
                       </button>
                       {m.pendiente && m.tipo === 'gasto' && (
@@ -2808,6 +2960,14 @@ export default function MesView() {
                                   <span className={`year-cell-bal ${monthBalance >= 0 ? 'year-bal-pos' : 'year-bal-neg'}`}>
                                     {monthBalance >= 0 ? '+' : ''}{fmtK(monthBalance)}
                                   </span>
+                                  {d.income > 0 && (
+                                    <div className="year-cell-bar">
+                                      <div
+                                        className={`year-cell-bar-fill${d.expenses > d.income ? ' year-cell-bar-over' : ''}`}
+                                        style={{ width: `${Math.min(100, d.expenses / d.income * 100)}%` }}
+                                      />
+                                    </div>
+                                  )}
                                 </>
                               ) : isFutureCell && plantillaTotal > 0 ? (
                                 <span className="year-cell-projected">{fmtK(plantillaTotal)}</span>
@@ -2907,8 +3067,9 @@ export default function MesView() {
       <MovimientoModal
         key={modalKey}
         open={modalOpen}
-        onClose={() => { setModalOpen(false); setEditMov(null); setQuickAddCatId(null); setDuplicateData(null); setQuickTipo(null) }}
+        onClose={() => { setModalOpen(false); setEditMov(null); setQuickAddCatId(null); setQuickAddSubcatId(null); setDuplicateData(null); setQuickTipo(null) }}
         onSave={handleSaveMov}
+        onSaveAndAnother={!editMov ? handleSaveAndAnotherMov : undefined}
         onDelete={handleDeleteMov}
         onDuplicate={editMov ? handleDuplicateMov : null}
         movimiento={editMov}
@@ -2919,13 +3080,15 @@ export default function MesView() {
         defaultTipo={duplicateData?.tipo ?? quickTipo ?? (filtroTipo !== 'all' ? filtroTipo : 'gasto')}
         defaultCatId={!editMov ? (duplicateData?.catId ?? quickAddCatId ?? (filtroTipo !== 'ingreso' && filtroCatId !== 'nocat' ? filtroCatId : null)) : null}
         defaultImporte={!editMov ? (duplicateData?.importe ?? '') : ''}
-        defaultSubcatId={!editMov ? (duplicateData?.subcatId ?? '') : ''}
+        defaultSubcatId={!editMov ? (duplicateData?.subcatId ?? quickAddSubcatId ?? '') : ''}
         defaultNota={!editMov ? (duplicateData?.nota ?? '') : ''}
         defaultConcepto={!editMov ? (duplicateData?.concepto ?? '') : ''}
         defaultFecha={!editMov && !isCurrentMonth ? `${anio}-${String(mes).padStart(2, '0')}-01` : null}
         recentConceptos={recentConceptos}
         gastoPorCat={gastoPorCat}
         presupuestoPorCat={presupuestoPorCat}
+        catColorMap={catColorMap}
+        catIconMap={catIconMap}
       />
 
       {/* Guía rápida */}
@@ -3017,9 +3180,44 @@ export default function MesView() {
         +
       </button>
 
+      {/* Menú contextual rápido (longpress / right-click en movimiento) */}
+      {ctxMenu && (
+        <>
+          <div className="ctx-backdrop" onClick={() => setCtxMenu(null)} />
+          <div
+            className="ctx-menu"
+            style={{ left: Math.min(ctxMenu.x, window.innerWidth - 200), top: Math.min(ctxMenu.y, window.innerHeight - 160) }}
+          >
+            <button className="ctx-item" onClick={() => { setCtxMenu(null); setEditMov(ctxMenu.m); setModalOpen(true) }}>
+              ✎ {lang === 'es' ? 'Editar' : 'Edit'}
+            </button>
+            {ctxMenu.m.pendiente && ctxMenu.m.tipo === 'gasto' && (
+              <button className="ctx-item ctx-item-ok" onClick={() => { setCtxMenu(null); handleMarkPaid(ctxMenu.m.id) }}>
+                ✓ {t(lang, 'mark_paid')}
+              </button>
+            )}
+            {ctxMenu.m.pendiente && ctxMenu.m.tipo === 'ingreso' && (
+              <button className="ctx-item ctx-item-ok" onClick={() => { setCtxMenu(null); handleMarkCollected(ctxMenu.m.id) }}>
+                ✓ {t(lang, 'mark_collected')}
+              </button>
+            )}
+            <button className="ctx-item" onClick={() => {
+              setCtxMenu(null)
+              setDuplicateData({ tipo: ctxMenu.m.tipo, catId: ctxMenu.m.categoria_id, subcatId: ctxMenu.m.subcategoria_id, importe: String(ctxMenu.m.importe), nota: ctxMenu.m.nota ?? '', concepto: ctxMenu.m.concepto ?? '' })
+              setEditMov(null); setModalOpen(true)
+            }}>
+              ⎘ {t(lang, 'duplicate')}
+            </button>
+            <button className="ctx-item ctx-item-del" onClick={() => { setCtxMenu(null); handleDeleteMov(ctxMenu.m.id) }}>
+              ✕ {t(lang, 'delete_movement')}
+            </button>
+          </div>
+        </>
+      )}
+
       {/* Toast */}
       {toast && (
-        <div className={`toast${toast.type === 'error' ? ' toast-error' : ''}`} role="status" aria-live="polite">
+        <div className={`toast${toast.type === 'error' ? ' toast-error' : toast.type === 'info' ? ' toast-info' : ''}`} role="status" aria-live="polite">
           {toast.onUndo ? (
             <span className="toast-actions">
               <span>{toast.msg}</span>

@@ -19,7 +19,7 @@ function evalAmount(str) {
 }
 
 export default function MovimientoModal({
-  open, onClose, onSave, onDelete, onDuplicate,
+  open, onClose, onSave, onSaveAndAnother, onDelete, onDuplicate,
   movimiento, categorias, subcategorias,
   hogarId, userId,
   defaultTipo = 'gasto', defaultCatId = null,
@@ -27,6 +27,7 @@ export default function MovimientoModal({
   defaultFecha = null,
   gastoPorCat = {}, presupuestoPorCat = {},
   recentConceptos = [],
+  catColorMap = {}, catIconMap = {},
 }) {
   const { lang } = useLang()
   const todayStr = new Date().toISOString().slice(0, 10)
@@ -141,28 +142,47 @@ export default function MovimientoModal({
     setSubcatId('')
   }
 
+  function buildPayload() {
+    const imp = parseFloat(importe)
+    if (!imp || imp <= 0) return null
+    if (tipo === 'gasto' && !concepto.trim()) return null
+    const payload = {
+      tipo,
+      importe: imp,
+      fecha,
+      categoria_id: catId || null,
+      subcategoria_id: subcatId || null,
+      nota: nota.trim() || null,
+      hogar_id: hogarId,
+      creado_por: userId,
+      es_fijo: tipo === 'gasto' ? esFijo : false,
+      pendiente,
+    }
+    if (concepto.trim()) payload.concepto = concepto.trim()
+    return payload
+  }
+
   async function handleSave(e) {
     e.preventDefault()
-    const imp = parseFloat(importe)
-    if (!imp || imp <= 0) return
-    if (tipo === 'gasto' && !concepto.trim()) return
+    const payload = buildPayload()
+    if (!payload) return
+    setSaving(true)
+    try { await onSave(payload) } finally { setSaving(false) }
+  }
+
+  async function handleSaveAndAnother() {
+    const payload = buildPayload()
+    if (!payload) return
     setSaving(true)
     try {
-      const payload = {
-        tipo,
-        importe: imp,
-        fecha,
-        categoria_id: catId || null,
-        subcategoria_id: subcatId || null,
-        nota: nota.trim() || null,
-        hogar_id: hogarId,
-        creado_por: userId,
-        es_fijo: tipo === 'gasto' ? esFijo : false,
-        pendiente: tipo === 'gasto' ? pendiente : false,
-      }
-      // concepto solo si hay valor — evita error si la migración aún no se aplicó
-      if (concepto.trim()) payload.concepto = concepto.trim()
-      await onSave(payload)
+      await onSaveAndAnother(payload)
+      // reset form keeping tipo / fecha / catId — ready for next item in same session
+      setImporte('')
+      setConcepto('')
+      setSubcatId('')
+      setNota('')
+      setEsFijo(false)
+      setPendiente(false)
     } finally {
       setSaving(false)
     }
@@ -223,7 +243,7 @@ export default function MovimientoModal({
                 }
               }}
               required
-              autoFocus={!movimiento}
+              autoFocus
               placeholder="0.00"
             />
             <div className="quick-amounts">
@@ -315,16 +335,42 @@ export default function MovimientoModal({
           {/* Categoría */}
           <div className="field">
             <label htmlFor="m-cat">{t(lang, 'category')}</label>
-            <select
-              id="m-cat"
-              value={catId}
-              onChange={e => { setCatId(e.target.value); setSubcatId('') }}
-            >
-              <option value="">—</option>
-              {catsFiltradas.map(c => (
-                <option key={c.id} value={c.id}>{trCat(c.nombre, lang)}</option>
-              ))}
-            </select>
+            {catsFiltradas.length <= 12 ? (
+              <div className="cat-chips-grid" role="group" aria-label={t(lang, 'category')}>
+                {catsFiltradas.map(c => {
+                  const active = catId === c.id
+                  const color = catColorMap[c.id] ?? '#94a3b8'
+                  const icon = catIconMap[c.id]
+                  return (
+                    <button
+                      key={c.id}
+                      type="button"
+                      className={`cat-grid-chip${active ? ' cat-grid-chip-active' : ''}`}
+                      style={{ '--chip-color': color }}
+                      onClick={() => { setCatId(active ? '' : c.id); setSubcatId('') }}
+                      aria-pressed={active}
+                    >
+                      {icon
+                        ? <span className="cat-grid-chip-icon">{icon}</span>
+                        : <span className="cat-grid-chip-dot" />
+                      }
+                      {trCat(c.nombre, lang)}
+                    </button>
+                  )
+                })}
+              </div>
+            ) : (
+              <select
+                id="m-cat"
+                value={catId}
+                onChange={e => { setCatId(e.target.value); setSubcatId('') }}
+              >
+                <option value="">—</option>
+                {catsFiltradas.map(c => (
+                  <option key={c.id} value={c.id}>{trCat(c.nombre, lang)}</option>
+                ))}
+              </select>
+            )}
             {suggestedCatId && (() => {
               const cat = catsFiltradas.find(c => c.id === suggestedCatId)
               if (!cat) return null
@@ -343,7 +389,8 @@ export default function MovimientoModal({
               const budget = presupuestoPorCat[catId] ?? 0
               if (budget <= 0) return null
               const editAdjust = movimiento?.categoria_id === catId ? Number(movimiento.importe ?? 0) : 0
-              const effectiveSpent = spent - editAdjust
+              const currentAmt = evalAmount(importe) ?? (parseFloat(importe) || 0)
+              const effectiveSpent = spent - editAdjust + currentAmt
               const remaining = budget - effectiveSpent
               const ratio = effectiveSpent / budget
               const cls = ratio > 1 ? 'budget-hint-over' : ratio > 0.8 ? 'budget-hint-warn' : 'budget-hint-ok'
@@ -358,20 +405,23 @@ export default function MovimientoModal({
             })()}
           </div>
 
-          {/* Subcategoría */}
-          {showMore && subcatsFiltradas.length > 0 && (
+          {/* Subcategoría — visible siempre que haya cat seleccionada con subcats */}
+          {subcatsFiltradas.length > 0 && (
             <div className="field">
-              <label htmlFor="m-subcat">{t(lang, 'subcategory')}</label>
-              <select
-                id="m-subcat"
-                value={subcatId}
-                onChange={e => setSubcatId(e.target.value)}
-              >
-                <option value="">—</option>
+              <label>{t(lang, 'subcategory')}</label>
+              <div className="cat-chips-grid" role="group" aria-label={t(lang, 'subcategory')}>
                 {subcatsFiltradas.map(s => (
-                  <option key={s.id} value={s.id}>{trCat(s.nombre, lang)}</option>
+                  <button
+                    key={s.id}
+                    type="button"
+                    className={`cat-grid-chip cat-grid-chip-subcat${subcatId === s.id ? ' cat-grid-chip-active' : ''}`}
+                    onClick={() => setSubcatId(subcatId === s.id ? '' : s.id)}
+                    aria-pressed={subcatId === s.id}
+                  >
+                    {trCat(s.nombre, lang)}
+                  </button>
                 ))}
-              </select>
+              </div>
             </div>
           )}
 
@@ -479,6 +529,17 @@ export default function MovimientoModal({
             <button type="button" className="btn-secondary" onClick={onClose}>
               {t(lang, 'cancel')}
             </button>
+            {!movimiento && onSaveAndAnother && (
+              <button
+                type="button"
+                className="btn-secondary btn-sm"
+                onClick={handleSaveAndAnother}
+                disabled={saving}
+                title={t(lang, 'save_and_another')}
+              >
+                {saving ? '…' : t(lang, 'save_and_another')}
+              </button>
+            )}
             <button type="submit" className="btn-primary" disabled={saving}>
               {saving ? '…' : t(lang, 'save')}
             </button>

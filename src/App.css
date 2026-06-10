@@ -653,6 +653,7 @@ html, body { overscroll-behavior: none; }
   background: var(--chip-color);
   flex-shrink: 0;
 }
+.cat-chip-emoji { font-size: 0.85rem; line-height: 1; flex-shrink: 0; }
 .cat-chip-count {
   background: color-mix(in srgb, var(--chip-color) 20%, var(--surface2));
   color: var(--text3);
@@ -846,8 +847,18 @@ html, body { overscroll-behavior: none; }
   color: #fff;
   border-color: var(--accent);
 }
+.budget-subcat-row:hover .budget-add-btn-sm,
+.budget-subcat-row:focus-within .budget-add-btn-sm {
+  opacity: 1;
+}
+.budget-add-btn-sm {
+  width: 1.1rem;
+  height: 1.1rem;
+  font-size: 0.75rem;
+}
 @media (hover: none) {
   .budget-add-btn { opacity: 1; }
+  .budget-add-btn-sm { opacity: 1; }
 }
 
 .budget-spent { font-size: 0.875rem; font-weight: 600; color: var(--text); }
@@ -1173,6 +1184,49 @@ html, body { overscroll-behavior: none; }
 .concepto-chip { font-size: 0.78rem; padding: 0.2rem 0.6rem; border-radius: 999px; border: 1px solid var(--border); background: var(--surface2); color: var(--text2); cursor: pointer; white-space: nowrap; transition: background 0.15s, color 0.15s; }
 .concepto-chip:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
 .concepto-chip-active { background: var(--accent); color: #fff; border-color: var(--accent); }
+/* Grid de chips de categoría en modal */
+.cat-chips-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.25rem;
+}
+.cat-grid-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.3rem 0.65rem;
+  border-radius: 999px;
+  border: 1.5px solid var(--hairline);
+  background: var(--surface2);
+  color: var(--text2);
+  font-size: 0.82rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+  white-space: nowrap;
+}
+.cat-grid-chip:hover {
+  border-color: var(--chip-color);
+  color: var(--text);
+  background: color-mix(in srgb, var(--chip-color) 12%, var(--surface2));
+}
+.cat-grid-chip-active {
+  border-color: var(--chip-color);
+  background: color-mix(in srgb, var(--chip-color) 22%, var(--surface));
+  color: var(--text);
+  font-weight: 600;
+}
+.cat-grid-chip-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--chip-color);
+  flex-shrink: 0;
+}
+.cat-grid-chip-icon { font-size: 0.9rem; line-height: 1; flex-shrink: 0; }
+.cat-grid-chip-subcat { font-size: 0.78rem; padding: 0.25rem 0.55rem; --chip-color: var(--accent); }
+
 .cat-suggest-chip {
   display: inline-flex;
   align-items: center;
@@ -1193,6 +1247,7 @@ html, body { overscroll-behavior: none; }
 .amount-expense  { color: var(--text); }
 .amount-income   { color: var(--income); }
 .movement-running-bal { font-size: 0.65rem; color: var(--text3); font-weight: 500; text-align: right; }
+.movement-running-bal.running-bal-neg { color: var(--expense); }
 
 /* ── Modal ── */
 .modal-overlay {
@@ -1619,6 +1674,9 @@ html, body { overscroll-behavior: none; }
 }
 .year-bal-pos { color: var(--income); }
 .year-bal-neg { color: var(--expense); }
+.year-cell-bar { width: 100%; height: 3px; background: var(--surface3); border-radius: 2px; margin-top: 2px; overflow: hidden; }
+.year-cell-bar-fill { height: 100%; background: var(--income); border-radius: 2px; transition: width 0.2s; }
+.year-cell-bar-over { background: var(--expense); }
 
 /* ── Year totals summary row ── */
 .year-totals-section { display: flex; flex-direction: column; gap: 0.3rem; margin-bottom: 0.55rem; }
@@ -2029,6 +2087,11 @@ kbd {
 }
 .toast-error {
   background: #ef4444;
+  color: #fff;
+  border-color: transparent;
+}
+.toast-info {
+  background: var(--accent);
   color: #fff;
   border-color: transparent;
 }
@@ -2904,6 +2967,17 @@ kbd {
 .plantilla-cat, .plantilla-dia, .plantilla-nota {
   font-size: 0.72rem;
   color: var(--text2);
+}
+.plantilla-freq-badge {
+  font-size: 0.68rem;
+  color: var(--text2);
+  background: var(--surface2);
+  border-radius: 4px;
+  padding: 0.05rem 0.3rem;
+}
+.plantilla-freq-badge-nonmonthly {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
 }
 .plantilla-actions {
   display: flex;
@@ -3956,3 +4030,91 @@ kbd {
   box-shadow: var(--shadow-md);
   animation: toastIn 0.15s ease;
 }
+
+/* ── Emoji icons para categorías ─────────────────────────────────── */
+.cat-icon-emoji { font-size: 1rem; line-height: 1; flex-shrink: 0; }
+.cat-icon-emoji-sm { font-size: 0.85rem; }
+
+/* Botón/input emoji en CategoriasModal */
+.cat-emoji-btn {
+  background: none;
+  border: 1px solid var(--hairline);
+  border-radius: 6px;
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+.cat-emoji-btn:hover { background: var(--surface2); }
+.cat-emoji-btn-empty { color: var(--text3); font-size: 0.8rem; }
+.cat-emoji-input {
+  width: 2.6rem;
+  height: 2rem;
+  border: 1.5px solid var(--accent);
+  border-radius: 6px;
+  text-align: center;
+  font-size: 1rem;
+  background: var(--surface);
+  color: var(--text);
+  outline: none;
+  flex-shrink: 0;
+}
+.cat-emoji-input-new { width: 2.6rem; }
+
+/* Hoy vs media diaria */
+.today-vs-avg {
+  font-size: 0.78rem;
+  color: var(--text2);
+  font-weight: 500;
+  padding: 0.15rem 0.5rem;
+}
+.today-vs-avg.delta-neg { color: var(--expense); }
+.today-vs-avg.delta-pos { color: var(--income); }
+
+/* Highlight texto buscado */
+.search-highlight {
+  background: color-mix(in srgb, var(--accent) 30%, transparent);
+  color: inherit;
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
+/* ── Menú contextual rápido (longpress / right-click) ─────────────── */
+.ctx-backdrop {
+  position: fixed; inset: 0; z-index: 299;
+}
+.ctx-menu {
+  position: fixed;
+  z-index: 300;
+  background: var(--surface);
+  border: 0.5px solid var(--hairline);
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+  padding: 0.3rem;
+  min-width: 160px;
+  animation: toastIn 0.12s ease;
+}
+.ctx-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  border: none;
+  background: none;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  font-family: inherit;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s;
+}
+.ctx-item:hover { background: var(--surface2); }
+.ctx-item-ok { color: var(--income); }
+.ctx-item-del { color: var(--expense); }

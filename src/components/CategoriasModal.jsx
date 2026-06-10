@@ -16,12 +16,15 @@ export default function CategoriasModal({ open, onClose, lang, hogarId, onRefres
   const [expandedCatId, setExpandedCatId] = useState(null)
   const [newCatNombre, setNewCatNombre] = useState('')
   const [newCatColor, setNewCatColor] = useState(CAT_PALETTE[0])
+  const [newCatEmoji, setNewCatEmoji] = useState('')
   const [newSubNombre, setNewSubNombre] = useState('')
   const [saving, setSaving] = useState(null)
   const [editingCatId, setEditingCatId] = useState(null)
   const [editingSubId, setEditingSubId] = useState(null)
   const [editNombre, setEditNombre] = useState('')
   const [editingColorId, setEditingColorId] = useState(null)
+  const [editingEmojiId, setEditingEmojiId] = useState(null)
+  const [editEmojiVal, setEditEmojiVal] = useState('')
 
   async function reload() {
     if (!hogarId) return
@@ -61,11 +64,26 @@ export default function CategoriasModal({ open, onClose, lang, hogarId, onRefres
       const { error } = await supabase.from('categorias').insert({
         hogar_id: hogarId, nombre, tipo: tab, orden: maxOrden + 1, archivada: false,
         color: newCatColor,
+        icono: newCatEmoji.trim() || null,
       })
       if (error) throw error
       setNewCatNombre('')
       setNewCatColor(CAT_PALETTE[0])
+      setNewCatEmoji('')
       await reload()
+    } finally {
+      setSaving(null)
+    }
+  }
+
+  async function handleSaveEmoji(catId, icono) {
+    setEditingEmojiId(null)
+    setSaving(catId)
+    try {
+      const { error } = await supabase.from('categorias').update({ icono: icono || null }).eq('id', catId)
+      if (error) throw error
+      setAllCats(prev => prev.map(c => c.id === catId ? { ...c, icono: icono || null } : c))
+      onRefresh()
     } finally {
       setSaving(null)
     }
@@ -199,6 +217,33 @@ export default function CategoriasModal({ open, onClose, lang, hogarId, onRefres
                   >
                     <span className="cat-expand-arrow">{isExpanded ? '▾' : '▸'}</span>
                   </button>
+
+                  {/* Emoji icon — click to edit */}
+                  {editingEmojiId === cat.id ? (
+                    <input
+                      className="cat-emoji-input"
+                      type="text"
+                      value={editEmojiVal}
+                      onChange={e => setEditEmojiVal(e.target.value)}
+                      autoFocus
+                      maxLength={2}
+                      placeholder="🏷"
+                      onBlur={() => handleSaveEmoji(cat.id, editEmojiVal.trim())}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') handleSaveEmoji(cat.id, editEmojiVal.trim())
+                        if (e.key === 'Escape') setEditingEmojiId(null)
+                      }}
+                    />
+                  ) : (
+                    <button
+                      type="button"
+                      className={`cat-emoji-btn${cat.icono ? '' : ' cat-emoji-btn-empty'}`}
+                      onClick={() => { setEditingEmojiId(cat.id); setEditEmojiVal(cat.icono ?? '') }}
+                      title={t(lang, 'emoji_icon')}
+                    >
+                      {cat.icono || '+'}
+                    </button>
+                  )}
 
                   {/* Color dot — click to open palette */}
                   <div className="cat-color-wrap">
@@ -335,6 +380,15 @@ export default function CategoriasModal({ open, onClose, lang, hogarId, onRefres
 
         <form className="cat-add-form" onSubmit={handleAddCat}>
           <div className="cat-add-row">
+            <input
+              className="cat-emoji-input cat-emoji-input-new"
+              type="text"
+              value={newCatEmoji}
+              onChange={e => setNewCatEmoji(e.target.value)}
+              placeholder="🏷"
+              maxLength={2}
+              title={t(lang, 'emoji_icon')}
+            />
             <div className="cat-color-wrap">
               <button
                 type="button"
