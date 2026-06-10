@@ -739,6 +739,38 @@ export default function MesView() {
     }
   }
 
+  // ── Cubrir sobrepaso moviendo presupuesto desde la categoría con más holgura ──
+  async function handleCoverOverspend(overCat) {
+    const spent = gastoPorCat[overCat.id] ?? 0
+    const budget = presupuestoPorCat[overCat.id] ?? 0
+    const deficit = Math.ceil(spent - budget)
+    if (deficit <= 0) return
+    const donor = gastosCats
+      .filter(c => c.id !== overCat.id && presupuestoPorCat[c.id] > 0)
+      .map(c => ({ c, slack: presupuestoPorCat[c.id] - (gastoPorCat[c.id] ?? 0) - (gastoPendientePorCat[c.id] ?? 0) }))
+      .filter(d => d.slack >= deficit)
+      .sort((a, b) => b.slack - a.slack)[0]
+    if (!donor) {
+      showToast(lang === 'es' ? 'Ninguna categoría tiene holgura suficiente' : 'No category has enough slack')
+      return
+    }
+    const ok = window.confirm(lang === 'es'
+      ? `¿Mover ${fmt(deficit)} del presupuesto de "${donor.c.nombre}" a "${overCat.nombre}" para cubrir el sobrepaso?`
+      : `Move ${fmt(deficit)} of budget from "${donor.c.nombre}" to "${overCat.nombre}" to cover the overspend?`)
+    if (!ok) return
+    try {
+      const { error } = await supabase.from('presupuestos').upsert([
+        { hogar_id: hogarId, categoria_id: overCat.id, anio, mes, importe: budget + deficit },
+        { hogar_id: hogarId, categoria_id: donor.c.id, anio, mes, importe: presupuestoPorCat[donor.c.id] - deficit },
+      ], { onConflict: 'hogar_id,categoria_id,anio,mes' })
+      if (error) throw error
+      loadMes()
+      showToast(lang === 'es' ? `Cubierto desde ${donor.c.nombre} ✓` : `Covered from ${donor.c.nombre} ✓`)
+    } catch {
+      showToast(t(lang, 'save_error'), 'error')
+    }
+  }
+
   // ── Exportar CSV del mes (respeta el filtro activo) ──
   function exportarCSV() {
     const source = hayFiltroActivo ? movimientosFiltrados : movimientos
@@ -1470,6 +1502,15 @@ export default function MesView() {
                 onClick={() => { setFiltroCatId(overCats[0].id); setFiltroTipo('gasto') }}
               >
                 {lang === 'es' ? 'ver' : 'view'}
+              </button>
+              <button
+                className="overbudget-alert-link"
+                onClick={() => handleCoverOverspend(overCats[0])}
+                title={lang === 'es'
+                  ? 'Mover presupuesto desde la categoría con más holgura'
+                  : 'Move budget from the category with most slack'}
+              >
+                {lang === 'es' ? 'cubrir' : 'cover'}
               </button>
             </div>
           )
