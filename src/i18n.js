@@ -109,6 +109,12 @@ const T = {
     pending_count: '{n} pendiente(s)',
     mark_all_paid: 'Marcar todos como pagados',
     rollover_hint: 'Sobrante del mes anterior',
+    mark_pending_income: 'Pendiente de cobrar',
+    mark_pending_income_hint: ' (previsto pero aún no recibido)',
+    mark_collected: 'Marcar como cobrado',
+    pending_income_badge: 'Por cobrar',
+    pending_income_count: '{n} por cobrar',
+    pending_income_total: 'Total por cobrar',
   },
   en: {
     app_name: 'Couple finances',
@@ -220,6 +226,12 @@ const T = {
     pending_count: '{n} pending',
     mark_all_paid: 'Mark all as paid',
     rollover_hint: 'Surplus from last month',
+    mark_pending_income: 'Pending collection',
+    mark_pending_income_hint: ' (expected but not yet received)',
+    mark_collected: 'Mark as collected',
+    pending_income_badge: 'To collect',
+    pending_income_count: '{n} to collect',
+    pending_income_total: 'Total to collect',
   },
 }
 

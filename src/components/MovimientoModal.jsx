@@ -396,28 +396,30 @@ export default function MovimientoModal({
           </div>
           )}
 
-          {/* Toggles row — only for expenses */}
-          {showMore && tipo === 'gasto' && (
+          {/* Toggles row — expenses: fixed + pending; income: pending only */}
+          {showMore && (
             <div className="expense-toggles">
-              <label className="fixed-toggle-label">
-                <input
-                  type="checkbox"
-                  checked={esFijo}
-                  onChange={e => { setEsFijo(e.target.checked); if (e.target.checked) setPendiente(false) }}
-                  className="fixed-toggle-input"
-                />
-                <span className="fixed-toggle-track">
-                  <span className="fixed-toggle-knob" />
-                </span>
-                <span className="fixed-toggle-text">
-                  {t(lang, 'mark_fixed')}
-                  <span className="fixed-toggle-hint">
-                    {lang === 'es'
-                      ? ' (alquiler, suscripciones, seguros…)'
-                      : ' (rent, subscriptions, insurance…)'}
+              {tipo === 'gasto' && (
+                <label className="fixed-toggle-label">
+                  <input
+                    type="checkbox"
+                    checked={esFijo}
+                    onChange={e => { setEsFijo(e.target.checked); if (e.target.checked) setPendiente(false) }}
+                    className="fixed-toggle-input"
+                  />
+                  <span className="fixed-toggle-track">
+                    <span className="fixed-toggle-knob" />
                   </span>
-                </span>
-              </label>
+                  <span className="fixed-toggle-text">
+                    {t(lang, 'mark_fixed')}
+                    <span className="fixed-toggle-hint">
+                      {lang === 'es'
+                        ? ' (alquiler, suscripciones, seguros…)'
+                        : ' (rent, subscriptions, insurance…)'}
+                    </span>
+                  </span>
+                </label>
+              )}
               <label className="fixed-toggle-label">
                 <input
                   type="checkbox"
@@ -429,11 +431,13 @@ export default function MovimientoModal({
                   <span className="fixed-toggle-knob" />
                 </span>
                 <span className="fixed-toggle-text">
-                  {t(lang, 'mark_pending')}
+                  {tipo === 'ingreso' ? t(lang, 'mark_pending_income') : t(lang, 'mark_pending')}
                   <span className="fixed-toggle-hint">
-                    {lang === 'es'
-                      ? ' (previsto pero aún no cargado)'
-                      : ' (planned but not yet charged)'}
+                    {tipo === 'ingreso'
+                      ? t(lang, 'mark_pending_income_hint')
+                      : (lang === 'es'
+                        ? ' (previsto pero aún no cargado)'
+                        : ' (planned but not yet charged)')}
                   </span>
                 </span>
               </label>

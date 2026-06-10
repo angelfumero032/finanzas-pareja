@@ -724,6 +724,18 @@ export default function MesView() {
     }
   }
 
+  // ── Marcar ingreso pendiente como cobrado ──
+  async function handleMarkCollected(id) {
+    try {
+      const { error } = await supabase.from('movimientos').update({ pendiente: false }).eq('id', id)
+      if (error) throw error
+      setMovimientos(prev => prev.map(m => m.id === id ? { ...m, pendiente: false } : m))
+      showToast(t(lang, 'saved_ok'))
+    } catch {
+      showToast(t(lang, 'save_error'), 'error')
+    }
+  }
+
   // ── Marcar TODOS los gastos pendientes como pagados ──
   async function handleMarkAllPaid() {
     const ids = gastosPendientes.map(m => m.id)
@@ -1056,6 +1068,14 @@ export default function MesView() {
       totalPendiente: pend.reduce((s, m) => s + Number(m.importe), 0),
     }
   }, [gastosItems])
+
+  const { ingresosPendientes, totalPendienteIngresos } = useMemo(() => {
+    const pend = ingresosItems.filter(m => m.pendiente)
+    return {
+      ingresosPendientes: pend,
+      totalPendienteIngresos: pend.reduce((s, m) => s + Number(m.importe), 0),
+    }
+  }, [ingresosItems])
 
   const savingsRate = totalIngresos > 0
     ? Math.round((balance / totalIngresos) * 100)
@@ -1471,6 +1491,15 @@ export default function MesView() {
                 title={t(lang, 'pending')}
               >
                 {tFmt(lang, 'pending_count', { n: gastosPendientes.length })} · {fmt(totalPendiente)}
+              </button>
+            )}
+            {totalPendienteIngresos > 0 && (
+              <button
+                className="summary-pending-hint summary-pending-hint-btn summary-pending-hint-income"
+                onClick={() => { setFiltroPendiente(true); setFiltroTipo('ingreso') }}
+                title={t(lang, 'pending_income_badge')}
+              >
+                {tFmt(lang, 'pending_income_count', { n: ingresosPendientes.length })} · {fmt(totalPendienteIngresos)}
               </button>
             )}
             {rolloverBalance !== null && rolloverBalance !== 0 && (totalIngresos > 0 || totalGastos > 0) && (
@@ -2364,13 +2393,22 @@ export default function MesView() {
                           <span className="tab-count">{gastosFijos.length}</span>
                         </button>
                       )}
-                      {gastosPendientes.length > 0 && (
+                      {(gastosPendientes.length > 0 || ingresosPendientes.length > 0) && (
                         <button
                           className={`filter-tab filter-tab-pending${filtroPendiente ? ' filter-tab-active' : ''}`}
-                          onClick={() => { setFiltroPendiente(p => !p); setFiltroFijo(null); if (!filtroPendiente) setFiltroTipo('gasto') }}
+                          onClick={() => {
+                            const next = !filtroPendiente
+                            setFiltroPendiente(next)
+                            setFiltroFijo(null)
+                            if (next && ingresosPendientes.length > 0 && gastosPendientes.length === 0) {
+                              setFiltroTipo('ingreso')
+                            } else if (next) {
+                              setFiltroTipo('gasto')
+                            }
+                          }}
                         >
                           {t(lang, 'pending_badge')}
-                          <span className="tab-count">{gastosPendientes.length}</span>
+                          <span className="tab-count">{gastosPendientes.length + ingresosPendientes.length}</span>
                         </button>
                       )}
                     </div>
@@ -2393,7 +2431,7 @@ export default function MesView() {
                       {compactMode ? '⊟' : '⊞'}
                     </button>
                   </div>
-                  {filtroPendiente && gastosPendientes.length > 0 && (
+                  {filtroPendiente && gastosPendientes.length > 0 && filtroTipo !== 'ingreso' && (
                     <div className="pending-actions-row">
                       <span className="pending-actions-label">
                         {tFmt(lang, 'pending_count', { n: gastosPendientes.length })} · {fmt(totalPendiente)}
@@ -2401,6 +2439,13 @@ export default function MesView() {
                       <button className="btn-sm btn-mark-all-paid" onClick={handleMarkAllPaid}>
                         {t(lang, 'mark_all_paid')}
                       </button>
+                    </div>
+                  )}
+                  {filtroPendiente && ingresosPendientes.length > 0 && filtroTipo === 'ingreso' && (
+                    <div className="pending-actions-row pending-actions-row-income">
+                      <span className="pending-actions-label">
+                        {tFmt(lang, 'pending_income_count', { n: ingresosPendientes.length })} · {fmt(totalPendienteIngresos)}
+                      </span>
                     </div>
                   )}
                   <div className="search-wrap">
@@ -2584,7 +2629,9 @@ export default function MesView() {
                         </div>
                         <div className="movement-right">
                           {m.pendiente && (
-                            <span className="movement-pending-badge">{t(lang, 'pending_badge')}</span>
+                            <span className={`movement-pending-badge${m.tipo === 'ingreso' ? ' movement-pending-badge-income' : ''}`}>
+                              {m.tipo === 'ingreso' ? t(lang, 'pending_income_badge') : t(lang, 'pending_badge')}
+                            </span>
                           )}
                           <span className={`movement-amount ${m.tipo === 'gasto' ? 'amount-expense' : 'amount-income'}${m.pendiente ? ' amount-pending' : ''}`}>
                             {m.tipo === 'gasto' ? '-' : '+'}{fmt(Number(m.importe))}
@@ -2598,6 +2645,15 @@ export default function MesView() {
                           title={t(lang, 'mark_paid')}
                         >
                           {lang === 'es' ? '✓ Pagado' : '✓ Paid'}
+                        </button>
+                      )}
+                      {m.pendiente && m.tipo === 'ingreso' && (
+                        <button
+                          className="mark-paid-btn mark-collected-btn"
+                          onClick={e => { e.stopPropagation(); handleMarkCollected(m.id) }}
+                          title={t(lang, 'mark_collected')}
+                        >
+                          {lang === 'es' ? '✓ Cobrado' : '✓ Collected'}
                         </button>
                       )}
                       </div>
@@ -2616,6 +2672,11 @@ export default function MesView() {
                       {totalPendiente > 0 && (
                         <span className="movements-footer-pending">
                           {lang === 'es' ? `(${fmt(totalPendiente)} pte.)` : `(${fmt(totalPendiente)} pend.)`}
+                        </span>
+                      )}
+                      {totalPendienteIngresos > 0 && (
+                        <span className="movements-footer-pending movements-footer-pending-income">
+                          {lang === 'es' ? `(+${fmt(totalPendienteIngresos)} p.cobrar)` : `(+${fmt(totalPendienteIngresos)} to collect)`}
                         </span>
                       )}
                       {totalIngresos > 0 && <span className="movements-footer-inc">+{fmt(totalIngresos)}</span>}

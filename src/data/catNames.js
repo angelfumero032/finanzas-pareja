@@ -3,83 +3,152 @@
 // Si un nombre no está en el diccionario, se muestra tal cual.
 
 const ES_EN = {
-  // Categorías de gasto (seeds básica y rica)
+  // ── Categorías principales ──
   'comida': 'Food',
-  'supermercado': 'Groceries',
-  'alimentación': 'Groceries',
+  'alimentación': 'Food & Groceries',
   'vivienda': 'Housing',
-  'alquiler': 'Rent',
-  'hipoteca': 'Mortgage',
-  'hogar': 'Home',
   'transporte': 'Transport',
-  'coche': 'Car',
-  'gasolina': 'Fuel',
   'ocio': 'Leisure',
-  'restaurantes': 'Restaurants',
-  'bares': 'Bars',
   'salud': 'Health',
-  'farmacia': 'Pharmacy',
-  'ropa': 'Clothing',
-  'suscripciones': 'Subscriptions',
-  'regalos': 'Gifts',
+  'suministros': 'Utilities',
+  'compras': 'Shopping',
+  'hogar': 'Home',
+  'hogar & compras': 'Home & Shopping',
+  'personal': 'Personal',
+  'educación': 'Education',
   'mascotas': 'Pets',
   'viajes': 'Travel',
-  'educación': 'Education',
-  'formación': 'Training',
-  'seguros': 'Insurance',
-  'impuestos': 'Taxes',
-  'otros': 'Other',
-  'otros gastos': 'Other expenses',
   'ahorro': 'Savings',
+  'ahorro & inversiones': 'Savings & Investments',
+  'inversiones': 'Investments',
+  'otros gastos': 'Other expenses',
+  'otros': 'Other',
   'belleza': 'Beauty',
-  'gimnasio': 'Gym',
-  'deporte': 'Sports',
   'tecnología': 'Tech',
   'niños': 'Kids',
   'bebé': 'Baby',
   'caprichos': 'Treats',
-  // Subcategorías frecuentes
+  'deporte': 'Sports',
+  'deportes': 'Sports',
+  'gimnasio': 'Gym',
+  'ropa': 'Clothing',
+  'suscripciones': 'Subscriptions',
+  'regalos': 'Gifts',
+  'seguros': 'Insurance',
+  'impuestos': 'Taxes',
+  'formación': 'Training',
+
+  // ── Subcategorías de vivienda ──
+  'alquiler': 'Rent',
+  'hipoteca': 'Mortgage',
+  'alquiler / hipoteca': 'Rent / Mortgage',
+  'comunidad': 'HOA fees',
+  'comunidad de vecinos': 'HOA fees',
+  'seguro de hogar': 'Home insurance',
+  'ibi / impuestos': 'Property tax',
+  'reparaciones': 'Repairs',
+  'mantenimiento': 'Maintenance',
+
+  // ── Subcategorías de suministros ──
   'luz': 'Electricity',
+  'electricidad': 'Electricity',
   'agua': 'Water',
   'gas': 'Gas',
   'internet': 'Internet',
   'teléfono': 'Phone',
   'móvil': 'Mobile',
-  'comunidad': 'HOA fees',
-  'mantenimiento': 'Maintenance',
-  'parking': 'Parking',
+  'teléfono móvil': 'Mobile phone',
+
+  // ── Subcategorías de alimentación ──
+  'supermercado': 'Supermarket',
+  'mercado': 'Market',
+  'restaurantes': 'Restaurants',
+  'bares': 'Bars',
+  'comida a domicilio': 'Food delivery',
+  'cafeterías': 'Cafes',
+  'café': 'Coffee',
+
+  // ── Subcategorías de transporte ──
+  'coche': 'Car',
+  'gasolina': 'Fuel',
   'transporte público': 'Public transport',
-  'taxi': 'Taxi',
+  'parking': 'Parking',
+  'parking / peajes': 'Parking / Tolls',
   'peajes': 'Tolls',
+  'taxi': 'Taxi',
+  'taxi / vtc': 'Taxi / Ride-sharing',
+  'mantenimiento coche': 'Car maintenance',
+  'seguro coche': 'Car insurance',
+
+  // ── Subcategorías de salud ──
+  'farmacia': 'Pharmacy',
+  'farmacia personal': 'Personal pharmacy',
+  'médico': 'Doctor',
+  'médico privado': 'Private doctor',
+  'dentista': 'Dentist',
+  'seguro médico': 'Health insurance',
+  'óptica': 'Optician',
+
+  // ── Subcategorías de ocio ──
   'cine': 'Cinema',
+  'cine / teatro / música': 'Cinema / Theatre / Music',
   'conciertos': 'Concerts',
   'libros': 'Books',
+  'libros / medios': 'Books / Media',
   'videojuegos': 'Video games',
+  'juegos': 'Games',
   'streaming': 'Streaming',
+  'suscripciones streaming': 'Streaming subscriptions',
   'música': 'Music',
-  'café': 'Coffee',
-  'comida a domicilio': 'Food delivery',
-  'médico': 'Doctor',
-  'dentista': 'Dentist',
-  'óptica': 'Optician',
+  'hobbies': 'Hobbies',
+
+  // ── Subcategorías de personal / belleza ──
   'peluquería': 'Hairdresser',
+  'peluquería / estética': 'Hair & Beauty',
+  'gimnasio / fitness': 'Gym / Fitness',
+
+  // ── Subcategorías de hogar / compras ──
   'limpieza': 'Cleaning',
+  'limpieza / droguería': 'Cleaning / Toiletries',
   'muebles': 'Furniture',
+  'muebles / decoración': 'Furniture / Décor',
   'electrodomésticos': 'Appliances',
+  'ropa / zapatos': 'Clothing / Shoes',
+
+  // ── Subcategorías de viajes ──
   'vuelos': 'Flights',
   'hoteles': 'Hotels',
+  'alojamiento': 'Accommodation',
+  'comida viaje': 'Travel meals',
+
+  // ── Subcategorías de educación ──
+  'cursos / formación': 'Courses / Training',
+  'material / libros': 'Materials / Books',
+  'matrícula / cuotas': 'Tuition / Fees',
+  'actividades': 'Activities',
+
+  // ── Subcategorías de mascotas ──
   'veterinario': 'Vet',
   'pienso': 'Pet food',
-  // Categorías de ingreso
+  'seguro mascota': 'Pet insurance',
+  'comida / higiene': 'Food / Hygiene',
+
+  // ── Subcategorías de ahorro / inversiones ──
+  'fondo emergencia': 'Emergency fund',
+  'plan de pensiones': 'Pension plan',
+
+  // ── Categorías y subcategorías de ingreso ──
   'nómina': 'Salary',
   'sueldo': 'Salary',
   'ingresos extra': 'Extra income',
+  'otros ingresos': 'Other income',
   'extras': 'Extras',
   'ventas': 'Sales',
   'devoluciones': 'Refunds',
   'intereses': 'Interest',
-  'inversiones': 'Investments',
   'regalos recibidos': 'Gifts received',
+  'trabajo freelance': 'Freelance',
+  'alquiler recibido': 'Rental income',
 }
 
 const EN_ES = Object.fromEntries(Object.entries(ES_EN).map(([es, en]) => [en.toLowerCase(), es]))

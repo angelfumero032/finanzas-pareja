@@ -215,7 +215,7 @@ html, body { overscroll-behavior: none; }
   border-bottom: 1px solid var(--border);
   position: sticky;
   top: 0;
-  z-index: 100;
+  z-index: 200;
 }
 
 .btn-nav {
@@ -2387,6 +2387,22 @@ kbd {
   min-height: 2.6rem;
 }
 .mark-paid-btn:hover { background: rgba(34,197,94,0.25); }
+.mark-collected-btn {
+  background: rgba(59,130,246,0.14);
+  color: #2563eb;
+}
+.mark-collected-btn:hover { background: rgba(59,130,246,0.25); }
+.movement-pending-badge-income {
+  color: #2563eb;
+  background: rgba(59,130,246,0.12);
+}
+.pending-actions-row-income {
+  background: rgba(59,130,246,0.07);
+  border-color: rgba(59,130,246,0.18);
+}
+.pending-actions-row-income .pending-actions-label { color: #2563eb; }
+.movements-footer-pending-income { color: #2563eb; }
+.summary-pending-hint-income { color: #2563eb; }
 
 /* ── Movements footer pending ── */
 .movements-footer-pending {
@@ -3736,7 +3752,7 @@ kbd {
   padding: 0;
   position: relative;
 }
-.menu-backdrop { position: fixed; inset: 0; z-index: 150; }
+.menu-backdrop { position: fixed; inset: 0; z-index: 150; cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .header-menu {
   position: absolute;
   top: calc(100% + 6px);
