@@ -147,6 +147,10 @@ export default function MesView() {
   // Guía rápida
   const [showGuide, setShowGuide] = useState(false)
 
+  // Menú ⋯ de cabecera
+  const [showMenu, setShowMenu] = useState(false)
+
+
   // Toast notifications (supports undo action)
   const [toast, setToast] = useState(null)
   const toastTimer = useRef(null)
@@ -239,6 +243,17 @@ export default function MesView() {
   const [prevTotals, setPrevTotals] = useState(null)
 
   const hogarId = profile?.hogar_id
+
+  // Tarjeta de cierre del mes anterior (días 1-5, descartable por dispositivo)
+  const closeCardKey = hogarId ? `closecard_${hogarId}_${anio}_${mes}` : null
+  const [closeCardDismissed, setCloseCardDismissed] = useState(false)
+  useEffect(() => {
+    if (closeCardKey) setCloseCardDismissed(!!localStorage.getItem(closeCardKey))
+  }, [closeCardKey])
+  function dismissCloseCard() {
+    if (closeCardKey) localStorage.setItem(closeCardKey, '1')
+    setCloseCardDismissed(true)
+  }
 
   // Totales de la hucha (informados por AhorroSection)
   const [huchaTotals, setHuchaTotals] = useState(null)
@@ -1154,19 +1169,6 @@ export default function MesView() {
     return result
   }, [movimientosFiltrados, sortMovs])
 
-  const runningBalance = useMemo(() => {
-    if (sortMovs !== 'fecha' || movimientosFiltrados.length === 0) return {}
-    const map = {}
-    let running = 0
-    // Process in reverse chronological order to compute forward balance
-    const sorted = [...movimientosFiltrados].reverse()
-    sorted.forEach(m => {
-      running += m.tipo === 'ingreso' ? Number(m.importe) : -Number(m.importe)
-      map[m.id] = running
-    })
-    return map
-  }, [movimientosFiltrados, sortMovs])
-
   const { gastoPorCat, gastoPendientePorCat, movCountByCat, gastosNoCategoria, gastoPorSubcat } = useMemo(() => {
     const gpc = {}
     const gpend = {}
@@ -1370,33 +1372,6 @@ export default function MesView() {
         )}
 
         <div className="header-actions">
-          <button
-            className={`btn-icon${plantillasNoGeneradas.length > 0 ? ' btn-icon-pulse' : ''}`}
-            onClick={() => setShowPlantillasModal(true)}
-            title={t(lang, 'manage_templates')}
-            aria-label={t(lang, 'manage_templates')}
-          >
-            ↺
-            {plantillasNoGeneradas.length > 0 && (
-              <span className="campana-badge">{plantillasNoGeneradas.length}</span>
-            )}
-          </button>
-          <button
-            className="btn-icon"
-            onClick={() => setShowGlobalSearch(true)}
-            title={lang === 'es' ? 'Buscar en todos los meses' : 'Search all months'}
-            aria-label={lang === 'es' ? 'Buscar en todos los meses' : 'Search all months'}
-          >
-            🔍
-          </button>
-          <button
-            className="btn-icon btn-guide"
-            onClick={() => setShowGuide(true)}
-            title={lang === 'es' ? 'Cómo funciona' : 'How it works'}
-            aria-label={lang === 'es' ? 'Cómo funciona' : 'How it works'}
-          >
-            ?
-          </button>
           <button className="campana-btn" onClick={handleOpenActivity} title={t(lang, 'activity_title')}>
             🔔
             {unread > 0 && (
@@ -1406,53 +1381,58 @@ export default function MesView() {
             )}
           </button>
           <button
-            className="btn-lang"
-            onClick={() => setLang(lang === 'es' ? 'en' : 'es')}
-            title={t(lang, 'language')}
+            className={`btn-icon btn-more${plantillasNoGeneradas.length > 0 ? ' btn-icon-pulse' : ''}`}
+            onClick={() => setShowMenu(v => !v)}
+            title={lang === 'es' ? 'Más' : 'More'}
+            aria-label={lang === 'es' ? 'Más opciones' : 'More options'}
+            aria-expanded={showMenu}
           >
-            {lang.toUpperCase()}
+            ⋯
           </button>
-          <button className="btn-icon" onClick={handleSignOut} title={t(lang, 'sign_out')}>⏻</button>
         </div>
+        {showMenu && (
+          <>
+            <div className="menu-backdrop" onClick={() => setShowMenu(false)} />
+            <div className="header-menu" role="menu">
+              <button className="header-menu-item" onClick={() => { setShowMenu(false); setShowGlobalSearch(true) }}>
+                🔍 {lang === 'es' ? 'Buscar en todos los meses' : 'Search all months'}
+              </button>
+              <button className="header-menu-item" onClick={() => { setShowMenu(false); setShowPlantillasModal(true) }}>
+                ↺ {lang === 'es' ? 'Gastos fijos' : 'Recurring expenses'}
+                {plantillasNoGeneradas.length > 0 && (
+                  <span className="menu-item-badge">{plantillasNoGeneradas.length}</span>
+                )}
+              </button>
+              <button className="header-menu-item" onClick={() => { setShowMenu(false); setShowGuide(true) }}>
+                💡 {lang === 'es' ? 'Cómo funciona' : 'How it works'}
+              </button>
+              <button className="header-menu-item" onClick={() => { setShowMenu(false); setShowCatsModal(true) }}>
+                🏷 {t(lang, 'manage_categories')}
+              </button>
+              <button className="header-menu-item" onClick={() => setLang(lang === 'es' ? 'en' : 'es')}>
+                🌐 {lang === 'es' ? 'English' : 'Español'}
+              </button>
+              <button className="header-menu-item header-menu-item-danger" onClick={handleSignOut}>
+                ⏻ {t(lang, 'sign_out')}
+              </button>
+            </div>
+          </>
+        )}
       </header>
 
       {/* ── Contenido ── */}
       <main className={`app-content${loading ? ' app-loading' : ''}`}>
 
-        {/* Resumen del mes */}
-        <div className="summary-grid">
-          <div className="summary-card income-card" aria-label={`${t(lang, 'total_income')}: ${fmt(totalIngresos)}`}>
-            <span className="summary-label">{t(lang, 'total_income')}</span>
-            <span className="summary-value">{fmt(totalIngresos)}</span>
-            {deltaIngresos !== null && (
-              <span className={`summary-delta ${deltaIngresos >= 0 ? 'delta-pos' : 'delta-muted'}`}>
-                {deltaIngresos >= 0 ? '▲' : '▼'} {Math.abs(deltaIngresos).toFixed(0)}%
-              </span>
-            )}
-            {ingresosItems.length > 0 && (
-              <span className="summary-count">{ingresosItems.length}</span>
-            )}
-          </div>
-          <div className="summary-card expense-card" aria-label={`${t(lang, 'total_expenses')}: ${fmt(totalGastos)}`}>
-            <span className="summary-label">{t(lang, 'total_expenses')}</span>
-            <span className="summary-value">{fmt(totalGastos)}</span>
-            {deltaGastos !== null && (
-              <span className={`summary-delta ${deltaGastos >= 0 ? 'delta-neg' : 'delta-pos'}`}>
-                {deltaGastos >= 0 ? '▲' : '▼'} {Math.abs(deltaGastos).toFixed(0)}%
-              </span>
-            )}
-            {gastosItems.length > 0 && (
-              <span className="summary-count">{gastosItems.length}</span>
-            )}
-          </div>
-          <div className={`summary-card balance-card ${balance >= 0 ? 'balance-pos' : 'balance-neg'}`} aria-label={`${t(lang, 'balance')}: ${fmt(balance)}`}>
-            <span className="summary-label">{t(lang, 'balance')}</span>
-            <span className="summary-value">{balance >= 0 ? '+' : ''}{fmt(balance)}</span>
+        {/* Resumen del mes: 1 tarjeta protagonista (balance) con ingresos/gastos debajo */}
+        <div className={`hero-card ${balance >= 0 ? 'balance-pos' : 'balance-neg'}`}>
+          <span className="summary-label">{t(lang, 'balance')} · {MONTHS[lang][mes - 1]}</span>
+          <span className="hero-value" aria-label={`${t(lang, 'balance')}: ${fmt(balance)}`}>
+            {balance >= 0 ? '+' : ''}{fmt(balance)}
+          </span>
+          <div className="hero-hints">
             {totalIngresos > 0 && savingsRate !== null && (
               <span className={`summary-savings ${balance >= 0 ? 'delta-pos' : 'delta-neg'}`}>
-                {balance >= 0
-                  ? `${savingsRate}% ${t(lang, 'saved')}`
-                  : t(lang, 'overspent')}
+                {balance >= 0 ? `${savingsRate}% ${t(lang, 'saved')}` : t(lang, 'overspent')}
               </span>
             )}
             {isCurrentMonth && balance > 0 && huchaTotals && (
@@ -1480,7 +1460,78 @@ export default function MesView() {
               </span>
             )}
           </div>
+          <div className="hero-sub">
+            <button
+              className={`hero-sub-item${filtroTipo === 'ingreso' ? ' hero-sub-active' : ''}`}
+              onClick={() => setFiltroTipo(filtroTipo === 'ingreso' ? 'all' : 'ingreso')}
+              aria-label={`${t(lang, 'total_income')}: ${fmt(totalIngresos)}`}
+            >
+              <span className="hero-sub-label">↑ {t(lang, 'total_income')}</span>
+              <span className="hero-sub-value hero-sub-inc">{fmt(totalIngresos)}</span>
+              {deltaIngresos !== null && (
+                <span className={`summary-delta ${deltaIngresos >= 0 ? 'delta-pos' : 'delta-muted'}`}>
+                  {deltaIngresos >= 0 ? '▲' : '▼'}{Math.abs(deltaIngresos).toFixed(0)}%
+                </span>
+              )}
+            </button>
+            <button
+              className={`hero-sub-item${filtroTipo === 'gasto' ? ' hero-sub-active' : ''}`}
+              onClick={() => setFiltroTipo(filtroTipo === 'gasto' ? 'all' : 'gasto')}
+              aria-label={`${t(lang, 'total_expenses')}: ${fmt(totalGastos)}`}
+            >
+              <span className="hero-sub-label">↓ {t(lang, 'total_expenses')}</span>
+              <span className="hero-sub-value">{fmt(totalGastos)}</span>
+              {deltaGastos !== null && (
+                <span className={`summary-delta ${deltaGastos >= 0 ? 'delta-neg' : 'delta-pos'}`}>
+                  {deltaGastos >= 0 ? '▲' : '▼'}{Math.abs(deltaGastos).toFixed(0)}%
+                </span>
+              )}
+            </button>
+          </div>
         </div>
+
+        {/* Cierre del mes anterior (días 1-5, descartable) */}
+        {isCurrentMonth && !loading && todayDate.getDate() <= 5 && prevTotals
+          && (prevTotals.ingresos > 0 || prevTotals.gastos > 0)
+          && !closeCardDismissed && (() => {
+          const prevDate = new Date(anio, mes - 2, 1)
+          const prevLabel = `${MONTHS[lang][prevDate.getMonth()]} ${prevDate.getFullYear()}`
+          const prevBalance = prevTotals.ingresos - prevTotals.gastos
+          const prevRate = prevTotals.ingresos > 0 ? Math.round(prevBalance / prevTotals.ingresos * 100) : null
+          return (
+            <div className="close-card">
+              <button className="welcome-close" onClick={dismissCloseCard} aria-label={t(lang, 'close')}>✕</button>
+              <p className="close-card-title">
+                {lang === 'es' ? `Así fue ${prevLabel}` : `${prevLabel} recap`}
+              </p>
+              <div className="close-card-row">
+                <span className="close-card-item">↑ {fmt(prevTotals.ingresos)}</span>
+                <span className="close-card-item">↓ {fmt(prevTotals.gastos)}</span>
+                <span className={`close-card-item close-card-bal ${prevBalance >= 0 ? 'delta-pos' : 'delta-neg'}`}>
+                  {prevBalance >= 0 ? '+' : ''}{fmt(prevBalance)}
+                  {prevRate !== null && prevBalance > 0 && ` · ${prevRate}% ${t(lang, 'saved')}`}
+                </span>
+              </div>
+              <div className="close-card-actions">
+                <button
+                  className="tool-chip"
+                  onClick={() => {
+                    const lines = [prevLabel,
+                      `${t(lang, 'total_income')}: ${fmt(prevTotals.ingresos)}`,
+                      `${t(lang, 'total_expenses')}: ${fmt(prevTotals.gastos)}`,
+                      `${t(lang, 'balance')}: ${prevBalance >= 0 ? '+' : ''}${fmt(prevBalance)}`]
+                    navigator.clipboard?.writeText(lines.join('\n')).then(() => showToast(lang === 'es' ? 'Resumen copiado' : 'Summary copied'))
+                  }}
+                >
+                  📋 {lang === 'es' ? 'Copiar' : 'Copy'}
+                </button>
+                <button className="tool-chip" onClick={() => { dismissCloseCard(); prevMes() }}>
+                  {lang === 'es' ? 'Ver el mes' : 'View month'}
+                </button>
+              </div>
+            </div>
+          )
+        })()}
 
         {/* Fila compacta: días restantes · semana · copiar · nota (menos ruido vertical) */}
         {!loading && (() => {
@@ -2518,11 +2569,6 @@ export default function MesView() {
                           <span className={`movement-amount ${m.tipo === 'gasto' ? 'amount-expense' : 'amount-income'}${m.pendiente ? ' amount-pending' : ''}`}>
                             {m.tipo === 'gasto' ? '-' : '+'}{fmt(Number(m.importe))}
                           </span>
-                          {runningBalance[m.id] !== undefined && (filtroTipo === 'all') && (
-                            <span className={`movement-running-bal ${runningBalance[m.id] >= 0 ? 'amount-income' : 'amount-expense'}`}>
-                              {runningBalance[m.id] >= 0 ? '+' : ''}{fmt(runningBalance[m.id])}
-                            </span>
-                          )}
                         </div>
                       </button>
                       {m.pendiente && m.tipo === 'gasto' && (

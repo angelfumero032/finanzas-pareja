@@ -40,6 +40,8 @@ export default function MovimientoModal({
   const [esFijo, setEsFijo] = useState(false)
   const [pendiente, setPendiente] = useState(false)
   const [saving, setSaving] = useState(false)
+  // Modo ultra-rápido: importe + concepto + categoría; el resto tras "Más opciones"
+  const [showMore, setShowMore] = useState(false)
 
   useEffect(() => {
     if (!open) return
@@ -53,7 +55,9 @@ export default function MovimientoModal({
       setNota(movimiento.nota ?? '')
       setEsFijo(movimiento.es_fijo ?? false)
       setPendiente(movimiento.pendiente ?? false)
+      setShowMore(true)
     } else {
+      setShowMore(false)
       setTipo(defaultTipo)
       setImporte(defaultImporte || '')
       setConcepto(defaultConcepto || '')
@@ -127,6 +131,7 @@ export default function MovimientoModal({
     e.preventDefault()
     const imp = parseFloat(importe)
     if (!imp || imp <= 0) return
+    if (tipo === 'gasto' && !concepto.trim()) return
     setSaving(true)
     try {
       const payload = {
@@ -190,6 +195,7 @@ export default function MovimientoModal({
             </label>
             <input
               id="m-importe"
+              className="importe-hero"
               type="text"
               inputMode="decimal"
               value={importe}
@@ -232,6 +238,7 @@ export default function MovimientoModal({
               maxLength={60}
               placeholder={t(lang, 'concept_placeholder')}
               autoComplete="off"
+              required={tipo === 'gasto'}
             />
             <datalist id="concepto-list">
               {sugerencias.map(s => <option key={s} value={s} />)}
@@ -253,6 +260,7 @@ export default function MovimientoModal({
           </div>
 
           {/* Fecha */}
+          {showMore && (
           <div className="field">
             <label htmlFor="m-fecha">{t(lang, 'date')}</label>
             <input
@@ -288,6 +296,7 @@ export default function MovimientoModal({
               })()}
             </div>
           </div>
+          )}
 
           {/* Categoría */}
           <div className="field">
@@ -336,7 +345,7 @@ export default function MovimientoModal({
           </div>
 
           {/* Subcategoría */}
-          {subcatsFiltradas.length > 0 && (
+          {showMore && subcatsFiltradas.length > 0 && (
             <div className="field">
               <label htmlFor="m-subcat">{t(lang, 'subcategory')}</label>
               <select
@@ -353,6 +362,7 @@ export default function MovimientoModal({
           )}
 
           {/* Nota — detalle opcional */}
+          {showMore && (
           <div className="field">
             <label htmlFor="m-nota">
               {t(lang, 'note')}
@@ -370,9 +380,10 @@ export default function MovimientoModal({
               maxLength={120}
             />
           </div>
+          )}
 
           {/* Toggles row — only for expenses */}
-          {tipo === 'gasto' && (
+          {showMore && tipo === 'gasto' && (
             <div className="expense-toggles">
               <label className="fixed-toggle-label">
                 <input
@@ -413,6 +424,16 @@ export default function MovimientoModal({
                 </span>
               </label>
             </div>
+          )}
+
+          {!showMore && (
+            <button
+              type="button"
+              className="more-options-btn"
+              onClick={() => setShowMore(true)}
+            >
+              {lang === 'es' ? 'Más opciones (fecha, nota, fijo…) ▾' : 'More options (date, note, fixed…) ▾'}
+            </button>
           )}
 
           <div className="modal-actions">
