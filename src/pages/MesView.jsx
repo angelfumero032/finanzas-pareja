@@ -2543,6 +2543,7 @@ export default function MesView() {
         defaultSubcatId={!editMov ? (duplicateData?.subcatId ?? '') : ''}
         defaultNota={!editMov ? (duplicateData?.nota ?? '') : ''}
         defaultConcepto={!editMov ? (duplicateData?.concepto ?? '') : ''}
+        defaultFecha={!editMov && !isCurrentMonth ? `${anio}-${String(mes).padStart(2, '0')}-01` : null}
         recentConceptos={recentConceptos}
         gastoPorCat={gastoPorCat}
         presupuestoPorCat={presupuestoPorCat}

@@ -274,6 +274,10 @@ function SpendingCalendar({ byDay, anio, mes, lang, fmt, onSelectDate, selectedD
 }
 
 export default function GraficasMes({ lang, gastoPorCat, categorias, trendData, fmt, onSelectCat, catColors, catMap, insights, selectedCatId, spendingByDay, anio, mes, onSelectDate, selectedDate }) {
+  const [collapsed, setCollapsed] = useState(() => localStorage.getItem('sec_charts_collapsed') === '1')
+  function toggleCollapsed() {
+    setCollapsed(v => { localStorage.setItem('sec_charts_collapsed', v ? '' : '1'); return !v })
+  }
   const pieData = categorias
     .filter(c => c.tipo === 'gasto' && (gastoPorCat[c.id] ?? 0) > 0)
     .map((c, i) => ({
@@ -291,7 +295,19 @@ export default function GraficasMes({ lang, gastoPorCat, categorias, trendData, 
 
   return (
     <section className="section section-charts">
-      <h2 className="section-title">{t(lang, 'charts_section')}</h2>
+      <div className="section-header">
+        <h2 className="section-title">{t(lang, 'charts_section')}</h2>
+        <button
+          className="btn-icon section-collapse-btn"
+          onClick={toggleCollapsed}
+          aria-expanded={!collapsed}
+          title={collapsed ? (lang === 'es' ? 'Mostrar sección' : 'Show section') : (lang === 'es' ? 'Plegar sección' : 'Collapse section')}
+        >
+          {collapsed ? '▸' : '▾'}
+        </button>
+      </div>
+
+      {!collapsed && <>
 
       {insights && (
         <div className="chart-block">
@@ -336,6 +352,7 @@ export default function GraficasMes({ lang, gastoPorCat, categorias, trendData, 
           <TrendBars data={trendData} fmt={fmt} lang={lang} />
         </div>
       )}
+      </>}
     </section>
   )
 }

@@ -23,6 +23,7 @@ export default function MovimientoModal({
   hogarId, userId,
   defaultTipo = 'gasto', defaultCatId = null,
   defaultImporte = '', defaultSubcatId = '', defaultNota = '', defaultConcepto = '',
+  defaultFecha = null,
   gastoPorCat = {}, presupuestoPorCat = {},
   recentConceptos = [],
 }) {
@@ -56,14 +57,14 @@ export default function MovimientoModal({
       setTipo(defaultTipo)
       setImporte(defaultImporte || '')
       setConcepto(defaultConcepto || '')
-      setFecha(todayStr)
+      setFecha(defaultFecha || todayStr)
       setCatId(defaultCatId || '')
       setSubcatId(defaultSubcatId || '')
       setNota(defaultNota || '')
       setEsFijo(false)
       setPendiente(false)
     }
-  }, [open, movimiento?.id, defaultTipo, defaultCatId, defaultImporte, defaultSubcatId, defaultNota, defaultConcepto])
+  }, [open, movimiento?.id, defaultTipo, defaultCatId, defaultImporte, defaultSubcatId, defaultNota, defaultConcepto, defaultFecha])
 
   useEffect(() => {
     if (!open) return
@@ -260,7 +261,6 @@ export default function MovimientoModal({
               value={fecha}
               onChange={e => setFecha(e.target.value)}
               required
-              max={todayStr}
             />
             <div className="quick-amounts">
               {(() => {
