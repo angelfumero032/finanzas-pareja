@@ -64,6 +64,11 @@ export default function MesView() {
   // Edición inline de presupuesto
   const [editBudget, setEditBudget] = useState(null) // { catId }
 
+  // Presupuestos por subcategoría (migración 005; oculto si no está aplicada)
+  const [presupuestosSubcat, setPresupuestosSubcat] = useState([])
+  const [subcatBudgetsAvailable, setSubcatBudgetsAvailable] = useState(true)
+  const [editSubBudget, setEditSubBudget] = useState(null) // { subId }
+
   // Categoría pre-seleccionada al abrir modal desde una fila de presupuesto
   const [quickAddCatId, setQuickAddCatId] = useState(null)
 
@@ -313,7 +318,7 @@ export default function MesView() {
     if (!hogarId) return
     setLoading(true)
     try {
-      const [movRes, preRes] = await Promise.all([
+      const [movRes, preRes, preSubRes] = await Promise.all([
         supabase
           .from('movimientos')
           .select('*')
@@ -328,9 +333,17 @@ export default function MesView() {
           .eq('hogar_id', hogarId)
           .eq('anio', anio)
           .eq('mes', mes),
+        supabase
+          .from('presupuestos_subcat')
+          .select('*')
+          .eq('hogar_id', hogarId)
+          .eq('anio', anio)
+          .eq('mes', mes),
       ])
       if (movRes.data) setMovimientos(movRes.data.filter(m => !pendingDeleteIds.current.has(m.id)))
       if (preRes.data) setPresupuestos(preRes.data)
+      if (preSubRes.error) setSubcatBudgetsAvailable(false)
+      else if (preSubRes.data) { setPresupuestosSubcat(preSubRes.data); setSubcatBudgetsAvailable(true) }
     } finally {
       setLoading(false)
     }
@@ -831,6 +844,25 @@ export default function MesView() {
     }
   }
 
+  // ── Presupuesto de subcategoría: guardar desde el input inline ──
+  async function handleSaveSubBudget(subId, rawValue) {
+    const importe = Math.max(0, parseFloat(rawValue) || 0)
+    try {
+      const { error } = await supabase
+        .from('presupuestos_subcat')
+        .upsert(
+          { hogar_id: hogarId, subcategoria_id: subId, anio, mes, importe },
+          { onConflict: 'hogar_id,subcategoria_id,anio,mes' }
+        )
+      if (error) throw error
+      setEditSubBudget(null)
+      loadMes()
+    } catch {
+      showToast(t(lang, 'save_error'), 'error')
+      setEditSubBudget(null)
+    }
+  }
+
   // ── Presupuesto: guardar desde el input inline ──
   async function handleSaveBudget(catId, rawValue) {
     const importe = Math.max(0, parseFloat(rawValue) || 0)
@@ -1095,6 +1127,11 @@ export default function MesView() {
   const presupuestoPorCat = useMemo(
     () => Object.fromEntries(presupuestos.map(p => [p.categoria_id, Number(p.importe)])),
     [presupuestos]
+  )
+
+  const presupuestoPorSubcat = useMemo(
+    () => Object.fromEntries(presupuestosSubcat.map(p => [p.subcategoria_id, Number(p.importe)])),
+    [presupuestosSubcat]
   )
 
   const gastosCats = useMemo(() =>
@@ -2039,7 +2076,7 @@ export default function MesView() {
                               </span>
                             )}
                           </button>
-                          {subcategorias.some(s => s.categoria_id === cat.id && (gastoPorSubcat[s.id] ?? 0) > 0) && (
+                          {subcategorias.some(s => s.categoria_id === cat.id && ((gastoPorSubcat[s.id] ?? 0) > 0 || presupuestoPorSubcat[s.id] > 0)) && (
                             <button
                               className="budget-expand-btn"
                               onClick={e => { e.stopPropagation(); toggleBudgetCat(cat.id) }}
@@ -2116,18 +2153,55 @@ export default function MesView() {
                           )
                         })()}
                         {expandedBudgetCats.has(cat.id) && (() => {
-                          const subcats = subcategorias.filter(s => s.categoria_id === cat.id && (gastoPorSubcat[s.id] ?? 0) > 0)
+                          const subcats = subcategorias.filter(s => s.categoria_id === cat.id && ((gastoPorSubcat[s.id] ?? 0) > 0 || presupuestoPorSubcat[s.id] > 0))
                           if (subcats.length === 0) return null
                           return (
                             <div className="budget-subcats">
                               {subcats.sort((a, b) => (gastoPorSubcat[b.id] ?? 0) - (gastoPorSubcat[a.id] ?? 0)).map(s => {
                                 const subSpent = gastoPorSubcat[s.id] ?? 0
+                                const subBudget = presupuestoPorSubcat[s.id] ?? 0
                                 const subPct = spent > 0 ? Math.round(subSpent / spent * 100) : 0
+                                const subRatio = subBudget > 0 ? subSpent / subBudget : 0
+                                const subBarCls = subRatio > 1 ? 'bar-over' : subRatio > 0.8 ? 'bar-warn' : 'bar-ok'
                                 return (
-                                  <div key={s.id} className="budget-subcat-row">
-                                    <span className="budget-subcat-name">{s.nombre}</span>
-                                    <span className="budget-subcat-amt">{fmt(subSpent)}</span>
-                                    <span className="budget-subcat-pct">{subPct}%</span>
+                                  <div key={s.id} className="budget-subcat-block">
+                                    <div className="budget-subcat-row">
+                                      <span className="budget-subcat-name">{s.nombre}</span>
+                                      <span className="budget-subcat-amt">{fmt(subSpent)}</span>
+                                      {subcatBudgetsAvailable && (
+                                        editSubBudget?.subId === s.id ? (
+                                          <input
+                                            className="budget-inline-input budget-inline-input-sm"
+                                            type="number"
+                                            min="0"
+                                            step="0.01"
+                                            defaultValue={subBudget > 0 ? subBudget : ''}
+                                            autoFocus
+                                            placeholder="0"
+                                            onFocus={e => e.target.select()}
+                                            onBlur={e => handleSaveSubBudget(s.id, e.target.value.replace(',', '.'))}
+                                            onKeyDown={e => {
+                                              if (e.key === 'Enter') handleSaveSubBudget(s.id, e.target.value.replace(',', '.'))
+                                              if (e.key === 'Escape') setEditSubBudget(null)
+                                            }}
+                                          />
+                                        ) : (
+                                          <button
+                                            className="budget-limit-btn budget-limit-btn-sm"
+                                            onClick={() => setEditSubBudget({ subId: s.id })}
+                                            title={t(lang, 'set_budget')}
+                                          >
+                                            {subBudget > 0 ? `/ ${fmt(subBudget)}` : '—'}
+                                          </button>
+                                        )
+                                      )}
+                                      <span className="budget-subcat-pct">{subPct}%</span>
+                                    </div>
+                                    {subBudget > 0 && (
+                                      <div className="budget-bar-track budget-bar-track-sm">
+                                        <div className={`budget-bar-fill ${subBarCls}`} style={{ width: `${Math.min(100, subRatio * 100)}%` }} />
+                                      </div>
+                                    )}
                                   </div>
                                 )
                               })}

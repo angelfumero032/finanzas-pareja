@@ -961,6 +961,10 @@ html, body { overscroll-behavior: none; }
 .budget-subcat-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .budget-subcat-amt { font-weight: 600; color: var(--text); flex-shrink: 0; }
 .budget-subcat-pct { color: var(--text3); flex-shrink: 0; min-width: 2.4rem; text-align: right; }
+.budget-subcat-block { display: flex; flex-direction: column; gap: 0.15rem; }
+.budget-limit-btn-sm { font-size: 0.72rem; flex-shrink: 0; }
+.budget-inline-input-sm { width: 60px; font-size: 0.82rem; }
+.budget-bar-track-sm { height: 3px; }
 
 /* ── Banner de bienvenida ── */
 .welcome-banner {
