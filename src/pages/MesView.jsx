@@ -11,6 +11,7 @@ import ImportarCSVModal from '../components/ImportarCSVModal'
 import PlantillasModal from '../components/PlantillasModal'
 import AhorroSection from '../components/AhorroSection'
 import BusquedaGlobal from '../components/BusquedaGlobal'
+import GuiaModal from '../components/GuiaModal'
 
 const CAT_PALETTE = [
   '#6366f1', '#f59e0b', '#10b981', '#ef4444',
@@ -143,6 +144,9 @@ export default function MesView() {
   // Búsqueda global entre meses
   const [showGlobalSearch, setShowGlobalSearch] = useState(false)
 
+  // Guía rápida
+  const [showGuide, setShowGuide] = useState(false)
+
   // Toast notifications (supports undo action)
   const [toast, setToast] = useState(null)
   const toastTimer = useRef(null)
@@ -239,27 +243,6 @@ export default function MesView() {
   // Totales de la hucha (informados por AhorroSection)
   const [huchaTotals, setHuchaTotals] = useState(null)
   const onHuchaTotals = useCallback((t2) => setHuchaTotals(t2), [])
-
-  // Monthly savings goal (per-device, per-household)
-  const [savingsGoal, setSavingsGoal] = useState(null)
-  const [editingGoal, setEditingGoal] = useState(false)
-  const [goalInput, setGoalInput] = useState('')
-  useEffect(() => {
-    if (!hogarId) return
-    const stored = localStorage.getItem(`savings_goal_${hogarId}`)
-    setSavingsGoal(stored ? parseFloat(stored) : null)
-  }, [hogarId])
-  function saveGoal(val) {
-    const n = parseFloat(String(val).replace(',', '.'))
-    if (!isNaN(n) && n > 0) {
-      localStorage.setItem(`savings_goal_${hogarId}`, String(n))
-      setSavingsGoal(n)
-    } else {
-      localStorage.removeItem(`savings_goal_${hogarId}`)
-      setSavingsGoal(null)
-    }
-    setEditingGoal(false)
-  }
 
   // Month notes (per device, per household, per month)
   const monthNoteKey = hogarId ? `month_note_${hogarId}_${anio}_${mes}` : null
@@ -360,10 +343,10 @@ export default function MesView() {
 
   // Bloquear scroll del body cuando hay un panel/modal abierto (fix iOS)
   useEffect(() => {
-    const locked = modalOpen || showActivity || showHelp || showCatsModal || showImportModal || showPlantillasModal || showGlobalSearch
+    const locked = modalOpen || showActivity || showHelp || showCatsModal || showImportModal || showPlantillasModal || showGlobalSearch || showGuide
     document.body.style.overflow = locked ? 'hidden' : ''
     return () => { document.body.style.overflow = '' }
-  }, [modalOpen, showActivity, showHelp, showCatsModal, showImportModal, showPlantillasModal, showGlobalSearch])
+  }, [modalOpen, showActivity, showHelp, showCatsModal, showImportModal, showPlantillasModal, showGlobalSearch, showGuide])
 
   // ── Tendencia: últimos 6 meses ──
   const loadTrend = useCallback(async () => {
@@ -964,6 +947,19 @@ export default function MesView() {
     URL.revokeObjectURL(url)
   }
 
+  // ── Copiar resumen del mes al portapapeles ──
+  function copiarResumen() {
+    const monthLabel = `${MONTHS[lang][mes - 1]} ${anio}`
+    const lines = [monthLabel]
+    if (totalIngresos > 0) lines.push(`${t(lang, 'total_income')}: ${fmt(totalIngresos)}`)
+    if (totalGastos > 0) lines.push(`${t(lang, 'total_expenses')}: ${fmt(totalGastos)}`)
+    lines.push(`${t(lang, 'balance')}: ${balance >= 0 ? '+' : ''}${fmt(balance)}`)
+    if (totalPresupuestado > 0) lines.push(`${t(lang, 'budget_total')}: ${fmt(totalGastadoConPresupuesto)} / ${fmt(totalPresupuestado)}`)
+    if (huchaTotals?.total > 0) lines.push(`🐷 ${lang === 'es' ? 'Hucha' : 'Pot'}: ${fmt(huchaTotals.total)}${huchaTotals.mesActual > 0 ? ` (+${fmt(huchaTotals.mesActual)})` : ''}`)
+    if (monthNote) lines.push(`📝 ${monthNote}`)
+    navigator.clipboard?.writeText(lines.join('\n')).then(() => showToast(lang === 'es' ? 'Resumen copiado' : 'Summary copied'))
+  }
+
   // ── Backup completo del hogar (JSON) ──
   async function handleBackup() {
     try {
@@ -1393,6 +1389,14 @@ export default function MesView() {
           >
             🔍
           </button>
+          <button
+            className="btn-icon btn-guide"
+            onClick={() => setShowGuide(true)}
+            title={lang === 'es' ? 'Cómo funciona' : 'How it works'}
+            aria-label={lang === 'es' ? 'Cómo funciona' : 'How it works'}
+          >
+            ?
+          </button>
           <button className="campana-btn" onClick={handleOpenActivity} title={t(lang, 'activity_title')}>
             🔔
             {unread > 0 && (
@@ -1478,53 +1482,70 @@ export default function MesView() {
           </div>
         </div>
 
-        {/* Days remaining (current month only) */}
-        {isCurrentMonth && !loading && (() => {
+        {/* Fila compacta: días restantes · semana · copiar · nota (menos ruido vertical) */}
+        {!loading && (() => {
           const daysInMonth = new Date(anio, mes, 0).getDate()
-          const daysLeft = daysInMonth - todayDate.getDate()
-          if (daysLeft <= 0) return null
+          const daysLeft = isCurrentMonth ? daysInMonth - todayDate.getDate() : 0
+          const hasData = totalIngresos > 0 || totalGastos > 0
+          if (!hasData && daysLeft <= 0 && !monthNoteKey) return null
           return (
-            <div className="month-stats-row">
-              <span className="month-stat-chip month-stat-daysleft" title={lang === 'es' ? 'Días restantes del mes' : 'Days remaining in month'}>
-                📅 {daysLeft} {lang === 'es' ? 'días restantes' : 'days left'}
-              </span>
+            <div className="quick-bits">
+              {daysLeft > 0 && (
+                <span className="quick-chip" title={lang === 'es' ? 'Días restantes del mes' : 'Days remaining'}>
+                  📅 {daysLeft}{lang === 'es' ? ' días' : ' days'}
+                </span>
+              )}
+              {thisWeekStats && (
+                <span className="quick-chip" title={lang === 'es' ? 'Esta semana' : 'This week'}>
+                  {lang === 'es' ? 'Semana' : 'Week'}
+                  {thisWeekStats.gastos > 0 && <b className="qc-exp"> −{fmtK(thisWeekStats.gastos)}</b>}
+                  {thisWeekStats.ingresos > 0 && <b className="qc-inc"> +{fmtK(thisWeekStats.ingresos)}</b>}
+                </span>
+              )}
+              {hasData && (
+                <button className="quick-chip quick-chip-btn" onClick={copiarResumen}
+                  title={lang === 'es' ? 'Copiar resumen al portapapeles' : 'Copy summary to clipboard'}>
+                  📋 {lang === 'es' ? 'Copiar' : 'Copy'}
+                </button>
+              )}
+              {monthNoteKey && !editingNote && (
+                monthNote ? (
+                  <button className="quick-chip quick-chip-btn" onClick={() => setEditingNote(true)}
+                    title={lang === 'es' ? 'Editar nota del mes' : 'Edit month note'}>
+                    📝 {monthNote.length > 26 ? monthNote.slice(0, 26) + '…' : monthNote}
+                  </button>
+                ) : (
+                  <button className="quick-chip quick-chip-btn quick-chip-ghost" onClick={() => setEditingNote(true)}>
+                    + {lang === 'es' ? 'Nota' : 'Note'}
+                  </button>
+                )
+              )}
             </div>
           )
         })()}
-
-        {/* Share month summary */}
-        {(totalIngresos > 0 || totalGastos > 0) && !loading && (
-          <button
-            className="share-summary-btn"
-            onClick={() => {
-              const monthLabel = `${MONTHS[lang][mes - 1]} ${anio}`
-              const lines = [monthLabel]
-              if (totalIngresos > 0) lines.push(`${t(lang, 'total_income')}: ${fmt(totalIngresos)}`)
-              if (totalGastos > 0) lines.push(`${t(lang, 'total_expenses')}: ${fmt(totalGastos)}`)
-              lines.push(`${t(lang, 'balance')}: ${balance >= 0 ? '+' : ''}${fmt(balance)}`)
-              if (totalPresupuestado > 0) lines.push(`${t(lang, 'budget_total')}: ${fmt(totalGastadoConPresupuesto)} / ${fmt(totalPresupuestado)}`)
-              if (huchaTotals?.total > 0) lines.push(`🐷 ${lang === 'es' ? 'Hucha' : 'Pot'}: ${fmt(huchaTotals.total)}${huchaTotals.mesActual > 0 ? ` (+${fmt(huchaTotals.mesActual)})` : ''}`)
-              if (monthNote) lines.push(`📝 ${monthNote}`)
-              navigator.clipboard?.writeText(lines.join('\n')).then(() => showToast(lang === 'es' ? 'Resumen copiado' : 'Summary copied'))
-            }}
-            title={lang === 'es' ? 'Copiar resumen al portapapeles' : 'Copy summary to clipboard'}
+        {editingNote && (
+          <form
+            className="month-note-form"
+            onSubmit={e => { e.preventDefault(); saveMonthNote(e.target.elements.note.value) }}
           >
-            <span aria-hidden="true">📋</span>
-            {lang === 'es' ? 'Copiar resumen' : 'Copy summary'}
-          </button>
-        )}
-
-        {/* This week mini-summary (current month only) */}
-        {thisWeekStats && !loading && (
-          <div className="this-week-row">
-            <span className="this-week-label">{lang === 'es' ? 'Esta semana' : 'This week'}</span>
-            {thisWeekStats.gastos > 0 && (
-              <span className="this-week-exp">−{fmt(thisWeekStats.gastos)}</span>
+            <input
+              name="note"
+              type="text"
+              className="month-note-input"
+              defaultValue={monthNote}
+              autoFocus
+              maxLength={80}
+              placeholder={lang === 'es' ? 'Nota del mes…' : 'Month note…'}
+              onKeyDown={e => { if (e.key === 'Escape') setEditingNote(false) }}
+            />
+            <button type="submit" className="btn-sm btn-primary">OK</button>
+            <button type="button" className="btn-sm btn-secondary" onClick={() => setEditingNote(false)}>{t(lang, 'cancel')}</button>
+            {monthNote && (
+              <button type="button" className="btn-sm btn-secondary" onClick={() => saveMonthNote('')}>
+                {lang === 'es' ? 'Borrar' : 'Clear'}
+              </button>
             )}
-            {thisWeekStats.ingresos > 0 && (
-              <span className="this-week-inc">+{fmt(thisWeekStats.ingresos)}</span>
-            )}
-          </div>
+          </form>
         )}
 
         {/* Budget health score (past months only) */}
@@ -1539,70 +1560,6 @@ export default function MesView() {
                 <> · {budgetHealthScore.overCount}/{budgetHealthScore.total} {lang === 'es' ? 'cat. sobrepasadas' : 'cats over'}</>
               )}
             </span>
-          </div>
-        )}
-
-        {/* Savings goal progress */}
-        {totalIngresos > 0 && (
-          <div className="savings-goal-row">
-            {editingGoal ? (
-              <form
-                className="savings-goal-form"
-                onSubmit={e => { e.preventDefault(); saveGoal(goalInput) }}
-              >
-                <label className="savings-goal-form-label">
-                  {lang === 'es' ? 'Meta de ahorro (€):' : 'Savings goal (€):'}
-                </label>
-                <input
-                  className="savings-goal-input"
-                  type="number"
-                  min="0"
-                  step="1"
-                  value={goalInput}
-                  onChange={e => setGoalInput(e.target.value)}
-                  autoFocus
-                  placeholder="0"
-                  onFocus={e => e.target.select()}
-                  onBlur={() => saveGoal(goalInput)}
-                  onKeyDown={e => e.key === 'Escape' && setEditingGoal(false)}
-                />
-                <button type="submit" className="btn-sm btn-primary">
-                  {t(lang, 'save')}
-                </button>
-                <button type="button" className="btn-sm btn-secondary"
-                  onClick={() => setEditingGoal(false)}>
-                  {t(lang, 'cancel')}
-                </button>
-              </form>
-            ) : savingsGoal ? (
-              <>
-                <div className="savings-goal-track">
-                  <div
-                    className={`savings-goal-fill${balance >= savingsGoal ? ' savings-goal-done' : ''}`}
-                    style={{ width: `${Math.min(100, Math.max(0, balance / savingsGoal * 100))}%` }}
-                  />
-                </div>
-                <span className={`savings-goal-pct ${balance >= savingsGoal ? 'delta-pos' : balance < 0 ? 'delta-neg' : ''}`}>
-                  {balance >= savingsGoal
-                    ? '✓'
-                    : `${Math.round(Math.max(0, balance) / savingsGoal * 100)}%`}
-                </span>
-                <button
-                  className="savings-goal-label-btn"
-                  onClick={() => { setGoalInput(String(savingsGoal)); setEditingGoal(true) }}
-                  title={lang === 'es' ? 'Editar meta de ahorro' : 'Edit savings goal'}
-                >
-                  {lang === 'es' ? `Meta: ${fmt(savingsGoal)}` : `Goal: ${fmt(savingsGoal)}`}
-                </button>
-              </>
-            ) : (
-              <button
-                className="savings-goal-add-btn"
-                onClick={() => { setGoalInput(''); setEditingGoal(true) }}
-              >
-                {lang === 'es' ? '+ Meta de ahorro' : '+ Savings goal'}
-              </button>
-            )}
           </div>
         )}
 
@@ -1685,46 +1642,6 @@ export default function MesView() {
                 </button>
               ))}
             </div>
-          </div>
-        )}
-
-        {/* Month note */}
-        {!loading && monthNoteKey && (
-          <div className="month-note-wrap">
-            {editingNote ? (
-              <form
-                className="month-note-form"
-                onSubmit={e => { e.preventDefault(); saveMonthNote(e.target.elements.note.value) }}
-              >
-                <input
-                  name="note"
-                  type="text"
-                  className="month-note-input"
-                  defaultValue={monthNote}
-                  autoFocus
-                  maxLength={80}
-                  placeholder={lang === 'es' ? 'Nota del mes…' : 'Month note…'}
-                  onKeyDown={e => { if (e.key === 'Escape') setEditingNote(false) }}
-                />
-                <button type="submit" className="btn-sm btn-primary">{lang === 'es' ? 'OK' : 'OK'}</button>
-                <button type="button" className="btn-sm btn-secondary" onClick={() => setEditingNote(false)}>{t(lang, 'cancel')}</button>
-                {monthNote && (
-                  <button type="button" className="btn-sm btn-secondary" onClick={() => saveMonthNote('')}>
-                    {lang === 'es' ? 'Borrar' : 'Clear'}
-                  </button>
-                )}
-              </form>
-            ) : monthNote ? (
-              <button className="month-note-display" onClick={() => setEditingNote(true)}>
-                <span className="month-note-icon" aria-hidden="true">📝</span>
-                <span className="month-note-text">{monthNote}</span>
-                <span className="month-note-edit-hint">{lang === 'es' ? 'editar' : 'edit'}</span>
-              </button>
-            ) : (
-              <button className="month-note-add-btn" onClick={() => setEditingNote(true)}>
-                <span aria-hidden="true">+</span> {lang === 'es' ? 'Nota del mes' : 'Add month note'}
-              </button>
-            )}
           </div>
         )}
 
@@ -1901,38 +1818,6 @@ export default function MesView() {
               <div className="section-header">
                 <h2 className="section-title">{t(lang, 'budget_section')}</h2>
                 <div className="section-header-actions">
-                  <button className="btn-sm btn-secondary" onClick={handleCopyBudgetFromLastMonth}>
-                    {t(lang, 'copy_budget_prev')}
-                  </button>
-                  {gastosCats.some(c => (gastoPorCat[c.id] ?? 0) > 0 && !(presupuestoPorCat[c.id] > 0)) && (
-                    <button
-                      className="btn-sm btn-secondary"
-                      onClick={handleSuggestBudgets}
-                      title={lang === 'es'
-                        ? 'Crear presupuestos con la media de gasto de los últimos 3 meses'
-                        : 'Create budgets from the last 3 months’ spending average'}
-                    >
-                      {lang === 'es' ? '✨ Sugerir' : '✨ Suggest'}
-                    </button>
-                  )}
-                  {presupuestos.length > 0 && mes < 12 && (
-                    <button
-                      className="btn-sm btn-secondary"
-                      onClick={handleApplyBudgetToYear}
-                      title={lang === 'es' ? 'Copiar este presupuesto a todos los meses restantes del año' : 'Copy this budget to all remaining months of the year'}
-                    >
-                      {lang === 'es' ? '→ año' : '→ year'}
-                    </button>
-                  )}
-                  {gastosCats.some(c => (gastoPorCat[c.id] ?? 0) === 0 && !(presupuestoPorCat[c.id] > 0)) && (
-                    <button
-                      className={`btn-sm btn-secondary${hideZeroCats ? ' btn-secondary-active' : ''}`}
-                      onClick={() => setHideZeroCats(h => !h)}
-                      title={lang === 'es' ? 'Ocultar categorías sin gasto ni presupuesto' : 'Hide zero-spend categories'}
-                    >
-                      {hideZeroCats ? (lang === 'es' ? 'Mostrar todas' : 'Show all') : (lang === 'es' ? 'Ocultar ceros' : 'Hide zeros')}
-                    </button>
-                  )}
                   <button
                     className="btn-icon"
                     onClick={() => setShowCatsModal(true)}
@@ -1961,6 +1846,42 @@ export default function MesView() {
               )}
 
               {!budgetCollapsed && <>
+
+              {/* Herramientas de presupuesto (fila propia, no compiten con el título) */}
+              <div className="section-tools">
+                <button className="tool-chip" onClick={handleCopyBudgetFromLastMonth}>
+                  {t(lang, 'copy_budget_prev')}
+                </button>
+                {gastosCats.some(c => (gastoPorCat[c.id] ?? 0) > 0 && !(presupuestoPorCat[c.id] > 0)) && (
+                  <button
+                    className="tool-chip"
+                    onClick={handleSuggestBudgets}
+                    title={lang === 'es'
+                      ? 'Crear presupuestos con la media de gasto de los últimos 3 meses'
+                      : 'Create budgets from the last 3 months’ spending average'}
+                  >
+                    ✨ {lang === 'es' ? 'Sugerir' : 'Suggest'}
+                  </button>
+                )}
+                {presupuestos.length > 0 && mes < 12 && (
+                  <button
+                    className="tool-chip"
+                    onClick={handleApplyBudgetToYear}
+                    title={lang === 'es' ? 'Copiar este presupuesto a todos los meses restantes del año' : 'Copy this budget to all remaining months of the year'}
+                  >
+                    {lang === 'es' ? '→ año' : '→ year'}
+                  </button>
+                )}
+                {gastosCats.some(c => (gastoPorCat[c.id] ?? 0) === 0 && !(presupuestoPorCat[c.id] > 0)) && (
+                  <button
+                    className={`tool-chip${hideZeroCats ? ' tool-chip-active' : ''}`}
+                    onClick={() => setHideZeroCats(h => !h)}
+                    title={lang === 'es' ? 'Ocultar categorías sin gasto ni presupuesto' : 'Hide zero-spend categories'}
+                  >
+                    {hideZeroCats ? (lang === 'es' ? 'Mostrar todas' : 'Show all') : (lang === 'es' ? 'Ocultar ceros' : 'Hide zeros')}
+                  </button>
+                )}
+              </div>
 
               {/* Por asignar (YNAB: dale un destino a cada euro) */}
               {totalIngresos > 0 && totalPresupuestado > 0 && (() => {
@@ -2319,14 +2240,6 @@ export default function MesView() {
               <div className="section-header">
                 <h2 className="section-title">{t(lang, 'movements_section')}</h2>
                 <div className="section-header-actions">
-                  <button className="btn-sm btn-secondary" onClick={() => setShowImportModal(true)}>
-                    {t(lang, 'import_csv')}
-                  </button>
-                  {movimientos.length > 0 && (
-                    <button className="btn-sm btn-secondary" onClick={exportarCSV}>
-                      {t(lang, 'export_csv')}
-                    </button>
-                  )}
                   <button
                     className="btn-sm btn-primary"
                     onClick={() => { setEditMov(null); setModalOpen(true) }}
@@ -2687,15 +2600,6 @@ export default function MesView() {
                   )}
                   <button
                     className="btn-sm btn-secondary"
-                    onClick={handleBackup}
-                    title={lang === 'es'
-                      ? 'Descargar copia completa del hogar (movimientos, presupuestos, hucha, objetivos, plantillas) en JSON'
-                      : 'Download a full household backup (movements, budgets, pot, goals, templates) as JSON'}
-                  >
-                    {lang === 'es' ? '⬇ Backup' : '⬇ Backup'}
-                  </button>
-                  <button
-                    className="btn-sm btn-secondary"
                     onClick={() => setShowYearView(v => !v)}
                   >
                     {showYearView ? t(lang, 'year_hide') : t(lang, 'year_show')}
@@ -2790,6 +2694,30 @@ export default function MesView() {
                 ) : null
               )}
             </section>
+
+            {/* Datos: importar / exportar / backup (discreto, al final) */}
+            <section className="section section-datos" style={{ order: 10 }}>
+              <h2 className="section-title">{lang === 'es' ? 'Datos' : 'Data'}</h2>
+              <div className="section-tools">
+                <button className="tool-chip" onClick={() => setShowImportModal(true)}>
+                  ⤵ {t(lang, 'import_csv')}
+                </button>
+                {movimientos.length > 0 && (
+                  <button className="tool-chip" onClick={exportarCSV}>
+                    ⤴ {t(lang, 'export_csv')} · {MONTHS[lang][mes - 1].slice(0, 3)}
+                  </button>
+                )}
+                <button
+                  className="tool-chip"
+                  onClick={handleBackup}
+                  title={lang === 'es'
+                    ? 'Descargar copia completa del hogar (movimientos, presupuestos, hucha, objetivos, plantillas) en JSON'
+                    : 'Download a full household backup as JSON'}
+                >
+                  ⬇ {lang === 'es' ? 'Copia de seguridad' : 'Backup'}
+                </button>
+              </div>
+            </section>
           </>
         )}
 
@@ -2870,6 +2798,14 @@ export default function MesView() {
         recentConceptos={recentConceptos}
         gastoPorCat={gastoPorCat}
         presupuestoPorCat={presupuestoPorCat}
+      />
+
+      {/* Guía rápida */}
+      <GuiaModal
+        open={showGuide}
+        onClose={() => setShowGuide(false)}
+        lang={lang}
+        onShowShortcuts={() => setShowHelp(true)}
       />
 
       {/* Búsqueda global */}

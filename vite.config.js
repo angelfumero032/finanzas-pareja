@@ -8,6 +8,13 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      // Aplicar actualizaciones al instante: el SW nuevo toma el control
+      // sin esperar a cerrar la app instalada
+      workbox: {
+        skipWaiting: true,
+        clientsClaim: true,
+        cleanupOutdatedCaches: true,
+      },
       includeAssets: ['favicon.svg'],
       manifest: {
         name: 'Finanzas en pareja',

@@ -274,7 +274,8 @@ function SpendingCalendar({ byDay, anio, mes, lang, fmt, onSelectDate, selectedD
 }
 
 export default function GraficasMes({ lang, gastoPorCat, categorias, trendData, fmt, onSelectCat, catColors, catMap, insights, selectedCatId, spendingByDay, anio, mes, onSelectDate, selectedDate, order, onMoveUp, onMoveDown }) {
-  const [collapsed, setCollapsed] = useState(() => localStorage.getItem('sec_charts_collapsed') === '1')
+  // Contraída por defecto (armonía visual); se recuerda lo que elija el usuario
+  const [collapsed, setCollapsed] = useState(() => (localStorage.getItem('sec_charts_collapsed') ?? '1') === '1')
   function toggleCollapsed() {
     setCollapsed(v => { localStorage.setItem('sec_charts_collapsed', v ? '' : '1'); return !v })
   }

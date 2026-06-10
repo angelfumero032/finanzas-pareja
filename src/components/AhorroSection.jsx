@@ -23,6 +23,27 @@ export default function AhorroSection({ lang, hogarId, userId, fmt, balance, ani
   const [goalPresupuesto, setGoalPresupuesto] = useState('')
   const [goalMensual, setGoalMensual] = useState('')
 
+  // Meta de ahorro mensual (misma clave que usaba el resumen superior)
+  const [metaMensual, setMetaMensual] = useState(null)
+  const [editingMeta, setEditingMeta] = useState(false)
+  const [metaInput, setMetaInput] = useState('')
+  useEffect(() => {
+    if (!hogarId) return
+    const stored = localStorage.getItem(`savings_goal_${hogarId}`)
+    setMetaMensual(stored ? parseFloat(stored) : null)
+  }, [hogarId])
+  function saveMeta(val) {
+    const n = parseFloat(String(val).replace(',', '.'))
+    if (!isNaN(n) && n > 0) {
+      localStorage.setItem(`savings_goal_${hogarId}`, String(n))
+      setMetaMensual(n)
+    } else {
+      localStorage.removeItem(`savings_goal_${hogarId}`)
+      setMetaMensual(null)
+    }
+    setEditingMeta(false)
+  }
+
   const [expanded, setExpanded] = useState(() => localStorage.getItem('ahorro_expanded') !== '0')
   function toggleExpanded() {
     setExpanded(v => { localStorage.setItem('ahorro_expanded', v ? '0' : '1'); return !v })
@@ -188,6 +209,52 @@ export default function AhorroSection({ lang, hogarId, userId, fmt, balance, ani
             </button>
           )}
         </div>
+      </div>
+
+      {/* Meta de ahorro mensual */}
+      <div className="ahorro-meta-row">
+        {editingMeta ? (
+          <form className="savings-goal-form" onSubmit={e => { e.preventDefault(); saveMeta(metaInput) }}>
+            <label className="savings-goal-form-label">{es ? 'Meta mensual (€):' : 'Monthly goal (€):'}</label>
+            <input
+              className="savings-goal-input"
+              type="number"
+              min="0"
+              step="1"
+              value={metaInput}
+              onChange={e => setMetaInput(e.target.value)}
+              autoFocus
+              placeholder="0"
+              onFocus={e => e.target.select()}
+              onKeyDown={e => e.key === 'Escape' && setEditingMeta(false)}
+            />
+            <button type="submit" className="btn-sm btn-primary">{t(lang, 'save')}</button>
+            <button type="button" className="btn-sm btn-secondary" onClick={() => setEditingMeta(false)}>{t(lang, 'cancel')}</button>
+          </form>
+        ) : metaMensual ? (
+          <>
+            <div className="savings-goal-track">
+              <div
+                className={`savings-goal-fill${ahorradoEsteMes >= metaMensual ? ' savings-goal-done' : ''}`}
+                style={{ width: `${Math.min(100, Math.max(0, ahorradoEsteMes / metaMensual * 100))}%` }}
+              />
+            </div>
+            <span className={`savings-goal-pct ${ahorradoEsteMes >= metaMensual ? 'delta-pos' : ''}`}>
+              {ahorradoEsteMes >= metaMensual ? '✓' : `${Math.round(Math.max(0, ahorradoEsteMes) / metaMensual * 100)}%`}
+            </span>
+            <button
+              className="savings-goal-label-btn"
+              onClick={() => { setMetaInput(String(metaMensual)); setEditingMeta(true) }}
+              title={es ? 'Editar meta mensual' : 'Edit monthly goal'}
+            >
+              {es ? `Meta del mes: ${fmt(metaMensual)}` : `Monthly goal: ${fmt(metaMensual)}`}
+            </button>
+          </>
+        ) : (
+          <button className="savings-goal-add-btn" onClick={() => { setMetaInput(''); setEditingMeta(true) }}>
+            + {es ? 'Meta mensual de ahorro' : 'Monthly savings goal'}
+          </button>
+        )}
       </div>
 
       {showAporte && (
