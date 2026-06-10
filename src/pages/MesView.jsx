@@ -1908,6 +1908,7 @@ export default function MesView() {
               isCurrentMonth={isCurrentMonth}
               showToast={showToast}
               categorias={categorias}
+              subcategorias={subcategorias}
               order={orderOf('ahorro')}
               onTotals={onHuchaTotals}
               {...moveProps('ahorro')}

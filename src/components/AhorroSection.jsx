@@ -1,20 +1,29 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { t } from '../i18n'
+import { trCat } from '../data/catNames'
 
 // Hucha común: fondo de ahorro compartido + objetivos.
 // Resiliente: si la migración 004 no está aplicada, la sección no se muestra.
-export default function AhorroSection({ lang, hogarId, userId, fmt, balance, anio, mes, isCurrentMonth, showToast, categorias = [], order, onMoveUp, onMoveDown, onTotals }) {
+export default function AhorroSection({ lang, hogarId, userId, fmt, balance, anio, mes, isCurrentMonth, showToast, categorias = [], subcategorias = [], order, onMoveUp, onMoveDown, onTotals }) {
   const [available, setAvailable] = useState(true) // tables exist?
   const [aportes, setAportes] = useState([])       // all-time
   const [objetivos, setObjetivos] = useState([])
   const [loading, setLoading] = useState(true)
 
-  // Contribute form
+  // Contribute form (deposit)
   const [showAporte, setShowAporte] = useState(false)
   const [aporteImporte, setAporteImporte] = useState('')
   const [aporteObjetivo, setAporteObjetivo] = useState('')
   const [aporteNota, setAporteNota] = useState('')
+
+  // Withdrawal form
+  const [showRetirada, setShowRetirada] = useState(false)
+  const [retiradaImporte, setRetiradaImporte] = useState('')
+  const [retiradaObjetivo, setRetiradaObjetivo] = useState('')
+  const [retiradaCatId, setRetiradaCatId] = useState('')
+  const [retiradaSubcatId, setRetiradaSubcatId] = useState('')
+  const [retiradaNota, setRetiradaNota] = useState('')
 
   // Goal form
   const [showGoalForm, setShowGoalForm] = useState(false)
@@ -23,7 +32,7 @@ export default function AhorroSection({ lang, hogarId, userId, fmt, balance, ani
   const [goalPresupuesto, setGoalPresupuesto] = useState('')
   const [goalMensual, setGoalMensual] = useState('')
 
-  // Meta de ahorro mensual (misma clave que usaba el resumen superior)
+  // Meta de ahorro mensual
   const [metaMensual, setMetaMensual] = useState(null)
   const [editingMeta, setEditingMeta] = useState(false)
   const [metaInput, setMetaInput] = useState('')
@@ -67,7 +76,6 @@ export default function AhorroSection({ lang, hogarId, userId, fmt, balance, ani
   }, [hogarId])
   useEffect(() => { load() }, [load])
 
-  // Realtime sync between partners
   useEffect(() => {
     if (!hogarId || !available) return
     const channel = supabase
@@ -83,7 +91,6 @@ export default function AhorroSection({ lang, hogarId, userId, fmt, balance, ani
     () => aportes.filter(a => a.anio === anio && a.mes === mes).reduce((s, a) => s + Number(a.importe), 0),
     [aportes, anio, mes]
   )
-  // Informar al padre (resumen copiado, etc.)
   useEffect(() => {
     if (available) onTotals?.({ total: totalAhorrado, mesActual: ahorradoEsteMes })
   }, [available, totalAhorrado, ahorradoEsteMes, onTotals])
@@ -94,10 +101,19 @@ export default function AhorroSection({ lang, hogarId, userId, fmt, balance, ani
     return m
   }, [aportes])
 
+  // Subcategorías filtradas por categoría seleccionada en el form de retirada
+  const subcatsRetirada = useMemo(
+    () => retiradaCatId ? subcategorias.filter(s => s.categoria_id === retiradaCatId) : [],
+    [subcategorias, retiradaCatId]
+  )
+
+  function closeAporte() { setShowAporte(false); setAporteImporte(''); setAporteObjetivo(''); setAporteNota('') }
+  function closeRetirada() { setShowRetirada(false); setRetiradaImporte(''); setRetiradaObjetivo(''); setRetiradaCatId(''); setRetiradaSubcatId(''); setRetiradaNota('') }
+
   async function handleAportar(e) {
     e.preventDefault()
     const n = parseFloat(String(aporteImporte).replace(',', '.'))
-    if (isNaN(n) || n === 0) return
+    if (isNaN(n) || n <= 0) return
     const { error } = await supabase.from('ahorro_aportes').insert({
       hogar_id: hogarId,
       objetivo_id: aporteObjetivo || null,
@@ -106,23 +122,52 @@ export default function AhorroSection({ lang, hogarId, userId, fmt, balance, ani
       creado_por: userId ?? null,
     })
     if (error) { showToast(t(lang, 'save_error'), 'error'); return }
-    // El aporte cuenta en el balance del mes: se registra como movimiento
-    // (gasto si entra en la hucha, ingreso si se retira)
     const ahorroCat = categorias.find(c => c.tipo === 'gasto' && /^ahorro$/i.test(c.nombre.trim()))
     const objetivoNombre = aporteObjetivo ? objetivos.find(o => o.id === aporteObjetivo)?.nombre : null
     await supabase.from('movimientos').insert({
       hogar_id: hogarId,
-      tipo: n > 0 ? 'gasto' : 'ingreso',
-      importe: Math.abs(n),
+      tipo: 'gasto',
+      importe: n,
       fecha: new Date().toISOString().slice(0, 10),
-      categoria_id: n > 0 ? (ahorroCat?.id ?? null) : null,
-      concepto: n > 0
-        ? `🐷 ${objetivoNombre ?? (lang === 'es' ? 'Hucha común' : 'Shared pot')}`
-        : `🐷 ${lang === 'es' ? 'Retirada de la hucha' : 'Pot withdrawal'}`,
+      categoria_id: ahorroCat?.id ?? null,
+      concepto: `🐷 ${objetivoNombre ?? (lang === 'es' ? 'Hucha común' : 'Shared pot')}`,
       nota: aporteNota.trim() || null,
       creado_por: userId ?? null,
     })
-    setShowAporte(false); setAporteImporte(''); setAporteObjetivo(''); setAporteNota('')
+    closeAporte()
+    showToast(t(lang, 'saved_ok'))
+    load()
+  }
+
+  async function handleRetirar(e) {
+    e.preventDefault()
+    const n = parseFloat(String(retiradaImporte).replace(',', '.'))
+    if (isNaN(n) || n <= 0) return
+    if (n > totalAhorrado) {
+      showToast(lang === 'es' ? 'No hay suficiente en la hucha' : 'Not enough in the pot', 'error')
+      return
+    }
+    const { error } = await supabase.from('ahorro_aportes').insert({
+      hogar_id: hogarId,
+      objetivo_id: retiradaObjetivo || null,
+      importe: -n,
+      nota: retiradaNota.trim() || null,
+      creado_por: userId ?? null,
+    })
+    if (error) { showToast(t(lang, 'save_error'), 'error'); return }
+    const objetivoNombre = retiradaObjetivo ? objetivos.find(o => o.id === retiradaObjetivo)?.nombre : null
+    await supabase.from('movimientos').insert({
+      hogar_id: hogarId,
+      tipo: 'ingreso',
+      importe: n,
+      fecha: new Date().toISOString().slice(0, 10),
+      categoria_id: retiradaCatId || null,
+      subcategoria_id: retiradaSubcatId || null,
+      concepto: `🐷 ${lang === 'es' ? 'Retirada' : 'Withdrawal'}${objetivoNombre ? ` — ${objetivoNombre}` : ''}`,
+      nota: retiradaNota.trim() || null,
+      creado_por: userId ?? null,
+    })
+    closeRetirada()
     showToast(t(lang, 'saved_ok'))
     load()
   }
@@ -167,9 +212,11 @@ export default function AhorroSection({ lang, hogarId, userId, fmt, balance, ani
 
   if (!available || (loading && aportes.length === 0 && objetivos.length === 0)) return null
 
-  // El balance ya descuenta los aportes (se registran como movimiento)
   const puedeAhorrar = isCurrentMonth && balance > 0 ? balance : 0
   const es = lang === 'es'
+  const gastosCats = categorias.filter(c => c.tipo === 'gasto')
+  const ingresosCats = categorias.filter(c => c.tipo === 'ingreso')
+  const todasCats = [...gastosCats, ...ingresosCats]
 
   return (
     <section className="section section-ahorro" style={order ? { order } : undefined}>
@@ -178,8 +225,11 @@ export default function AhorroSection({ lang, hogarId, userId, fmt, balance, ani
           <span aria-hidden="true">🐷</span> {es ? 'Hucha común' : 'Shared pot'}
         </h2>
         <div className="section-header-actions">
-          <button className="btn-sm btn-pot" onClick={() => setShowAporte(v => !v)}>
-            {es ? '+ Aportar' : '+ Add to pot'}
+          <button className="btn-sm btn-pot" onClick={() => { closeRetirada(); setShowAporte(v => !v) }}>
+            {es ? '+ Aportar' : '+ Deposit'}
+          </button>
+          <button className="btn-sm btn-pot-withdraw" onClick={() => { closeAporte(); setShowRetirada(v => !v) }}>
+            {es ? '− Retirar' : '− Withdraw'}
           </button>
           {onMoveUp && <button className="btn-icon section-move-btn" onClick={onMoveUp} title={es ? 'Subir sección' : 'Move up'}>↑</button>}
           {onMoveDown && <button className="btn-icon section-move-btn" onClick={onMoveDown} title={es ? 'Bajar sección' : 'Move down'}>↓</button>}
@@ -195,14 +245,14 @@ export default function AhorroSection({ lang, hogarId, userId, fmt, balance, ani
           <span className="ahorro-total-value">{fmt(totalAhorrado)}</span>
         </div>
         <div className="ahorro-total-side">
-          <span className={`ahorro-mes ${ahorradoEsteMes > 0 ? 'delta-pos' : ''}`}>
+          <span className={`ahorro-mes ${ahorradoEsteMes > 0 ? 'delta-pos' : ahorradoEsteMes < 0 ? 'delta-neg' : ''}`}>
             {ahorradoEsteMes !== 0 ? `${ahorradoEsteMes > 0 ? '+' : ''}${fmt(ahorradoEsteMes)}` : '—'}
             {' '}{es ? 'este mes' : 'this month'}
           </span>
           {puedeAhorrar > 0.5 && (
             <button
               className="ahorro-hint-btn"
-              onClick={() => { setAporteImporte(puedeAhorrar.toFixed(2)); setShowAporte(true) }}
+              onClick={() => { setAporteImporte(puedeAhorrar.toFixed(2)); closeRetirada(); setShowAporte(true) }}
               title={es ? 'Balance disponible este mes — decides tú si lo aportas' : 'Available balance this month — your call'}
             >
               {es ? `Podríais guardar ${fmt(puedeAhorrar)}` : `You could set aside ${fmt(puedeAhorrar)}`}
@@ -257,16 +307,20 @@ export default function AhorroSection({ lang, hogarId, userId, fmt, balance, ani
         )}
       </div>
 
+      {/* ── Formulario aporte (depósito) ── */}
       {showAporte && (
         <form className="ahorro-form" onSubmit={handleAportar}>
+          <div className="ahorro-form-title">{es ? 'Añadir a la hucha' : 'Deposit to pot'}</div>
           <input
             className="ahorro-input"
             type="number"
             step="0.01"
-            placeholder={es ? 'Importe € (negativo = retirar)' : 'Amount € (negative = withdraw)'}
+            min="0.01"
+            placeholder={es ? 'Importe €' : 'Amount €'}
             value={aporteImporte}
             onChange={e => setAporteImporte(e.target.value)}
             autoFocus
+            required
           />
           {objetivos.length > 0 && (
             <select className="ahorro-input" value={aporteObjetivo} onChange={e => setAporteObjetivo(e.target.value)}>
@@ -283,8 +337,73 @@ export default function AhorroSection({ lang, hogarId, userId, fmt, balance, ani
             onChange={e => setAporteNota(e.target.value)}
           />
           <div className="ahorro-form-actions">
-            <button type="submit" className="btn-sm btn-primary">{t(lang, 'save')}</button>
-            <button type="button" className="btn-sm btn-secondary" onClick={() => setShowAporte(false)}>{t(lang, 'cancel')}</button>
+            <button type="submit" className="btn-sm btn-primary">{es ? 'Guardar aporte' : 'Save deposit'}</button>
+            <button type="button" className="btn-sm btn-secondary" onClick={closeAporte}>{t(lang, 'cancel')}</button>
+          </div>
+        </form>
+      )}
+
+      {/* ── Formulario retirada ── */}
+      {showRetirada && (
+        <form className="ahorro-form ahorro-form-withdraw" onSubmit={handleRetirar}>
+          <div className="ahorro-form-title ahorro-form-title-withdraw">
+            {es ? 'Retirar de la hucha' : 'Withdraw from pot'}
+            {totalAhorrado > 0 && (
+              <span className="ahorro-form-balance">{es ? `Disponible: ${fmt(totalAhorrado)}` : `Available: ${fmt(totalAhorrado)}`}</span>
+            )}
+          </div>
+          <input
+            className="ahorro-input"
+            type="number"
+            step="0.01"
+            min="0.01"
+            max={totalAhorrado > 0 ? totalAhorrado : undefined}
+            placeholder={es ? 'Importe €' : 'Amount €'}
+            value={retiradaImporte}
+            onChange={e => setRetiradaImporte(e.target.value)}
+            autoFocus
+            required
+          />
+          {objetivos.length > 0 && (
+            <select className="ahorro-input" value={retiradaObjetivo} onChange={e => setRetiradaObjetivo(e.target.value)}>
+              <option value="">{es ? 'De la hucha general' : 'From general pot'}</option>
+              {objetivos.map(o => <option key={o.id} value={o.id}>{o.nombre}</option>)}
+            </select>
+          )}
+          {/* Categoría destino — para que quede reflejado en el presupuesto */}
+          <select
+            className="ahorro-input"
+            value={retiradaCatId}
+            onChange={e => { setRetiradaCatId(e.target.value); setRetiradaSubcatId('') }}
+          >
+            <option value="">{es ? '— Categoría (opcional)' : '— Category (optional)'}</option>
+            {todasCats.map(c => (
+              <option key={c.id} value={c.id}>{trCat(c.nombre, lang)}</option>
+            ))}
+          </select>
+          {subcatsRetirada.length > 0 && (
+            <select
+              className="ahorro-input"
+              value={retiradaSubcatId}
+              onChange={e => setRetiradaSubcatId(e.target.value)}
+            >
+              <option value="">{es ? '— Subcategoría (opcional)' : '— Subcategory (optional)'}</option>
+              {subcatsRetirada.map(s => (
+                <option key={s.id} value={s.id}>{trCat(s.nombre, lang)}</option>
+              ))}
+            </select>
+          )}
+          <input
+            className="ahorro-input"
+            type="text"
+            maxLength={60}
+            placeholder={es ? 'Para qué (nota, opcional)' : 'Purpose (note, optional)'}
+            value={retiradaNota}
+            onChange={e => setRetiradaNota(e.target.value)}
+          />
+          <div className="ahorro-form-actions">
+            <button type="submit" className="btn-sm btn-withdraw">{es ? 'Confirmar retirada' : 'Confirm withdrawal'}</button>
+            <button type="button" className="btn-sm btn-secondary" onClick={closeRetirada}>{t(lang, 'cancel')}</button>
           </div>
         </form>
       )}
@@ -372,10 +491,20 @@ export default function AhorroSection({ lang, hogarId, userId, fmt, balance, ani
                     onClick={() => {
                       setAporteObjetivo(o.id)
                       setAporteImporte(o.aporte_mensual ? String(o.aporte_mensual) : '')
+                      closeRetirada()
                       setShowAporte(true)
                     }}
                     title={es ? 'Aportar a este objetivo' : 'Contribute to this goal'}
                   >+</button>
+                  <button
+                    className="goal-withdraw-btn"
+                    onClick={() => {
+                      setRetiradaObjetivo(o.id)
+                      closeAporte()
+                      setShowRetirada(true)
+                    }}
+                    title={es ? 'Retirar de este objetivo' : 'Withdraw from this goal'}
+                  >−</button>
                 </div>
                 {pct !== null && (
                   <div className="goal-bar-wrap">
@@ -395,21 +524,27 @@ export default function AhorroSection({ lang, hogarId, userId, fmt, balance, ani
             )
           })}
 
-          {/* Últimos aportes */}
+          {/* Historial de movimientos de la hucha */}
           {aportes.length > 0 && (
             <div className="aportes-recent">
-              {aportes.slice(0, 5).map(a => (
-                <div key={a.id} className="aporte-row">
-                  <span className="aporte-fecha">{a.fecha}</span>
-                  <span className="aporte-desc">
-                    {a.objetivo_id ? (objetivos.find(o => o.id === a.objetivo_id)?.nombre ?? (es ? 'Objetivo' : 'Goal')) : (es ? 'Hucha general' : 'General pot')}
-                    {a.nota ? ` · ${a.nota}` : ''}
-                  </span>
-                  <span className={`aporte-importe ${Number(a.importe) >= 0 ? 'delta-pos' : 'delta-neg'}`}>
-                    {Number(a.importe) >= 0 ? '+' : ''}{fmt(Number(a.importe))}
-                  </span>
-                </div>
-              ))}
+              {aportes.slice(0, 8).map(a => {
+                const isWithdrawal = Number(a.importe) < 0
+                return (
+                  <div key={a.id} className={`aporte-row${isWithdrawal ? ' aporte-row-withdrawal' : ''}`}>
+                    <span className={`aporte-type-icon${isWithdrawal ? ' aporte-type-withdraw' : ' aporte-type-deposit'}`}>
+                      {isWithdrawal ? '↑' : '↓'}
+                    </span>
+                    <span className="aporte-fecha">{a.fecha}</span>
+                    <span className="aporte-desc">
+                      {a.objetivo_id ? (objetivos.find(o => o.id === a.objetivo_id)?.nombre ?? (es ? 'Objetivo' : 'Goal')) : (es ? 'Hucha general' : 'General pot')}
+                      {a.nota ? ` · ${a.nota}` : ''}
+                    </span>
+                    <span className={`aporte-importe ${Number(a.importe) >= 0 ? 'delta-pos' : 'delta-neg'}`}>
+                      {Number(a.importe) >= 0 ? '+' : ''}{fmt(Number(a.importe))}
+                    </span>
+                  </div>
+                )
+              })}
             </div>
           )}
         </>

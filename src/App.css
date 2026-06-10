@@ -3131,6 +3131,59 @@ kbd {
   transition: background 0.15s;
 }
 .btn-pot:hover { background: color-mix(in srgb, var(--income) 22%, var(--surface)); }
+.btn-pot-withdraw {
+  background: color-mix(in srgb, #d97706 10%, var(--surface));
+  color: #d97706;
+  border: 1.5px solid color-mix(in srgb, #d97706 30%, var(--border));
+  border-radius: 99px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s;
+}
+.btn-pot-withdraw:hover { background: color-mix(in srgb, #d97706 20%, var(--surface)); }
+.btn-withdraw {
+  background: color-mix(in srgb, #d97706 14%, var(--surface));
+  color: #d97706;
+  border: 1.5px solid color-mix(in srgb, #d97706 35%, var(--border));
+  border-radius: 99px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  padding: 0.3rem 0.85rem;
+  transition: background 0.15s;
+}
+.btn-withdraw:hover { background: color-mix(in srgb, #d97706 24%, var(--surface)); }
+.ahorro-form-withdraw { border-left: 3px solid color-mix(in srgb, #d97706 45%, var(--border)); }
+.ahorro-form-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--income);
+  margin-bottom: 0.15rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.ahorro-form-title-withdraw { color: #d97706; }
+.ahorro-form-balance { font-size: 0.72rem; font-weight: 400; color: var(--text2); }
+.goal-withdraw-btn {
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 50%;
+  border: 1.5px solid color-mix(in srgb, #d97706 35%, var(--border));
+  background: color-mix(in srgb, #d97706 8%, var(--surface));
+  color: #d97706;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+.goal-withdraw-btn:hover { background: #d97706; color: #fff; }
 .ahorro-totals {
   display: flex;
   align-items: flex-end;
@@ -3289,6 +3342,10 @@ kbd {
 .aporte-fecha { color: var(--text3); flex-shrink: 0; font-variant-numeric: tabular-nums; }
 .aporte-desc { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .aporte-importe { font-weight: 600; flex-shrink: 0; }
+.aporte-row-withdrawal { opacity: 0.85; }
+.aporte-type-icon { font-size: 0.7rem; flex-shrink: 0; font-weight: 700; }
+.aporte-type-deposit { color: var(--income); }
+.aporte-type-withdraw { color: #d97706; }
 
 /* ── Modo oscuro ── */
 @media (prefers-color-scheme: dark) {
