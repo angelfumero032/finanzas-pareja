@@ -114,6 +114,7 @@ export default function MesView() {
   function showToast(msg, type = 'success') {
     if (toastTimer.current) clearTimeout(toastTimer.current)
     setToast({ msg, type })
+    navigator.vibrate?.(type === 'error' ? [30, 40, 30] : 12)
     toastTimer.current = setTimeout(() => setToast(null), 2400)
   }
   function showUndoToast(msg, onUndo) {
@@ -467,6 +468,11 @@ export default function MesView() {
 
     return () => supabase.removeChannel(channel)
   }, [hogarId, profile?.id])
+
+  // ── Título de pestaña con el mes visible ──
+  useEffect(() => {
+    document.title = `${MONTHS[lang][mes - 1]} ${anio} · ${t(lang, 'app_name')}`
+  }, [lang, mes, anio])
 
   // ── Refrescar datos al volver a la app (PWA en móvil tras standby) ──
   useEffect(() => {
@@ -1501,7 +1507,17 @@ export default function MesView() {
           <div className="by-user-section">
             <div className="by-user-row">
               {gastosPorUsuario.map(u => (
-                <div key={u.id} className="by-user-item">
+                <button
+                  key={u.id}
+                  className={`by-user-item${busqueda === u.nombre ? ' by-user-item-active' : ''}`}
+                  onClick={() => {
+                    const active = busqueda === u.nombre
+                    setBusqueda(active ? '' : u.nombre)
+                    setFiltroTipo(active ? 'all' : 'gasto')
+                    if (!active) movListRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                  }}
+                  title={lang === 'es' ? `Ver los gastos de ${u.nombre}` : `See ${u.nombre}'s expenses`}
+                >
                   <span className="by-user-name">{u.nombre}</span>
                   <span className="by-user-amt">{fmt(u.total)}</span>
                   <div className="by-user-bar-track">
@@ -1511,7 +1527,7 @@ export default function MesView() {
                     />
                   </div>
                   <span className="by-user-pct">{Math.round(u.total / totalGastos * 100)}%</span>
-                </div>
+                </button>
               ))}
             </div>
           </div>

@@ -431,7 +431,14 @@ html, body { overscroll-behavior: none; }
   grid-template-rows: auto auto;
   align-items: center;
   gap: 0.15rem 0.5rem;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  transition: border-color 0.15s, background 0.15s;
 }
+.by-user-item:hover { border-color: var(--accent); }
+.by-user-item-active { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 6%, var(--surface)); }
 .by-user-name {
   font-size: 0.65rem;
   font-weight: 600;
