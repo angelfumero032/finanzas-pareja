@@ -171,7 +171,17 @@ export default function MesView() {
   function dismissInstall() {
     localStorage.setItem('install_dismissed', '1')
     setShowInstallBanner(false)
+    setShowIosInstall(false)
   }
+
+  // iOS has no beforeinstallprompt: show manual instructions instead
+  const [showIosInstall, setShowIosInstall] = useState(() => {
+    if (localStorage.getItem('install_dismissed')) return false
+    const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent)
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone
+    return isIos && !isStandalone
+  })
+  const [showIosHelp, setShowIosHelp] = useState(false)
 
   // Dark mode manual override (D key cycles system/dark/light)
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'auto')
@@ -2481,13 +2491,23 @@ export default function MesView() {
         )}
 
         {/* Discreet PWA install link */}
-        {showInstallBanner && (
+        {(showInstallBanner || showIosInstall) && (
           <div className="install-link-row">
-            <button className="install-link" onClick={handleInstall}>
+            <button
+              className="install-link"
+              onClick={() => installPrompt ? handleInstall() : setShowIosHelp(v => !v)}
+            >
               <span aria-hidden="true">📲</span> {lang === 'es' ? 'Instalar como app' : 'Install as app'}
             </button>
             <button className="install-link-dismiss" onClick={dismissInstall} aria-label={t(lang, 'close')}>✕</button>
           </div>
+        )}
+        {showIosHelp && (
+          <p className="install-ios-help">
+            {lang === 'es'
+              ? 'En Safari: pulsa Compartir (□↑) y elige "Añadir a pantalla de inicio".'
+              : 'In Safari: tap Share (□↑) and choose "Add to Home Screen".'}
+          </p>
         )}
       </main>
 
