@@ -964,6 +964,44 @@ export default function MesView() {
     URL.revokeObjectURL(url)
   }
 
+  // ── Backup completo del hogar (JSON) ──
+  async function handleBackup() {
+    try {
+      showToast(lang === 'es' ? 'Preparando backup…' : 'Preparing backup…')
+      const core = ['categorias', 'subcategorias', 'movimientos', 'presupuestos', 'plantillas_fijas']
+      const optional = ['objetivos', 'ahorro_aportes', 'presupuestos_subcat']
+      const out = { version: 1, exportado_en: new Date().toISOString(), hogar_id: hogarId }
+      for (const tb of [...core, ...optional]) {
+        const rows = []
+        // Paginar: Supabase devuelve máx. 1000 filas por petición
+        for (let from = 0; ; from += 1000) {
+          const { data, error } = await supabase
+            .from(tb)
+            .select('*')
+            .eq('hogar_id', hogarId)
+            .range(from, from + 999)
+          if (error) {
+            if (optional.includes(tb)) { rows.length = 0; break }
+            throw error
+          }
+          rows.push(...(data ?? []))
+          if (!data || data.length < 1000) break
+        }
+        if (rows.length > 0 || core.includes(tb)) out[tb] = rows
+      }
+      const blob = new Blob([JSON.stringify(out, null, 1)], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `finanzas-backup-${new Date().toISOString().slice(0, 10)}.json`
+      a.click()
+      URL.revokeObjectURL(url)
+      showToast(lang === 'es' ? 'Backup descargado ✓' : 'Backup downloaded ✓')
+    } catch {
+      showToast(t(lang, 'save_error'), 'error')
+    }
+  }
+
   // ── Cerrar sesión ──
   async function handleSignOut() {
     await supabase.auth.signOut()
@@ -2647,6 +2685,15 @@ export default function MesView() {
                       {t(lang, 'export_csv')}
                     </button>
                   )}
+                  <button
+                    className="btn-sm btn-secondary"
+                    onClick={handleBackup}
+                    title={lang === 'es'
+                      ? 'Descargar copia completa del hogar (movimientos, presupuestos, hucha, objetivos, plantillas) en JSON'
+                      : 'Download a full household backup (movements, budgets, pot, goals, templates) as JSON'}
+                  >
+                    {lang === 'es' ? '⬇ Backup' : '⬇ Backup'}
+                  </button>
                   <button
                     className="btn-sm btn-secondary"
                     onClick={() => setShowYearView(v => !v)}
