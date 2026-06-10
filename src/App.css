@@ -3317,3 +3317,210 @@ kbd {
 }
 :root[data-theme="dark"] .modal-overlay { background: rgba(0,0,0,0.62); }
 :root[data-theme="dark"] .panel-overlay { background: rgba(0,0,0,0.48); }
+
+/* ═══════════════════════════════════════════════════════════════════
+   Capa de diseño Apple (HIG) — tokens iOS, hairlines, translucidez.
+   Va al final a propósito: sobreescribe el sistema anterior en cascada.
+   ═══════════════════════════════════════════════════════════════════ */
+
+:root {
+  --bg:          #f2f2f7;   /* systemGroupedBackground */
+  --surface:     #ffffff;
+  --surface2:    #f2f2f7;
+  --border:      #e5e5ea;   /* separator sobre blanco */
+  --hairline:    rgba(60,60,67,0.16);
+  --text:        #1c1c1e;   /* label */
+  --text2:       #6e6e73;   /* secondaryLabel */
+  --text3:       #aeaeb2;   /* tertiaryLabel */
+  --accent:      #007aff;   /* systemBlue */
+  --accent-dark: #0066d6;
+  --income:      #28a745;   /* systemGreen ajustado para AA en texto */
+  --income-bg:   rgba(52,199,89,0.12);
+  --expense:     #ff3b30;   /* systemRed */
+  --expense-bg:  rgba(255,59,48,0.10);
+  --warn:        #e8890c;   /* systemOrange ajustado para texto */
+  --r:           16px;
+  --r-sm:        10px;
+  --shadow:      0 1px 2px rgba(0,0,0,0.04), 0 6px 20px rgba(0,0,0,0.05);
+  --shadow-md:   0 2px 8px rgba(0,0,0,0.06), 0 16px 40px rgba(0,0,0,0.10);
+  letter-spacing: -0.01em;
+}
+
+/* Tipografía: jerarquía SF */
+.header-month { font-weight: 700; letter-spacing: -0.02em; }
+.summary-value { font-weight: 700; letter-spacing: -0.022em; }
+.section-title { letter-spacing: 0.06em; font-size: 0.7rem; color: var(--text2); }
+.login-title { letter-spacing: -0.02em; }
+
+/* Cabecera translúcida con blur (iOS navigation bar) */
+.app-header {
+  background: color-mix(in srgb, var(--surface) 78%, transparent);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
+  border-bottom: 0.5px solid var(--hairline);
+}
+
+/* Tarjetas agrupadas: sin borde, sombra suave (inset grouped) */
+.section,
+.summary-card,
+.by-user-item,
+.login-card {
+  border: none;
+  box-shadow: var(--shadow);
+}
+.section-ahorro { border: none; }
+
+/* Separadores hairline */
+.budget-row,
+.movement-item,
+.global-search-row,
+.activity-item,
+.sub-row,
+.cat-row,
+.help-table tr + tr td { border-bottom-width: 0.5px; border-bottom-color: var(--hairline); }
+.movement-date-header { border: none; }
+
+/* Botón primario: pill azul iOS */
+.btn-primary {
+  background: var(--accent);
+  border-radius: 980px;
+  box-shadow: none;
+  font-weight: 600;
+}
+.btn-primary:hover:not(:disabled) { background: var(--accent-dark); box-shadow: none; }
+
+/* Botón secundario: gray-fill iOS, sin borde, texto tintado */
+.btn-secondary {
+  background: rgba(118,118,128,0.12);
+  border: none;
+  border-radius: 980px;
+  color: var(--accent);
+  font-weight: 600;
+}
+.btn-secondary:hover { background: rgba(118,118,128,0.20); }
+.btn-secondary-active { background: color-mix(in srgb, var(--accent) 15%, transparent); color: var(--accent); }
+.btn-danger { border: none; border-radius: 980px; font-weight: 600; }
+.btn-pot { border: none; background: var(--income-bg); }
+
+/* Filtros: segmented control iOS */
+.filter-tabs {
+  background: rgba(118,118,128,0.12);
+  border-radius: 9px;
+  padding: 2px;
+  gap: 2px;
+}
+.filter-tab {
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  font-weight: 500;
+}
+.filter-tab:hover { background: rgba(118,118,128,0.10); }
+.filter-tab-active {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+  font-weight: 600;
+}
+.filter-tab-pending.filter-tab-active { background: var(--surface); }
+
+/* Inputs: campo gris iOS sin borde */
+.field input,
+.field select,
+.search-input,
+.budget-search-input,
+.ahorro-input,
+.cat-add-input {
+  background: rgba(118,118,128,0.12);
+  border: 1.5px solid transparent;
+  border-radius: var(--r-sm);
+}
+.field input:focus,
+.field select:focus,
+.search-input:focus,
+.budget-search-input:focus,
+.ahorro-input:focus,
+.cat-add-input:focus {
+  background: var(--surface);
+  border-color: var(--accent);
+}
+
+/* Modal: hoja iOS */
+.modal-card { border-radius: 18px 18px 0 0; }
+@media (min-width: 540px) { .modal-card { border-radius: 18px; } }
+.modal-overlay {
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+
+/* Sort y chips: pill consistente */
+.sort-btn { border: none; background: rgba(118,118,128,0.12); border-radius: 980px; }
+.sort-btn-active { background: var(--accent); color: #fff; }
+.cat-chip { border-width: 1px; }
+
+/* FAB con sombra de color iOS */
+.fab { box-shadow: 0 8px 24px rgba(0,122,255,0.38); }
+
+/* Toast: cápsula flotante con blur */
+.toast {
+  background: color-mix(in srgb, var(--surface) 86%, transparent);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
+  border: 0.5px solid var(--hairline);
+}
+
+/* Transiciones con curva iOS */
+.modal-card { animation-timing-function: cubic-bezier(0.32, 0.72, 0, 1); }
+.activity-panel { transition-timing-function: cubic-bezier(0.32, 0.72, 0, 1); }
+
+/* ── Modo oscuro iOS verdadero ── */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg:         #000000;
+    --surface:    #1c1c1e;  /* secondarySystemGroupedBackground */
+    --surface2:   #2c2c2e;
+    --border:     #38383a;
+    --hairline:   rgba(84,84,88,0.6);
+    --text:       #f5f5f7;
+    --text2:      #98989f;
+    --text3:      #636366;
+    --accent:     #0a84ff;
+    --accent-dark:#3395ff;
+    --income:     #30d158;
+    --income-bg:  rgba(48,209,88,0.15);
+    --expense:    #ff453a;
+    --expense-bg: rgba(255,69,58,0.15);
+    --warn:       #ff9f0a;
+    --shadow:     0 1px 2px rgba(0,0,0,0.5);
+    --shadow-md:  0 10px 36px rgba(0,0,0,0.6);
+  }
+  :root:not([data-theme="light"]) .app-header {
+    background: color-mix(in srgb, #1c1c1e 75%, transparent);
+  }
+  :root:not([data-theme="light"]) .filter-tab-active { background: #636366; color: #fff; }
+  :root:not([data-theme="light"]) .btn-secondary { background: rgba(118,118,128,0.24); }
+  :root:not([data-theme="light"]) .toast { background: color-mix(in srgb, #2c2c2e 88%, transparent); }
+}
+:root[data-theme="dark"] {
+  --bg:         #000000;
+  --surface:    #1c1c1e;
+  --surface2:   #2c2c2e;
+  --border:     #38383a;
+  --hairline:   rgba(84,84,88,0.6);
+  --text:       #f5f5f7;
+  --text2:      #98989f;
+  --text3:      #636366;
+  --accent:     #0a84ff;
+  --accent-dark:#3395ff;
+  --income:     #30d158;
+  --income-bg:  rgba(48,209,88,0.15);
+  --expense:    #ff453a;
+  --expense-bg: rgba(255,69,58,0.15);
+  --warn:       #ff9f0a;
+  --shadow:     0 1px 2px rgba(0,0,0,0.5);
+  --shadow-md:  0 10px 36px rgba(0,0,0,0.6);
+}
+:root[data-theme="dark"] .app-header { background: color-mix(in srgb, #1c1c1e 75%, transparent); }
+:root[data-theme="dark"] .filter-tab-active { background: #636366; color: #fff; }
+:root[data-theme="dark"] .btn-secondary { background: rgba(118,118,128,0.24); }
+:root[data-theme="dark"] .toast { background: color-mix(in srgb, #2c2c2e 88%, transparent); }
