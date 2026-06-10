@@ -1008,6 +1008,33 @@ export default function MesView() {
     })
   }, [plantillas, gastosItems])
 
+  // ── Autocargar gastos fijos como pendientes al entrar al mes actual ──
+  // Decisión Ángel 2026-06-10: se insertan solos marcados "Pendiente"; se
+  // confirman con "✓ Pagado". Guardas: marcador por dispositivo + recuento
+  // en BD justo antes de insertar (evita duplicados entre dispositivos).
+  const autoLoadTried = useRef(false)
+  useEffect(() => { autoLoadTried.current = false }, [anio, mes])
+  useEffect(() => {
+    if (!isCurrentMonth || loading || autoLoadTried.current || !hogarId) return
+    const activas = plantillas.filter(p => p.activa)
+    if (activas.length === 0 || plantillasNoGeneradas.length !== activas.length) return
+    const marker = `autofijos_${hogarId}_${anio}_${mes}`
+    if (localStorage.getItem(marker)) return
+    autoLoadTried.current = true
+    ;(async () => {
+      const { count } = await supabase
+        .from('movimientos')
+        .select('*', { count: 'exact', head: true })
+        .eq('hogar_id', hogarId)
+        .eq('anio', anio)
+        .eq('mes', mes)
+        .eq('es_fijo', true)
+      if ((count ?? 0) > 0) { localStorage.setItem(marker, '1'); return }
+      await handleLoadPlantillas()
+      localStorage.setItem(marker, '1')
+    })()
+  }, [isCurrentMonth, loading, plantillas, plantillasNoGeneradas, hogarId, anio, mes])
+
   const deltaIngresos = prevTotals?.ingresos > 0 ? (totalIngresos - prevTotals.ingresos) / prevTotals.ingresos * 100 : null
   const deltaGastos   = prevTotals?.gastos   > 0 ? (totalGastos   - prevTotals.gastos)   / prevTotals.gastos   * 100 : null
   // Rollover: balance from the previous month (shows if they saved or overspent last month)
