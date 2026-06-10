@@ -7,7 +7,11 @@
 
 ## Estado actual
 
-App React + Vite PWA con Supabase. Build limpio. Todas las migraciones pendientes de aplicar en Supabase (005–007).
+App React + Vite PWA con Supabase. **Build limpio. App funcional.** Todas las migraciones pendientes de aplicar en Supabase (005–007).
+
+### Fix crítico aplicado (sesión 2026-06-10 tarde)
+- `todayStr` añadido a scope del componente MesView (línea 29). Estaba solo definido dentro de `formatFecha()` causando `ReferenceError` al renderizar el botón "Hoy" y el indicador gasto-vs-media.
+- `BusquedaGlobal` call site actualizado para recibir `catColorMap` y `catIconMap`.
 
 ### Migraciones pendientes de aplicar en Supabase SQL Editor
 - `supabase/migrations/005_subcategory_budgets.sql`

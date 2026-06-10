@@ -26,6 +26,7 @@ export default function MesView() {
   const { lang, setLang } = useLang()
 
   const todayDate = new Date()
+  const todayStr = todayDate.toISOString().slice(0, 10)
   const [anio, setAnio] = useState(todayDate.getFullYear())
   const [mes, setMes] = useState(todayDate.getMonth() + 1)
 
@@ -3107,6 +3108,8 @@ export default function MesView() {
         lang={lang}
         fmt={fmt}
         catMap={catMap}
+        catColorMap={catColorMap}
+        catIconMap={catIconMap}
         onGo={(m) => {
           setAnio(m.anio)
           setMes(m.mes)

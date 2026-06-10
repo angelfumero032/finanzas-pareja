@@ -2,8 +2,21 @@ import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { MONTHS, t } from '../i18n'
 
+function highlight(text, q) {
+  if (!text || !q) return text
+  const idx = text.toLowerCase().indexOf(q.toLowerCase())
+  if (idx === -1) return text
+  return (
+    <>
+      {text.slice(0, idx)}
+      <mark className="search-highlight">{text.slice(idx, idx + q.length)}</mark>
+      {text.slice(idx + q.length)}
+    </>
+  )
+}
+
 // Búsqueda en todos los meses: concepto, nota, importe exacto o categoría.
-export default function BusquedaGlobal({ open, onClose, hogarId, lang, fmt, catMap, onGo }) {
+export default function BusquedaGlobal({ open, onClose, hogarId, lang, fmt, catMap, catColorMap = {}, catIconMap = {}, onGo }) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState(null) // null = aún sin buscar
   const [searching, setSearching] = useState(false)
@@ -84,23 +97,34 @@ export default function BusquedaGlobal({ open, onClose, hogarId, lang, fmt, catM
         )}
         {!searching && results && results.length > 0 && (
           <div className="global-search-results">
-            {results.map(m => (
-              <button
-                key={m.id}
-                className="global-search-row"
-                onClick={() => { onGo(m); onClose() }}
-                title={es ? 'Ir a este mes' : 'Jump to this month'}
-              >
-                <span className="gs-month">{MONTHS[lang][m.mes - 1].slice(0, 3)} {String(m.anio).slice(2)}</span>
-                <span className="gs-concept">
-                  {m.concepto || catMap.get(m.categoria_id) || (es ? 'Sin concepto' : 'No concept')}
-                  {m.nota ? <span className="gs-note"> · {m.nota}</span> : null}
-                </span>
-                <span className={`gs-amount ${m.tipo === 'ingreso' ? 'amount-income' : ''}`}>
-                  {m.tipo === 'gasto' ? '−' : '+'}{fmt(Number(m.importe))}
-                </span>
-              </button>
-            ))}
+            {results.map(m => {
+              const q = query.trim()
+              const catId = m.categoria_id
+              const catIcon = catIconMap[catId]
+              const catColor = catColorMap[catId]
+              const conceptText = m.concepto || catMap.get(catId) || (es ? 'Sin concepto' : 'No concept')
+              return (
+                <button
+                  key={m.id}
+                  className="global-search-row"
+                  onClick={() => { onGo(m); onClose() }}
+                  title={es ? 'Ir a este mes' : 'Jump to this month'}
+                >
+                  <span className="gs-month">{MONTHS[lang][m.mes - 1].slice(0, 3)} {String(m.anio).slice(2)}</span>
+                  <span className="gs-concept">
+                    {catIcon
+                      ? <span className="cat-icon-emoji cat-icon-emoji-sm">{catIcon}</span>
+                      : catColor && <span className="movement-cat-dot" style={{ background: catColor }} />
+                    }
+                    {highlight(conceptText, q)}
+                    {m.nota ? <span className="gs-note"> · {highlight(m.nota, q)}</span> : null}
+                  </span>
+                  <span className={`gs-amount ${m.tipo === 'ingreso' ? 'amount-income' : ''}`}>
+                    {m.tipo === 'gasto' ? '−' : '+'}{fmt(Number(m.importe))}
+                  </span>
+                </button>
+              )
+            })}
             {results.length === 50 && (
               <p className="empty-text">{es ? 'Mostrando los 50 más recientes' : 'Showing the 50 most recent'}</p>
             )}
