@@ -12,6 +12,7 @@ import PlantillasModal from '../components/PlantillasModal'
 import AhorroSection from '../components/AhorroSection'
 import BusquedaGlobal from '../components/BusquedaGlobal'
 import GuiaModal from '../components/GuiaModal'
+import { trCat } from '../data/catNames'
 
 const CAT_PALETTE = [
   '#6366f1', '#f59e0b', '#10b981', '#ef4444',
@@ -292,8 +293,9 @@ export default function MesView() {
     ),
   [categorias])
 
-  const catMap = useMemo(() => new Map(categorias.map(c => [c.id, c.nombre])), [categorias])
-  const subcatMap = useMemo(() => new Map(subcategorias.map(s => [s.id, s.nombre])), [subcategorias])
+  // Nombres traducidos al idioma de la vista (la BD no se toca)
+  const catMap = useMemo(() => new Map(categorias.map(c => [c.id, trCat(c.nombre, lang)])), [categorias, lang])
+  const subcatMap = useMemo(() => new Map(subcategorias.map(s => [s.id, trCat(s.nombre, lang)])), [subcategorias, lang])
 
   // ── Carga de datos estáticos (categorías, subcategorías, perfiles del hogar) ──
   const loadStaticos = useCallback(() => {
@@ -572,10 +574,13 @@ export default function MesView() {
     return () => window.removeEventListener('keydown', onKey)
   }, [modalOpen, showActivity, showHelp, isCurrentMonth, prevMes, nextMes])
 
-  // ── Swipe horizontal → cambiar mes ──
+  // ── Swipe horizontal → cambiar mes · arrastre vertical arriba → refrescar ──
+  const [refreshing, setRefreshing] = useState(false)
+  const touchAtTop = useRef(false)
   function handleTouchStart(e) {
     touchX.current = e.touches[0].clientX
     touchY.current = e.touches[0].clientY
+    touchAtTop.current = window.scrollY < 5
   }
   function handleTouchEnd(e) {
     if (touchX.current === null || modalOpen || showActivity) return
@@ -585,6 +590,16 @@ export default function MesView() {
     if (Math.abs(dx) > 72 && Math.abs(dx) > Math.abs(dy) * 2) {
       if (dx > 0) prevMes()
       else nextMes()
+      return
+    }
+    // Pull-to-refresh: arrastre hacia abajo partiendo del tope de la página
+    if (touchAtTop.current && dy > 90 && Math.abs(dx) < 50 && !refreshing) {
+      setRefreshing(true)
+      navigator.vibrate?.(10)
+      Promise.allSettled([loadMes(), loadTrend(), loadPrevMes()]).finally(() => {
+        setRefreshing(false)
+        showToast(lang === 'es' ? 'Actualizado ✓' : 'Updated ✓')
+      })
     }
   }
 
@@ -1205,6 +1220,7 @@ export default function MesView() {
   const gastosCats = useMemo(() =>
     categorias
       .filter(c => c.tipo === 'gasto')
+      .map(c => ({ ...c, nombre: trCat(c.nombre, lang) }))
       .sort((a, b) => {
         const ra = presupuestoPorCat[a.id] > 0 ? (gastoPorCat[a.id] ?? 0) / presupuestoPorCat[a.id] : -1
         const rb = presupuestoPorCat[b.id] > 0 ? (gastoPorCat[b.id] ?? 0) / presupuestoPorCat[b.id] : -1
@@ -1214,7 +1230,7 @@ export default function MesView() {
         const spentB = gastoPorCat[b.id] ?? 0
         return rb - ra || spentB - spentA
       }),
-  [categorias, gastoPorCat, presupuestoPorCat])
+  [categorias, gastoPorCat, presupuestoPorCat, lang])
 
   const totalPresupuestado = useMemo(
     () => Object.values(presupuestoPorCat).reduce((s, v) => s + v, 0),
@@ -1419,6 +1435,10 @@ export default function MesView() {
           </>
         )}
       </header>
+
+      {refreshing && (
+        <div className="ptr-indicator" role="status">↻ {lang === 'es' ? 'Actualizando…' : 'Refreshing…'}</div>
+      )}
 
       {/* ── Contenido ── */}
       <main className={`app-content${loading ? ' app-loading' : ''}`}>
@@ -2216,7 +2236,7 @@ export default function MesView() {
                                 return (
                                   <div key={s.id} className="budget-subcat-block">
                                     <div className="budget-subcat-row">
-                                      <span className="budget-subcat-name">{s.nombre}</span>
+                                      <span className="budget-subcat-name">{subcatMap.get(s.id) ?? s.nombre}</span>
                                       <span className="budget-subcat-amt">{fmt(subSpent)}</span>
                                       {subcatBudgetsAvailable && (
                                         editSubBudget?.subId === s.id ? (

@@ -1,7 +1,8 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useLang } from '../context/LangContext'
 import { t } from '../i18n'
 import { getConceptosByCatName } from '../data/conceptos'
+import { trCat } from '../data/catNames'
 
 function evalAmount(str) {
   const clean = str.trim().replace(',', '.')
@@ -42,6 +43,19 @@ export default function MovimientoModal({
   const [saving, setSaving] = useState(false)
   // Modo ultra-rápido: importe + concepto + categoría; el resto tras "Más opciones"
   const [showMore, setShowMore] = useState(false)
+
+  // El teclado de iOS no debe tapar la hoja: limitar la altura al viewport visible
+  const cardRef = useRef(null)
+  useEffect(() => {
+    if (!open || !window.visualViewport) return
+    const vv = window.visualViewport
+    function onResize() {
+      if (cardRef.current) cardRef.current.style.maxHeight = `${Math.max(260, vv.height - 16)}px`
+    }
+    onResize()
+    vv.addEventListener('resize', onResize)
+    return () => vv.removeEventListener('resize', onResize)
+  }, [open])
 
   useEffect(() => {
     if (!open) return
@@ -158,7 +172,7 @@ export default function MovimientoModal({
 
   return (
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="modal-card">
+      <div className="modal-card" ref={cardRef}>
         <div className="modal-header">
           <h2 className="modal-title">
             {movimiento ? t(lang, 'edit_movement') : t(lang, 'new_movement')}
@@ -308,7 +322,7 @@ export default function MovimientoModal({
             >
               <option value="">—</option>
               {catsFiltradas.map(c => (
-                <option key={c.id} value={c.id}>{c.nombre}</option>
+                <option key={c.id} value={c.id}>{trCat(c.nombre, lang)}</option>
               ))}
             </select>
             {suggestedCatId && (() => {
@@ -320,7 +334,7 @@ export default function MovimientoModal({
                   className="cat-suggest-chip"
                   onClick={() => { setCatId(suggestedCatId); setSubcatId('') }}
                 >
-                  {lang === 'es' ? `← ${cat.nombre}` : `← ${cat.nombre}`}
+                  ← {trCat(cat.nombre, lang)}
                 </button>
               )
             })()}
@@ -355,7 +369,7 @@ export default function MovimientoModal({
               >
                 <option value="">—</option>
                 {subcatsFiltradas.map(s => (
-                  <option key={s.id} value={s.id}>{s.nombre}</option>
+                  <option key={s.id} value={s.id}>{trCat(s.nombre, lang)}</option>
                 ))}
               </select>
             </div>

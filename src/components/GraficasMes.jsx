@@ -282,7 +282,7 @@ export default function GraficasMes({ lang, gastoPorCat, categorias, trendData, 
   const pieData = categorias
     .filter(c => c.tipo === 'gasto' && (gastoPorCat[c.id] ?? 0) > 0)
     .map((c, i) => ({
-      name: c.nombre,
+      name: catMap?.get(c.id) ?? c.nombre,
       value: gastoPorCat[c.id],
       catId: c.id,
       color: catColors?.[c.id] ?? PALETTE[i % PALETTE.length],

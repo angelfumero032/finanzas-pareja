@@ -3818,3 +3818,68 @@ kbd {
   font-weight: 500;
 }
 .more-options-btn:hover { text-decoration: underline; }
+
+/* ═══ Fixes feedback iPhone (Ángel 2026-06-10, capturas) ═══ */
+
+/* 1) Círculos de menú SIEMPRE visibles: más contraste, borde y sin solapes */
+.section-collapse-btn,
+.section-move-btn,
+.btn-more,
+.btn-guide {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text2);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+  position: relative;
+  z-index: 3;
+}
+:root[data-theme="dark"] .section-collapse-btn,
+:root[data-theme="dark"] .section-move-btn,
+:root[data-theme="dark"] .btn-more {
+  background: #3a3a3c;
+  border-color: #48484a;
+  color: #d1d1d6;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .section-collapse-btn,
+  :root:not([data-theme="light"]) .section-move-btn,
+  :root:not([data-theme="light"]) .btn-more {
+    background: #3a3a3c;
+    border-color: #48484a;
+    color: #d1d1d6;
+  }
+}
+.section-header { position: relative; z-index: 2; }
+
+/* La cabecera de la hucha no pisa el contenido */
+.ahorro-totals { margin-top: 0.4rem; }
+.ahorro-total-side { max-width: 58%; }
+.ahorro-hint-btn { white-space: normal; text-align: right; line-height: 1.3; }
+
+/* 2) El teclado no tapa el modal: hoja anclada arriba en móvil al editar */
+@media (max-width: 540px) {
+  .modal-overlay { align-items: flex-start; }
+  .modal-card {
+    border-radius: 0 0 18px 18px;
+    max-height: none;
+    padding-bottom: 1.25rem;
+  }
+  .modal-form { padding-bottom: 0.5rem; }
+}
+
+/* Indicador de pull-to-refresh */
+.ptr-indicator {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 58px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 200;
+  background: var(--surface);
+  border: 0.5px solid var(--hairline);
+  border-radius: 99px;
+  padding: 0.3rem 0.8rem;
+  font-size: 0.8rem;
+  color: var(--text2);
+  box-shadow: var(--shadow-md);
+  animation: toastIn 0.15s ease;
+}
