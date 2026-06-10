@@ -2,6 +2,7 @@ import { AuthProvider, useAuth } from './context/AuthContext'
 import { LangProvider } from './context/LangContext'
 import LoginPage from './pages/LoginPage'
 import MesView from './pages/MesView'
+import ErrorBoundary from './components/ErrorBoundary'
 import './App.css'
 
 function AppInner() {
@@ -24,8 +25,10 @@ function AppInner() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <AppInner />
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <AppInner />
+      </AuthProvider>
+    </ErrorBoundary>
   )
 }

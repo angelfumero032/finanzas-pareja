@@ -468,6 +468,15 @@ export default function MesView() {
     return () => supabase.removeChannel(channel)
   }, [hogarId, profile?.id])
 
+  // ── Refrescar datos al volver a la app (PWA en móvil tras standby) ──
+  useEffect(() => {
+    function onVisible() {
+      if (document.visibilityState === 'visible') loadMesRef.current?.()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
+  }, [])
+
   // ── Navegación de mes ──
   const prevMes = useCallback(() => {
     if (mes === 1) { setAnio(a => a - 1); setMes(12) }
@@ -502,6 +511,7 @@ export default function MesView() {
       if (e.key === 'e' || e.key === 'E') exportarCSV()
       if (e.key === 'y' || e.key === 'Y') setShowYearView(v => !v)
       if (e.key === 'g' || e.key === 'G') document.querySelector('.section-charts')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      if (e.key === 'h' || e.key === 'H') document.querySelector('.section-ahorro')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
       if (e.key === 'p' || e.key === 'P') { setFiltroPendiente(v => !v); setFiltroTipo(t => t === 'all' ? 'gasto' : t) }
       if (e.key === 'f' || e.key === 'F') { setFiltroFijo(v => v === true ? null : true) }
       if (e.key === 'x' || e.key === 'X') { setFiltroTipo('all'); setBusqueda(''); setFiltroCatId(null); setFiltroFijo(null); setFiltroPendiente(false); setFilterDate(null) }
@@ -2598,6 +2608,7 @@ export default function MesView() {
                   ['T', lang === 'es' ? 'Ir al mes actual' : 'Go to current month'],
                   ['Y', lang === 'es' ? 'Resumen anual' : 'Year summary'],
                   ['G', lang === 'es' ? 'Ir a gráficas' : 'Go to charts'],
+                  ['H', lang === 'es' ? 'Ir a la hucha común' : 'Go to shared pot'],
                   ['P', lang === 'es' ? 'Filtrar pendientes' : 'Toggle pending filter'],
                   ['F', lang === 'es' ? 'Filtrar gastos fijos' : 'Toggle fixed filter'],
                   ['X', lang === 'es' ? 'Limpiar todos los filtros' : 'Clear all filters'],
