@@ -4,7 +4,7 @@ import { t } from '../i18n'
 
 // Hucha común: fondo de ahorro compartido + objetivos.
 // Resiliente: si la migración 004 no está aplicada, la sección no se muestra.
-export default function AhorroSection({ lang, hogarId, userId, fmt, balance, anio, mes, isCurrentMonth, showToast, categorias = [], order, onMoveUp, onMoveDown }) {
+export default function AhorroSection({ lang, hogarId, userId, fmt, balance, anio, mes, isCurrentMonth, showToast, categorias = [], order, onMoveUp, onMoveDown, onTotals }) {
   const [available, setAvailable] = useState(true) // tables exist?
   const [aportes, setAportes] = useState([])       // all-time
   const [objetivos, setObjetivos] = useState([])
@@ -62,6 +62,11 @@ export default function AhorroSection({ lang, hogarId, userId, fmt, balance, ani
     () => aportes.filter(a => a.anio === anio && a.mes === mes).reduce((s, a) => s + Number(a.importe), 0),
     [aportes, anio, mes]
   )
+  // Informar al padre (resumen copiado, etc.)
+  useEffect(() => {
+    if (available) onTotals?.({ total: totalAhorrado, mesActual: ahorradoEsteMes })
+  }, [available, totalAhorrado, ahorradoEsteMes, onTotals])
+
   const aportadoPorObjetivo = useMemo(() => {
     const m = {}
     aportes.forEach(a => { if (a.objetivo_id) m[a.objetivo_id] = (m[a.objetivo_id] ?? 0) + Number(a.importe) })

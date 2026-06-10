@@ -2232,6 +2232,20 @@ kbd {
   margin-top: 0.1rem;
 }
 
+/* ── Summary: enlace a la hucha ── */
+.summary-pot-link {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  font-size: 0.68rem;
+  color: var(--income);
+  font-family: inherit;
+  text-align: left;
+  opacity: 0.85;
+}
+.summary-pot-link:hover { opacity: 1; text-decoration: underline; }
+
 /* ── Summary pending hint as button ── */
 .summary-pending-hint-btn {
   background: none;

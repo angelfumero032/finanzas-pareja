@@ -227,6 +227,10 @@ export default function MesView() {
 
   const hogarId = profile?.hogar_id
 
+  // Totales de la hucha (informados por AhorroSection)
+  const [huchaTotals, setHuchaTotals] = useState(null)
+  const onHuchaTotals = useCallback((t2) => setHuchaTotals(t2), [])
+
   // Monthly savings goal (per-device, per-household)
   const [savingsGoal, setSavingsGoal] = useState(null)
   const [editingGoal, setEditingGoal] = useState(false)
@@ -1332,6 +1336,15 @@ export default function MesView() {
                   : t(lang, 'overspent')}
               </span>
             )}
+            {isCurrentMonth && balance > 0 && huchaTotals && (
+              <button
+                className="summary-pot-link"
+                onClick={() => document.querySelector('.section-ahorro')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                title={lang === 'es' ? 'Ir a la hucha común' : 'Go to shared pot'}
+              >
+                🐷 {lang === 'es' ? 'guardar en la hucha' : 'add to pot'}
+              </button>
+            )}
             {totalPendiente > 0 && (
               <button
                 className="summary-pending-hint summary-pending-hint-btn"
@@ -1375,6 +1388,7 @@ export default function MesView() {
               if (totalGastos > 0) lines.push(`${t(lang, 'total_expenses')}: ${fmt(totalGastos)}`)
               lines.push(`${t(lang, 'balance')}: ${balance >= 0 ? '+' : ''}${fmt(balance)}`)
               if (totalPresupuestado > 0) lines.push(`${t(lang, 'budget_total')}: ${fmt(totalGastadoConPresupuesto)} / ${fmt(totalPresupuestado)}`)
+              if (huchaTotals?.total > 0) lines.push(`🐷 ${lang === 'es' ? 'Hucha' : 'Pot'}: ${fmt(huchaTotals.total)}${huchaTotals.mesActual > 0 ? ` (+${fmt(huchaTotals.mesActual)})` : ''}`)
               if (monthNote) lines.push(`📝 ${monthNote}`)
               navigator.clipboard?.writeText(lines.join('\n')).then(() => showToast(lang === 'es' ? 'Resumen copiado' : 'Summary copied'))
             }}
@@ -1763,6 +1777,7 @@ export default function MesView() {
               showToast={showToast}
               categorias={categorias}
               order={orderOf('ahorro')}
+              onTotals={onHuchaTotals}
               {...moveProps('ahorro')}
             />
 
