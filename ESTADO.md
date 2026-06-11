@@ -1,7 +1,21 @@
 # ESTADO — finanzas-pareja
 
 **Fecha:** 2026-06-11 (noche)
-**Estado:** Activo — código completo y pusheado (origin/main = 43ad4d6). Supabase ✅ (TODO-EN-UNO.sql ejecutado sin errores). **Pendiente: forzar deploy en Netlify** (no se disparó con el push) + refrescar PWA de Mia.
+**Estado:** Activo — Supabase ✅. **Pendiente: push del commit 1f9132d (3ª tanda UX) + forzar deploy en Netlify** + refrescar PWA de Mia.
+
+### 3ª tanda UX (2026-06-11 noche, commit local 1f9132d — PUSH PENDIENTE)
+1. **Fix lápiz de plantillas invisible**: `.cat-row-edit` tenía `opacity: 0` y solo se mostraba
+   al hacer hover sobre `.cat-row` — pero en PlantillasModal el padre es `.plantilla-row`, así
+   que en pantallas con ratón el botón ✎ era invisible (en táctil sí se veía). Añadida regla
+   `.plantilla-row .cat-row-edit { opacity: 1 }`. El formulario de edición ya permitía cambiar
+   categoría/subcategoría/tipo/método — solo faltaba poder llegar a él.
+2. **Eliminado bloque "Por asignar"** (estilo YNAB, ingresos − presupuestado): Ángel no lo
+   entendía y solo aporta si se practica presupuesto base cero, que no es su caso. Quitado
+   JSX (MesView) y CSS (.assign-*).
+3. **Footer del listado de movimientos reescrito**: antes era una ristra críptica
+   "73 −6.011,86 (2.807,01 pte.) (+2.790,00 p.cobrar) +6.647,00". Ahora: contador
+   "N movimientos" + dos líneas etiquetadas: "Gastos −X (Y aún sin pagar)" y
+   "Ingresos +Z (W por cobrar)". Con filtro activo sigue mostrando solo el total filtrado.
 
 ### ⚠ Deploy Netlify (diagnóstico 2026-06-11 noche)
 - Hosting confirmado: **Netlify** — https://finanzasfamiliade3.netlify.app (cabecera `server: Netlify`).
