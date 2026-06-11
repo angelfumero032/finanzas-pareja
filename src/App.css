@@ -208,7 +208,7 @@ html, body { overscroll-behavior: none; }
   align-items: center;
   gap: 0.2rem;
   padding: 0.65rem 0.75rem;
-  padding-top: max(0.65rem, calc(env(safe-area-inset-top, 0px) + 0.3rem));
+  padding-top: max(0.65rem, calc(env(safe-area-inset-top, 0px) + 0.65rem));
   padding-left: max(0.75rem, env(safe-area-inset-left, 0px));
   padding-right: max(0.75rem, env(safe-area-inset-right, 0px));
   background: var(--surface);
@@ -4329,6 +4329,7 @@ kbd {
   position: sticky;
   top: 0;
   z-index: 200;
+  padding-top: max(0.4rem, env(safe-area-inset-top, 0px));
   background: var(--warn, #f59e0b);
   color: #fff;
   text-align: center;
@@ -4385,3 +4386,57 @@ kbd {
 
 /* ── Sprint P: badge plantilla de ingreso ── */
 .plantilla-freq-badge-income { background: color-mix(in srgb, var(--delta-pos) 15%, var(--surface)); color: var(--delta-pos); }
+
+/* ── Banner de plantillas desplegable (añadir todo / elegir) ── */
+.templates-banner-stack { flex-direction: column; align-items: stretch; gap: 0.5rem; }
+.templates-banner-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;
+  background: none; border: none; padding: 0; cursor: pointer;
+  font: inherit; color: inherit; text-align: left; width: 100%;
+}
+.templates-banner-caret { color: var(--text3); font-size: 0.9rem; }
+.templates-banner-options { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.templates-picker { display: flex; flex-direction: column; gap: 0.25rem; }
+.templates-picker-row {
+  display: flex; align-items: center; gap: 0.5rem;
+  padding: 0.3rem 0.2rem; font-size: 0.85rem; cursor: pointer;
+}
+.templates-picker-row input[type="checkbox"] { accent-color: var(--accent); }
+.templates-picker-name { flex: 1; }
+.templates-picker-imp { color: var(--text3); font-variant-numeric: tabular-nums; }
+.templates-picker-actions { display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 0.25rem; }
+
+/* ── Día de hoy en la lista + chip vencidos ── */
+.today-badge {
+  margin-left: 0.4rem;
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  vertical-align: middle;
+}
+.movement-date-header.movement-date-today span:first-child { color: var(--accent); font-weight: 700; }
+.quick-chip-overdue { border-color: var(--warn, #f59e0b); }
+.quick-chip-overdue b { color: var(--warn, #f59e0b); }
+.quick-chip-overdue.quick-chip-active { background: var(--warn, #f59e0b); border-color: var(--warn, #f59e0b); color: #fff; }
+.quick-chip-overdue.quick-chip-active b { color: #fff; }
+
+/* ── Zona de archivos del hogar ── */
+.archivos-hogar { margin-top: 0.5rem; }
+.archivos-panel {
+  margin-top: 0.5rem;
+  display: flex; flex-direction: column; gap: 0.3rem;
+  padding: 0.6rem; border: 1px solid var(--border); border-radius: 10px;
+  background: var(--surface);
+}
+.archivo-row { display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; }
+.archivo-name {
+  flex: 1; background: none; border: none; padding: 0.25rem 0;
+  color: var(--accent); cursor: pointer; text-align: left; font: inherit;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.archivo-name:hover { text-decoration: underline; }
+.archivo-size { color: var(--text3); font-size: 0.75rem; white-space: nowrap; }

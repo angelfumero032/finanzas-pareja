@@ -8,6 +8,7 @@ import ActivityPanel from '../components/ActivityPanel'
 import GraficasMes from '../components/GraficasMes'
 import CategoriasModal from '../components/CategoriasModal'
 import ImportarCSVModal from '../components/ImportarCSVModal'
+import ArchivosHogar from '../components/ArchivosHogar'
 import PlantillasModal from '../components/PlantillasModal'
 import AhorroSection from '../components/AhorroSection'
 import BusquedaGlobal from '../components/BusquedaGlobal'
@@ -45,6 +46,8 @@ export default function MesView() {
   const [unread, setUnread] = useState(0)
   const [showActivity, setShowActivity] = useState(false)
   const [highlightMovId, setHighlightMovId] = useState(null)
+  const [templatesMenuOpen, setTemplatesMenuOpen] = useState(false)
+  const [templatesPick, setTemplatesPick] = useState(null) // null = sin selector; Set de ids al elegir
 
   // Modal de movimiento
   const [modalOpen, setModalOpen] = useState(false)
@@ -61,6 +64,8 @@ export default function MesView() {
   const [compactMode, setCompactMode] = useState(() => localStorage.getItem('compactMode') === '1')
   const [filterDate, setFilterDate] = useState(null)
   const [filtroMetodo, setFiltroMetodo] = useState(null)
+  const [filtroRango, setFiltroRango] = useState(null) // null | 'hasta' (≤ hoy) | 'desde' (≥ hoy)
+  const [filtroVencidos, setFiltroVencidos] = useState(false) // pendientes con fecha < hoy
 
   const movListRef = useRef(null)
   const searchRef = useRef(null)
@@ -399,7 +404,7 @@ export default function MesView() {
   useEffect(() => { loadMes() }, [loadMes])
 
   // Limpiar filtros al cambiar de mes
-  useEffect(() => { setBusqueda(''); setFiltroTipo('all'); setFiltroCatId(null); setFiltroFijo(null); setFiltroPendiente(false); setFilterDate(null); setFiltroMetodo(null) }, [anio, mes])
+  useEffect(() => { setBusqueda(''); setFiltroTipo('all'); setFiltroCatId(null); setFiltroFijo(null); setFiltroPendiente(false); setFilterDate(null); setFiltroMetodo(null); setFiltroRango(null); setFiltroVencidos(false) }, [anio, mes])
 
   // Bloquear scroll del body cuando hay un panel/modal abierto (fix iOS)
   useEffect(() => {
@@ -641,7 +646,7 @@ export default function MesView() {
       if (e.key === 'b' || e.key === 'B') setShowGlobalSearch(true)
       if (e.key === 'p' || e.key === 'P') { setFiltroPendiente(v => !v); setFiltroTipo(t => t === 'all' ? 'gasto' : t) }
       if (e.key === 'f' || e.key === 'F') { setFiltroFijo(v => v === true ? null : true) }
-      if (e.key === 'x' || e.key === 'X') { setFiltroTipo('all'); setBusqueda(''); setFiltroCatId(null); setFiltroFijo(null); setFiltroPendiente(false); setFilterDate(null); setFiltroMetodo(null) }
+      if (e.key === 'x' || e.key === 'X') { setFiltroTipo('all'); setBusqueda(''); setFiltroCatId(null); setFiltroFijo(null); setFiltroPendiente(false); setFilterDate(null); setFiltroMetodo(null); setFiltroRango(null); setFiltroVencidos(false) }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -776,23 +781,26 @@ export default function MesView() {
     setModalKey(k => k + 1)
   }
 
-  // ── Cargar plantillas fijas como gastos pendientes ──
-  async function handleLoadPlantillas() {
-    if (plantillasNoGeneradas.length === 0) { showToast(t(lang, 'no_templates')); return }
+  // ── Cargar plantillas fijas como movimientos pendientes (todas o una selección) ──
+  async function handleLoadPlantillas(subset = null) {
+    const source = subset ?? plantillasNoGeneradas
+    if (source.length === 0) { showToast(t(lang, 'no_templates')); return }
     try {
-      const rows = plantillasNoGeneradas.map(p => {
+      const rows = source.map(p => {
         const dia = Math.min(p.dia_mes ?? 1, new Date(anio, mes, 0).getDate())
         const fecha = `${anio}-${String(mes).padStart(2, '0')}-${String(dia).padStart(2, '0')}`
+        const tipoMov = p.tipo ?? 'gasto'
         return {
           hogar_id: hogarId,
-          tipo: 'gasto',
+          tipo: tipoMov,
           importe: p.importe,
           fecha,
           categoria_id: p.categoria_id ?? null,
           subcategoria_id: p.subcategoria_id ?? null,
+          metodo_pago: p.metodo_pago ?? 'tarjeta',
           concepto: p.nombre,
           nota: p.nota ?? null,
-          es_fijo: true,
+          es_fijo: tipoMov === 'gasto',
           pendiente: true,
           creado_por: profile?.id ?? null,
         }
@@ -1262,15 +1270,17 @@ export default function MesView() {
     // Filter to templates that apply this month (by frequency)
     const aplicables = plantillas.filter(p => plantillaAplicaEnMes(p, mes))
     if (aplicables.length === 0) return []
-    // A template is "loaded" if there's a fijo movement this month with matching categoria_id and importe
+    // A template is "loaded" if there's a movement this month with matching tipo, categoria_id and importe
     const fijosDelMes = gastosItems.filter(m => m.es_fijo)
+    const ingresosDelMes = movimientos.filter(m => m.tipo === 'ingreso')
     return aplicables.filter(p => {
-      return !fijosDelMes.some(m =>
+      const pool = (p.tipo ?? 'gasto') === 'ingreso' ? ingresosDelMes : fijosDelMes
+      return !pool.some(m =>
         m.categoria_id === p.categoria_id &&
         Math.abs(Number(m.importe) - Number(p.importe)) < 0.01
       )
     })
-  }, [plantillas, gastosItems, mes])
+  }, [plantillas, gastosItems, movimientos, mes])
 
   // ── Autocargar gastos fijos como pendientes al entrar al mes actual ──
   // Decisión Ángel 2026-06-10: se insertan solos marcados "Pendiente"; se
@@ -1314,6 +1324,8 @@ export default function MesView() {
       .filter(m => !filtroPendiente || m.pendiente)
       .filter(m => !filterDate || m.fecha === filterDate)
       .filter(m => !filtroMetodo || (m.metodo_pago ?? 'tarjeta') === filtroMetodo)
+      .filter(m => !filtroRango || (filtroRango === 'hasta' ? m.fecha <= todayStr : m.fecha >= todayStr))
+      .filter(m => !filtroVencidos || (m.pendiente && m.fecha < todayStr))
       .filter(m => {
         if (!busqueda) return true
         const q = busqueda.toLowerCase()
@@ -1337,13 +1349,13 @@ export default function MesView() {
       list = [...list].sort((a, b) => a.fecha.localeCompare(b.fecha) || (a.creado_en ?? '').localeCompare(b.creado_en ?? ''))
     }
     return list
-  }, [movimientos, filtroTipo, filtroCatId, busqueda, sortMovs, sortDir, catMap, subcatMap, usuarios, profile?.id, lang, filtroFijo, filtroPendiente, filterDate, filtroMetodo])
+  }, [movimientos, filtroTipo, filtroCatId, busqueda, sortMovs, sortDir, catMap, subcatMap, usuarios, profile?.id, lang, filtroFijo, filtroPendiente, filterDate, filtroMetodo, filtroRango, filtroVencidos, todayStr])
 
   const totalFiltrado = useMemo(
     () => movimientosFiltrados.reduce((s, m) => s + Number(m.importe), 0),
     [movimientosFiltrados]
   )
-  const hayFiltroActivo = filtroTipo !== 'all' || busqueda || filtroCatId || filtroFijo !== null || filtroPendiente || filterDate || !!filtroMetodo
+  const hayFiltroActivo = filtroTipo !== 'all' || busqueda || filtroCatId || filtroFijo !== null || filtroPendiente || filterDate || !!filtroMetodo || !!filtroRango || filtroVencidos
 
   const gastosPorUsuario = useMemo(() => {
     if (usuarios.length < 2) return null
@@ -1830,6 +1842,21 @@ export default function MesView() {
                   {thisWeekStats.ingresos > 0 && <b className="qc-inc"> +{fmtK(thisWeekStats.ingresos)}</b>}
                 </span>
               )}
+              {(() => {
+                const nVencidos = movimientos.filter(m => m.pendiente && m.fecha < todayStr).length
+                return nVencidos > 0 && (
+                  <button
+                    className={`quick-chip quick-chip-btn quick-chip-overdue${filtroVencidos ? ' quick-chip-active' : ''}`}
+                    onClick={() => {
+                      setFiltroVencidos(v => !v)
+                      movListRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                    }}
+                    title={lang === 'es' ? 'Pendientes anteriores a hoy' : 'Unpaid items before today'}
+                  >
+                    ⚠ {lang === 'es' ? 'Vencidos' : 'Overdue'} <b>{nVencidos}</b>
+                  </button>
+                )
+              })()}
               {saldoEfectivo && (
                 <button
                   className={`quick-chip quick-chip-btn quick-chip-cash${filtroMetodo === 'efectivo' ? ' quick-chip-active' : ''}`}
@@ -2008,26 +2035,82 @@ export default function MesView() {
           </div>
         )}
 
-        {/* Load templates banner */}
+        {/* Load templates banner (desplegable: añadir todo o elegir) */}
         {!loading && plantillasNoGeneradas.length > 0 && (
-          <div className="templates-banner">
-            <div className="templates-banner-info">
-              <span className="templates-banner-title">
-                {lang === 'es'
-                  ? `${plantillasNoGeneradas.length} gasto(s) fijo(s) sin cargar`
-                  : `${plantillasNoGeneradas.length} recurring expense(s) not yet loaded`}
-              </span>
-              <span className="templates-banner-names">
-                {plantillasNoGeneradas.slice(0, 3).map(p => p.nombre).join(', ')}
-                {plantillasNoGeneradas.length > 3 && `… +${plantillasNoGeneradas.length - 3}`}
-              </span>
-            </div>
+          <div className="templates-banner templates-banner-stack">
             <button
-              className="btn-sm btn-primary templates-banner-btn"
-              onClick={handleLoadPlantillas}
+              type="button"
+              className="templates-banner-head"
+              onClick={() => { setTemplatesMenuOpen(v => !v); setTemplatesPick(null) }}
+              aria-expanded={templatesMenuOpen}
             >
-              {t(lang, 'load_templates')}
+              <div className="templates-banner-info">
+                <span className="templates-banner-title">
+                  {lang === 'es'
+                    ? `${plantillasNoGeneradas.length} movimiento(s) recurrente(s) sin cargar`
+                    : `${plantillasNoGeneradas.length} recurring movement(s) not yet loaded`}
+                </span>
+                <span className="templates-banner-names">
+                  {plantillasNoGeneradas.slice(0, 3).map(p => p.nombre).join(', ')}
+                  {plantillasNoGeneradas.length > 3 && `… +${plantillasNoGeneradas.length - 3}`}
+                </span>
+              </div>
+              <span className="templates-banner-caret">{templatesMenuOpen ? '▴' : '▾'}</span>
             </button>
+            {templatesMenuOpen && templatesPick === null && (
+              <div className="templates-banner-options">
+                <button
+                  className="btn-sm btn-primary templates-banner-btn"
+                  onClick={() => { setTemplatesMenuOpen(false); handleLoadPlantillas() }}
+                >
+                  {lang === 'es' ? '✓ Añadir todo' : '✓ Add all'}
+                </button>
+                <button
+                  className="btn-sm btn-secondary templates-banner-btn"
+                  onClick={() => setTemplatesPick(new Set(plantillasNoGeneradas.map(p => p.id)))}
+                >
+                  {lang === 'es' ? 'Elegir qué añadir…' : 'Choose what to add…'}
+                </button>
+              </div>
+            )}
+            {templatesMenuOpen && templatesPick !== null && (
+              <div className="templates-picker">
+                {plantillasNoGeneradas.map(p => (
+                  <label key={p.id} className="templates-picker-row">
+                    <input
+                      type="checkbox"
+                      checked={templatesPick.has(p.id)}
+                      onChange={() => setTemplatesPick(prev => {
+                        const next = new Set(prev)
+                        if (next.has(p.id)) next.delete(p.id); else next.add(p.id)
+                        return next
+                      })}
+                    />
+                    <span className="templates-picker-name">
+                      {p.tipo === 'ingreso' ? '↑ ' : ''}{p.nombre}
+                    </span>
+                    <span className="templates-picker-imp">{fmt(Number(p.importe))}</span>
+                  </label>
+                ))}
+                <div className="templates-picker-actions">
+                  <button
+                    className="btn-sm btn-secondary"
+                    onClick={() => { setTemplatesPick(null); setTemplatesMenuOpen(false) }}
+                  >{t(lang, 'cancel')}</button>
+                  <button
+                    className="btn-sm btn-primary"
+                    disabled={templatesPick.size === 0}
+                    onClick={() => {
+                      const subset = plantillasNoGeneradas.filter(p => templatesPick.has(p.id))
+                      setTemplatesPick(null); setTemplatesMenuOpen(false)
+                      handleLoadPlantillas(subset)
+                    }}
+                  >
+                    {lang === 'es' ? `Añadir ${templatesPick.size}` : `Add ${templatesPick.size}`}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -2652,6 +2735,25 @@ export default function MesView() {
                                 onClick={() => setCompactMode(v => { const next = !v; localStorage.setItem('compactMode', next ? '1' : ''); return next })}
                               >{lang === 'es' ? 'Vista compacta' : 'Compact'}</button>
                             </div>
+                            {isCurrentMonth && (
+                              <>
+                                <p className="filters-panel-label" style={{ marginTop: '0.5rem' }}>{lang === 'es' ? 'Rango de fechas' : 'Date range'}</p>
+                                <div className="filters-panel-row">
+                                  <button
+                                    className={`filters-panel-opt${filtroRango === 'hasta' ? ' fp-opt-active' : ''}`}
+                                    onClick={() => setFiltroRango(filtroRango === 'hasta' ? null : 'hasta')}
+                                  >{lang === 'es' ? '→ Hasta hoy' : '→ Up to today'}</button>
+                                  <button
+                                    className={`filters-panel-opt${filtroRango === 'desde' ? ' fp-opt-active' : ''}`}
+                                    onClick={() => setFiltroRango(filtroRango === 'desde' ? null : 'desde')}
+                                  >{lang === 'es' ? 'Hoy + resto del mes →' : 'Today + rest of month →'}</button>
+                                  <button
+                                    className={`filters-panel-opt${filtroVencidos ? ' fp-opt-active' : ''}`}
+                                    onClick={() => setFiltroVencidos(v => !v)}
+                                  >{lang === 'es' ? '⚠ Vencidos sin pagar' : '⚠ Overdue unpaid'}</button>
+                                </div>
+                              </>
+                            )}
                             <p className="filters-panel-label" style={{ marginTop: '0.5rem' }}>{lang === 'es' ? 'Método pago' : 'Payment'}</p>
                             <div className="filters-panel-row">
                               {['tarjeta', 'efectivo', 'transferencia', 'bizum'].map(mp => (
@@ -2667,7 +2769,7 @@ export default function MesView() {
                             {hayFiltroActivo && (
                               <button
                                 className="filters-panel-clear"
-                                onClick={() => { setFiltroTipo('all'); setBusqueda(''); setFiltroCatId(null); setFiltroFijo(null); setFiltroPendiente(false); setFilterDate(null); setFiltroMetodo(null); setShowFiltersPanel(false) }}
+                                onClick={() => { setFiltroTipo('all'); setBusqueda(''); setFiltroCatId(null); setFiltroFijo(null); setFiltroPendiente(false); setFilterDate(null); setFiltroMetodo(null); setFiltroRango(null); setFiltroVencidos(false); setShowFiltersPanel(false) }}
                               >{lang === 'es' ? '✕ Limpiar filtros' : '✕ Clear filters'}</button>
                             )}
                           </div>
@@ -2834,8 +2936,11 @@ export default function MesView() {
                     if (entry.type === 'header') {
                       const dt = dailyTotals[entry.date]
                       return (
-                        <div key={`h-${entry.date}`} className="movement-date-header">
-                          <span>{formatFecha(entry.date)}</span>
+                        <div key={`h-${entry.date}`} className={`movement-date-header${entry.date === todayStr ? ' movement-date-today' : ''}`}>
+                          <span>
+                            {formatFecha(entry.date)}
+                            {entry.date === todayStr && <span className="today-badge">{lang === 'es' ? 'HOY' : 'TODAY'}</span>}
+                          </span>
                           {dt !== undefined && (
                             <span className={`daily-total ${dt >= 0 ? 'amount-income' : 'amount-expense'}`}>
                               {dt >= 0 ? '+' : ''}{fmt(dt)}
@@ -3153,6 +3258,7 @@ export default function MesView() {
                   onChange={handleRestore}
                 />
               </div>
+              <ArchivosHogar lang={lang} hogarId={hogarId} showToast={showToast} />
             </section>
           </>
         )}

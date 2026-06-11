@@ -1,195 +1,105 @@
--- Migration 009: Categorías y subcategorías por defecto
--- Ejecutar en Supabase SQL Editor.
--- Solo inserta categorías que NO existan ya (por nombre) en vuestro hogar.
--- No modifica ni borra datos existentes.
+-- Migration 009 (v2): Categorias y subcategorias por defecto
+-- Reescrita para funcionar desde el SQL Editor (la version anterior usaba
+-- auth.uid(), que es NULL en el editor y fallaba siempre).
+-- Se aplica a TODOS los hogares existentes. Idempotente: solo inserta lo
+-- que no exista ya (por nombre). No modifica ni borra nada.
 
 DO $$
 DECLARE
   hid uuid;
-  -- IDs de categorías principales
-  cat_hogar uuid; cat_alimentacion uuid; cat_transporte uuid; cat_salud uuid;
-  cat_ocio uuid; cat_ropa uuid; cat_suscripciones uuid; cat_cuidado uuid;
-  cat_inesperados uuid; cat_extras uuid; cat_educacion uuid; cat_trabajo uuid;
-  cat_ingresos_extra uuid; cat_otros uuid;
+  cid uuid;
+  c record;
+  s record;
 BEGIN
-  -- Obtener el hogar_id del usuario actual
-  SELECT hogar_id INTO hid FROM usuarios WHERE id = auth.uid() LIMIT 1;
-  IF hid IS NULL THEN RAISE EXCEPTION 'No se encontró hogar para este usuario'; END IF;
+  FOR hid IN SELECT id FROM hogares LOOP
 
-  -- Insertar categorías de GASTO (solo si no existen por nombre)
-  INSERT INTO categorias (hogar_id, nombre, tipo, color, orden)
-  VALUES (hid, 'Hogar', 'gasto', '#6366f1', 1)
-  ON CONFLICT DO NOTHING RETURNING id INTO cat_hogar;
-  IF cat_hogar IS NULL THEN SELECT id INTO cat_hogar FROM categorias WHERE hogar_id=hid AND nombre='Hogar' AND tipo='gasto' LIMIT 1; END IF;
+    FOR c IN
+      SELECT * FROM (VALUES
+        ('Hogar',                    'gasto',   '#6366f1', 1),
+        ('Alimentación',             'gasto',   '#f59e0b', 2),
+        ('Transporte',               'gasto',   '#14b8a6', 3),
+        ('Salud',                    'gasto',   '#10b981', 4),
+        ('Ocio y entretenimiento',   'gasto',   '#8b5cf6', 5),
+        ('Ropa y calzado',           'gasto',   '#ec4899', 6),
+        ('Suscripciones',            'gasto',   '#6366f1', 7),
+        ('Cuidado personal',         'gasto',   '#f97316', 8),
+        ('Gastos inesperados',       'gasto',   '#ef4444', 9),
+        ('Gastos extra programados', 'gasto',   '#84cc16', 10),
+        ('Educación y formación',    'gasto',   '#64748b', 11),
+        ('Trabajo y negocio',        'gasto',   '#0ea5e9', 12),
+        ('Otros',                    'gasto',   '#94a3b8', 99),
+        ('Ingresos extra',           'ingreso', '#10b981', 1)
+      ) AS t(nombre, tipo, color, orden)
+    LOOP
+      IF NOT EXISTS (
+        SELECT 1 FROM categorias
+        WHERE hogar_id = hid AND nombre = c.nombre AND tipo = c.tipo
+      ) THEN
+        INSERT INTO categorias (hogar_id, nombre, tipo, color, orden)
+        VALUES (hid, c.nombre, c.tipo, c.color, c.orden);
+      END IF;
+    END LOOP;
 
-  INSERT INTO categorias (hogar_id, nombre, tipo, color, orden)
-  VALUES (hid, 'Alimentación', 'gasto', '#f59e0b', 2)
-  ON CONFLICT DO NOTHING RETURNING id INTO cat_alimentacion;
-  IF cat_alimentacion IS NULL THEN SELECT id INTO cat_alimentacion FROM categorias WHERE hogar_id=hid AND nombre='Alimentación' AND tipo='gasto' LIMIT 1; END IF;
+    FOR s IN
+      SELECT * FROM (VALUES
+        ('Hogar', 'Alquiler / Hipoteca', 1),
+        ('Hogar', 'Electricidad', 2),
+        ('Hogar', 'Agua', 3),
+        ('Hogar', 'Gas', 4),
+        ('Hogar', 'Internet', 5),
+        ('Hogar', 'Limpieza', 6),
+        ('Hogar', 'Mantenimiento', 7),
+        ('Alimentación', 'Supermercado', 1),
+        ('Alimentación', 'Restaurantes', 2),
+        ('Alimentación', 'Comida a domicilio', 3),
+        ('Alimentación', 'Cafeterías', 4),
+        ('Transporte', 'Gasolina', 1),
+        ('Transporte', 'Transporte público', 2),
+        ('Transporte', 'Taxi / VTC', 3),
+        ('Transporte', 'Seguro coche', 4),
+        ('Transporte', 'Parking', 5),
+        ('Transporte', 'Mantenimiento coche', 6),
+        ('Salud', 'Farmacia', 1),
+        ('Salud', 'Médico / Dentista', 2),
+        ('Salud', 'Seguro médico', 3),
+        ('Salud', 'Gimnasio', 4),
+        ('Ocio y entretenimiento', 'Salidas y bares', 1),
+        ('Ocio y entretenimiento', 'Viajes', 2),
+        ('Ocio y entretenimiento', 'Cine / Espectáculos', 3),
+        ('Ocio y entretenimiento', 'Libros y cultura', 4),
+        ('Ocio y entretenimiento', 'Hobbies', 5),
+        ('Suscripciones', 'Streaming (Netflix, etc.)', 1),
+        ('Suscripciones', 'Música (Spotify, etc.)', 2),
+        ('Suscripciones', 'Apps y software', 3),
+        ('Suscripciones', 'Almacenamiento en la nube', 4),
+        ('Suscripciones', 'Periódicos y revistas', 5),
+        ('Cuidado personal', 'Peluquería', 1),
+        ('Cuidado personal', 'Cosmética y cuidado', 2),
+        ('Cuidado personal', 'Depilación / Estética', 3),
+        ('Gastos inesperados', 'Reparaciones', 1),
+        ('Gastos inesperados', 'Multas', 2),
+        ('Gastos inesperados', 'Médico urgente', 3),
+        ('Gastos extra programados', 'Vacaciones', 1),
+        ('Gastos extra programados', 'Regalos', 2),
+        ('Gastos extra programados', 'Navidad', 3),
+        ('Gastos extra programados', 'Cumpleaños', 4),
+        ('Gastos extra programados', 'Eventos especiales', 5),
+        ('Educación y formación', 'Cursos y formación', 1),
+        ('Educación y formación', 'Material escolar', 2),
+        ('Educación y formación', 'Libros de texto', 3)
+      ) AS t(cat_nombre, sub_nombre, orden)
+    LOOP
+      SELECT id INTO cid FROM categorias
+      WHERE hogar_id = hid AND nombre = s.cat_nombre AND tipo = 'gasto'
+      LIMIT 1;
+      IF cid IS NOT NULL AND NOT EXISTS (
+        SELECT 1 FROM subcategorias
+        WHERE categoria_id = cid AND nombre = s.sub_nombre
+      ) THEN
+        INSERT INTO subcategorias (hogar_id, categoria_id, nombre, orden)
+        VALUES (hid, cid, s.sub_nombre, s.orden);
+      END IF;
+    END LOOP;
 
-  INSERT INTO categorias (hogar_id, nombre, tipo, color, orden)
-  VALUES (hid, 'Transporte', 'gasto', '#14b8a6', 3)
-  ON CONFLICT DO NOTHING RETURNING id INTO cat_transporte;
-  IF cat_transporte IS NULL THEN SELECT id INTO cat_transporte FROM categorias WHERE hogar_id=hid AND nombre='Transporte' AND tipo='gasto' LIMIT 1; END IF;
-
-  INSERT INTO categorias (hogar_id, nombre, tipo, color, orden)
-  VALUES (hid, 'Salud', 'gasto', '#10b981', 4)
-  ON CONFLICT DO NOTHING RETURNING id INTO cat_salud;
-  IF cat_salud IS NULL THEN SELECT id INTO cat_salud FROM categorias WHERE hogar_id=hid AND nombre='Salud' AND tipo='gasto' LIMIT 1; END IF;
-
-  INSERT INTO categorias (hogar_id, nombre, tipo, color, orden)
-  VALUES (hid, 'Ocio y entretenimiento', 'gasto', '#8b5cf6', 5)
-  ON CONFLICT DO NOTHING RETURNING id INTO cat_ocio;
-  IF cat_ocio IS NULL THEN SELECT id INTO cat_ocio FROM categorias WHERE hogar_id=hid AND nombre='Ocio y entretenimiento' AND tipo='gasto' LIMIT 1; END IF;
-
-  INSERT INTO categorias (hogar_id, nombre, tipo, color, orden)
-  VALUES (hid, 'Ropa y calzado', 'gasto', '#ec4899', 6)
-  ON CONFLICT DO NOTHING RETURNING id INTO cat_ropa;
-  IF cat_ropa IS NULL THEN SELECT id INTO cat_ropa FROM categorias WHERE hogar_id=hid AND nombre='Ropa y calzado' AND tipo='gasto' LIMIT 1; END IF;
-
-  INSERT INTO categorias (hogar_id, nombre, tipo, color, orden)
-  VALUES (hid, 'Suscripciones', 'gasto', '#6366f1', 7)
-  ON CONFLICT DO NOTHING RETURNING id INTO cat_suscripciones;
-  IF cat_suscripciones IS NULL THEN SELECT id INTO cat_suscripciones FROM categorias WHERE hogar_id=hid AND nombre='Suscripciones' AND tipo='gasto' LIMIT 1; END IF;
-
-  INSERT INTO categorias (hogar_id, nombre, tipo, color, orden)
-  VALUES (hid, 'Cuidado personal', 'gasto', '#f97316', 8)
-  ON CONFLICT DO NOTHING RETURNING id INTO cat_cuidado;
-  IF cat_cuidado IS NULL THEN SELECT id INTO cat_cuidado FROM categorias WHERE hogar_id=hid AND nombre='Cuidado personal' AND tipo='gasto' LIMIT 1; END IF;
-
-  INSERT INTO categorias (hogar_id, nombre, tipo, color, orden)
-  VALUES (hid, 'Gastos inesperados', 'gasto', '#ef4444', 9)
-  ON CONFLICT DO NOTHING RETURNING id INTO cat_inesperados;
-  IF cat_inesperados IS NULL THEN SELECT id INTO cat_inesperados FROM categorias WHERE hogar_id=hid AND nombre='Gastos inesperados' AND tipo='gasto' LIMIT 1; END IF;
-
-  INSERT INTO categorias (hogar_id, nombre, tipo, color, orden)
-  VALUES (hid, 'Gastos extra programados', 'gasto', '#84cc16', 10)
-  ON CONFLICT DO NOTHING RETURNING id INTO cat_extras;
-  IF cat_extras IS NULL THEN SELECT id INTO cat_extras FROM categorias WHERE hogar_id=hid AND nombre='Gastos extra programados' AND tipo='gasto' LIMIT 1; END IF;
-
-  INSERT INTO categorias (hogar_id, nombre, tipo, color, orden)
-  VALUES (hid, 'Educación y formación', 'gasto', '#64748b', 11)
-  ON CONFLICT DO NOTHING RETURNING id INTO cat_educacion;
-  IF cat_educacion IS NULL THEN SELECT id INTO cat_educacion FROM categorias WHERE hogar_id=hid AND nombre='Educación y formación' AND tipo='gasto' LIMIT 1; END IF;
-
-  INSERT INTO categorias (hogar_id, nombre, tipo, color, orden)
-  VALUES (hid, 'Trabajo y negocio', 'gasto', '#0ea5e9', 12)
-  ON CONFLICT DO NOTHING RETURNING id INTO cat_trabajo;
-  IF cat_trabajo IS NULL THEN SELECT id INTO cat_trabajo FROM categorias WHERE hogar_id=hid AND nombre='Trabajo y negocio' AND tipo='gasto' LIMIT 1; END IF;
-
-  -- Categorías de INGRESO
-  INSERT INTO categorias (hogar_id, nombre, tipo, color, orden)
-  VALUES (hid, 'Ingresos extra', 'ingreso', '#10b981', 1)
-  ON CONFLICT DO NOTHING RETURNING id INTO cat_ingresos_extra;
-
-  INSERT INTO categorias (hogar_id, nombre, tipo, color, orden)
-  VALUES (hid, 'Otros', 'gasto', '#94a3b8', 99)
-  ON CONFLICT DO NOTHING RETURNING id INTO cat_otros;
-
-  -- ── Subcategorías ──────────────────────────────────────────────────
-  -- Hogar
-  IF cat_hogar IS NOT NULL THEN
-    INSERT INTO subcategorias (hogar_id, categoria_id, nombre, orden) VALUES
-      (hid, cat_hogar, 'Alquiler / Hipoteca', 1),
-      (hid, cat_hogar, 'Electricidad', 2),
-      (hid, cat_hogar, 'Agua', 3),
-      (hid, cat_hogar, 'Gas', 4),
-      (hid, cat_hogar, 'Internet', 5),
-      (hid, cat_hogar, 'Limpieza', 6),
-      (hid, cat_hogar, 'Mantenimiento', 7)
-    ON CONFLICT DO NOTHING;
-  END IF;
-
-  -- Alimentación
-  IF cat_alimentacion IS NOT NULL THEN
-    INSERT INTO subcategorias (hogar_id, categoria_id, nombre, orden) VALUES
-      (hid, cat_alimentacion, 'Supermercado', 1),
-      (hid, cat_alimentacion, 'Restaurantes', 2),
-      (hid, cat_alimentacion, 'Comida a domicilio', 3),
-      (hid, cat_alimentacion, 'Cafeterías', 4)
-    ON CONFLICT DO NOTHING;
-  END IF;
-
-  -- Transporte
-  IF cat_transporte IS NOT NULL THEN
-    INSERT INTO subcategorias (hogar_id, categoria_id, nombre, orden) VALUES
-      (hid, cat_transporte, 'Gasolina', 1),
-      (hid, cat_transporte, 'Transporte público', 2),
-      (hid, cat_transporte, 'Taxi / VTC', 3),
-      (hid, cat_transporte, 'Seguro coche', 4),
-      (hid, cat_transporte, 'Parking', 5),
-      (hid, cat_transporte, 'Mantenimiento coche', 6)
-    ON CONFLICT DO NOTHING;
-  END IF;
-
-  -- Salud
-  IF cat_salud IS NOT NULL THEN
-    INSERT INTO subcategorias (hogar_id, categoria_id, nombre, orden) VALUES
-      (hid, cat_salud, 'Farmacia', 1),
-      (hid, cat_salud, 'Médico / Dentista', 2),
-      (hid, cat_salud, 'Seguro médico', 3),
-      (hid, cat_salud, 'Gimnasio', 4)
-    ON CONFLICT DO NOTHING;
-  END IF;
-
-  -- Ocio
-  IF cat_ocio IS NOT NULL THEN
-    INSERT INTO subcategorias (hogar_id, categoria_id, nombre, orden) VALUES
-      (hid, cat_ocio, 'Salidas y bares', 1),
-      (hid, cat_ocio, 'Viajes', 2),
-      (hid, cat_ocio, 'Cine / Espectáculos', 3),
-      (hid, cat_ocio, 'Libros y cultura', 4),
-      (hid, cat_ocio, 'Hobbies', 5)
-    ON CONFLICT DO NOTHING;
-  END IF;
-
-  -- Suscripciones
-  IF cat_suscripciones IS NOT NULL THEN
-    INSERT INTO subcategorias (hogar_id, categoria_id, nombre, orden) VALUES
-      (hid, cat_suscripciones, 'Streaming (Netflix, etc.)', 1),
-      (hid, cat_suscripciones, 'Música (Spotify, etc.)', 2),
-      (hid, cat_suscripciones, 'Apps y software', 3),
-      (hid, cat_suscripciones, 'Almacenamiento en la nube', 4),
-      (hid, cat_suscripciones, 'Periódicos y revistas', 5)
-    ON CONFLICT DO NOTHING;
-  END IF;
-
-  -- Cuidado personal
-  IF cat_cuidado IS NOT NULL THEN
-    INSERT INTO subcategorias (hogar_id, categoria_id, nombre, orden) VALUES
-      (hid, cat_cuidado, 'Peluquería', 1),
-      (hid, cat_cuidado, 'Cosmética y cuidado', 2),
-      (hid, cat_cuidado, 'Depilación / Estética', 3)
-    ON CONFLICT DO NOTHING;
-  END IF;
-
-  -- Gastos inesperados
-  IF cat_inesperados IS NOT NULL THEN
-    INSERT INTO subcategorias (hogar_id, categoria_id, nombre, orden) VALUES
-      (hid, cat_inesperados, 'Reparaciones', 1),
-      (hid, cat_inesperados, 'Multas', 2),
-      (hid, cat_inesperados, 'Médico urgente', 3)
-    ON CONFLICT DO NOTHING;
-  END IF;
-
-  -- Gastos extra programados
-  IF cat_extras IS NOT NULL THEN
-    INSERT INTO subcategorias (hogar_id, categoria_id, nombre, orden) VALUES
-      (hid, cat_extras, 'Vacaciones', 1),
-      (hid, cat_extras, 'Regalos', 2),
-      (hid, cat_extras, 'Navidad', 3),
-      (hid, cat_extras, 'Cumpleaños', 4),
-      (hid, cat_extras, 'Eventos especiales', 5)
-    ON CONFLICT DO NOTHING;
-  END IF;
-
-  -- Educación
-  IF cat_educacion IS NOT NULL THEN
-    INSERT INTO subcategorias (hogar_id, categoria_id, nombre, orden) VALUES
-      (hid, cat_educacion, 'Cursos y formación', 1),
-      (hid, cat_educacion, 'Material escolar', 2),
-      (hid, cat_educacion, 'Libros de texto', 3)
-    ON CONFLICT DO NOTHING;
-  END IF;
-
+  END LOOP;
 END $$;
