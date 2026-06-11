@@ -158,6 +158,9 @@ export default function MesView() {
   const [ctxMenu, setCtxMenu] = useState(null) // { m, x, y }
   const longPressTimer = useRef(null)
 
+  // Panel de filtros desplegable
+  const [showFiltersPanel, setShowFiltersPanel] = useState(false)
+
 
   // Toast notifications (supports undo action)
   const [toast, setToast] = useState(null)
@@ -194,6 +197,7 @@ export default function MesView() {
   const [showYearView, setShowYearView] = useState(false)
   const [yearData, setYearData] = useState(null)
   const [yearLoading, setYearLoading] = useState(false)
+
 
   // Welcome banner (shown once on empty current month)
   const [welcomeDismissed, setWelcomeDismissed] = useState(() => !!localStorage.getItem('welcomeDismissed'))
@@ -599,17 +603,26 @@ export default function MesView() {
   // ── Swipe horizontal → cambiar mes · arrastre vertical arriba → refrescar ──
   const [refreshing, setRefreshing] = useState(false)
   const touchAtTop = useRef(false)
+  const touchInScrollable = useRef(false)
   function handleTouchStart(e) {
     touchX.current = e.touches[0].clientX
     touchY.current = e.touches[0].clientY
     touchAtTop.current = window.scrollY < 5
+    // Don't trigger swipe-to-change-month when touch starts in a horizontally-scrollable element
+    let el = e.target
+    touchInScrollable.current = false
+    while (el && el !== document.body) {
+      if (el.scrollWidth > el.clientWidth + 4) { touchInScrollable.current = true; break }
+      el = el.parentElement
+    }
   }
   function handleTouchEnd(e) {
     if (touchX.current === null || modalOpen || showActivity) return
     const dx = e.changedTouches[0].clientX - touchX.current
     const dy = e.changedTouches[0].clientY - touchY.current
     touchX.current = null
-    if (Math.abs(dx) > 72 && Math.abs(dx) > Math.abs(dy) * 2) {
+    // Require strong horizontal swipe from a non-scrollable area and minimal vertical drift
+    if (!touchInScrollable.current && Math.abs(dx) > 90 && Math.abs(dx) > Math.abs(dy) * 2.5) {
       if (dx > 0) prevMes()
       else nextMes()
       return
@@ -1109,6 +1122,14 @@ export default function MesView() {
   const totalFijos = useMemo(() => gastosFijos.reduce((s, m) => s + Number(m.importe), 0), [gastosFijos])
   const totalVariables = useMemo(() => gastosVariables.reduce((s, m) => s + Number(m.importe), 0), [gastosVariables])
 
+  // Saldo en efectivo del mes (ingresos efectivo - gastos efectivo)
+  const saldoEfectivo = useMemo(() => {
+    const entradas = movimientos.filter(m => m.metodo_pago === 'efectivo' && m.tipo === 'ingreso').reduce((s, m) => s + Number(m.importe), 0)
+    const salidas = movimientos.filter(m => m.metodo_pago === 'efectivo' && m.tipo === 'gasto').reduce((s, m) => s + Number(m.importe), 0)
+    const hasData = entradas > 0 || salidas > 0
+    return hasData ? { entradas, salidas, balance: entradas - salidas } : null
+  }, [movimientos])
+
   const { gastosPendientes, gastosRealizados, totalPendiente } = useMemo(() => {
     const pend = gastosItems.filter(m => m.pendiente)
     const real = gastosItems.filter(m => !m.pendiente)
@@ -1352,14 +1373,20 @@ export default function MesView() {
     const byDay = {}
     gastosItems.forEach(m => { byDay[m.fecha] = (byDay[m.fecha] ?? 0) + Number(m.importe) })
     const topDay = Object.entries(byDay).sort((a, b) => b[1] - a[1])[0]
-    // Weekend vs weekday split
-    let weekendTotal = 0, weekdayTotal = 0
-    gastosItems.forEach(m => {
-      const dow = new Date(m.fecha + 'T12:00:00').getDay()
-      if (dow === 0 || dow === 6) weekendTotal += Number(m.importe)
-      else weekdayTotal += Number(m.importe)
-    })
-    return { biggest, topDay, weekendTotal, weekdayTotal }
+    // Average daily spend
+    const daysInMonth = new Date(anio, mes, 0).getDate()
+    const daysElapsed = isCurrentMonth ? Math.max(1, todayDate.getDate()) : daysInMonth
+    const totalGastosAll = gastosItems.filter(m => !m.pendiente).reduce((s, m) => s + Number(m.importe), 0)
+    const avgDaily = totalGastosAll / daysElapsed
+    // Projected end-of-month total (only for current month)
+    const projectedTotal = isCurrentMonth && daysElapsed > 0
+      ? Math.round(avgDaily * daysInMonth)
+      : null
+    // Most frequent category
+    const catFreq = {}
+    gastosItems.forEach(m => { if (m.categoria_id) catFreq[m.categoria_id] = (catFreq[m.categoria_id] ?? 0) + 1 })
+    const topCatId = Object.entries(catFreq).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null
+    return { biggest, topDay, avgDaily, projectedTotal, topCatId, daysElapsed, daysInMonth }
   }, [gastosItems])
 
   const spendingByDay = useMemo(() => {
@@ -1381,6 +1408,34 @@ export default function MesView() {
     const weekIngresos = weekMovs.filter(m => m.tipo === 'ingreso').reduce((s, m) => s + Number(m.importe), 0)
     return (weekGastos > 0 || weekIngresos > 0) ? { gastos: weekGastos, ingresos: weekIngresos } : null
   }, [isCurrentMonth, movimientos, todayDate])
+
+  // Aviso pre-cobro: basado en el próximo ingreso pendiente con fecha futura
+  const alertaCobro = useMemo(() => {
+    if (!isCurrentMonth) return null
+    // Buscar el próximo ingreso marcado como pendiente con fecha >= hoy
+    const proximoIngreso = ingresosItems
+      .filter(m => m.pendiente && m.fecha > todayStr)
+      .sort((a, b) => a.fecha.localeCompare(b.fecha))[0]
+    if (!proximoIngreso) return null
+    const diasHasta = Math.round((new Date(proximoIngreso.fecha + 'T12:00:00') - new Date(todayStr + 'T12:00:00')) / 86400000)
+    if (diasHasta <= 0) return null
+    // Gastos ya realizados en días anteriores a la fecha del ingreso (en este mes)
+    const gastosAntes = movimientos.filter(m => m.tipo === 'gasto' && !m.pendiente && m.fecha < proximoIngreso.fecha)
+    const totalAntes = gastosAntes.reduce((s, m) => s + Number(m.importe), 0)
+    // Gastos pendientes programados antes de la fecha del ingreso
+    const pendientesAntes = movimientos.filter(m => m.tipo === 'gasto' && m.pendiente && m.fecha < proximoIngreso.fecha)
+    const totalPendAntes = pendientesAntes.reduce((s, m) => s + Number(m.importe), 0)
+    const necesario = totalAntes + totalPendAntes
+    if (necesario === 0) return null
+    return {
+      fecha: proximoIngreso.fecha,
+      importeEsperado: Number(proximoIngreso.importe),
+      diasHasta,
+      totalAntes,
+      totalPendAntes,
+      necesario,
+    }
+  }, [isCurrentMonth, ingresosItems, movimientos, todayStr])
 
   const budgetHealthScore = useMemo(() => {
     const budgeted = gastosCats.filter(c => presupuestoPorCat[c.id] > 0)
@@ -1689,6 +1744,17 @@ export default function MesView() {
                   {thisWeekStats.ingresos > 0 && <b className="qc-inc"> +{fmtK(thisWeekStats.ingresos)}</b>}
                 </span>
               )}
+              {saldoEfectivo && (
+                <button
+                  className="quick-chip quick-chip-btn quick-chip-cash"
+                  onClick={() => { setBusqueda(''); setFiltroTipo('all'); movListRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }}
+                  title={lang === 'es' ? 'Efectivo este mes' : 'Cash this month'}
+                >
+                  💵 {lang === 'es' ? 'Efectivo' : 'Cash'}
+                  {saldoEfectivo.salidas > 0 && <b className="qc-exp"> −{fmtK(saldoEfectivo.salidas)}</b>}
+                  {saldoEfectivo.entradas > 0 && <b className="qc-inc"> +{fmtK(saldoEfectivo.entradas)}</b>}
+                </button>
+              )}
               {hasData && (
                 <button className="quick-chip quick-chip-btn" onClick={copiarResumen}
                   title={lang === 'es' ? 'Copiar resumen al portapapeles' : 'Copy summary to clipboard'}>
@@ -1733,6 +1799,40 @@ export default function MesView() {
               </button>
             )}
           </form>
+        )}
+
+        {/* Aviso pre-cobro: gastos antes del próximo ingreso esperado */}
+        {alertaCobro && (
+          <div className="precobro-banner">
+            <span className="precobro-icon">📆</span>
+            <div className="precobro-text">
+              <strong>
+                {lang === 'es'
+                  ? `Cobráis el día ${parseInt(alertaCobro.fecha.slice(8), 10)} — en ${alertaCobro.diasHasta} ${alertaCobro.diasHasta === 1 ? 'día' : 'días'}`
+                  : `Payday on the ${parseInt(alertaCobro.fecha.slice(8), 10)}th — ${alertaCobro.diasHasta} ${alertaCobro.diasHasta === 1 ? 'day' : 'days'} away`}
+                {alertaCobro.importeEsperado > 0 && ` (+${fmt(alertaCobro.importeEsperado)})`}
+              </strong>
+              {alertaCobro.totalAntes > 0 && (
+                <span>
+                  {lang === 'es'
+                    ? `Antes de cobrar ya habéis gastado ${fmt(alertaCobro.totalAntes)}`
+                    : `You've already spent ${fmt(alertaCobro.totalAntes)} before payday`}
+                </span>
+              )}
+              {alertaCobro.totalPendAntes > 0 && (
+                <span className="precobro-pending">
+                  {lang === 'es'
+                    ? `+ ${fmt(alertaCobro.totalPendAntes)} en gastos pendientes de cargo antes de esa fecha`
+                    : `+ ${fmt(alertaCobro.totalPendAntes)} in pending charges due before then`}
+                </span>
+              )}
+              <span className="precobro-total">
+                {lang === 'es'
+                  ? `Total a cubrir antes del cobro: ${fmt(alertaCobro.necesario)}`
+                  : `Total to cover before payday: ${fmt(alertaCobro.necesario)}`}
+              </span>
+            </div>
+          </div>
         )}
 
         {/* Budget health score (past months only) */}
@@ -1802,35 +1902,6 @@ export default function MesView() {
           </div>
         )}
 
-        {gastosPorUsuario && totalGastos > 0 && (
-          <div className="by-user-section">
-            <div className="by-user-row">
-              {gastosPorUsuario.map(u => (
-                <button
-                  key={u.id}
-                  className={`by-user-item${busqueda === u.nombre ? ' by-user-item-active' : ''}`}
-                  onClick={() => {
-                    const active = busqueda === u.nombre
-                    setBusqueda(active ? '' : u.nombre)
-                    setFiltroTipo(active ? 'all' : 'gasto')
-                    if (!active) movListRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-                  }}
-                  title={lang === 'es' ? `Ver los gastos de ${u.nombre}` : `See ${u.nombre}'s expenses`}
-                >
-                  <span className="by-user-name">{u.nombre}</span>
-                  <span className="by-user-amt">{fmt(u.total)}</span>
-                  <div className="by-user-bar-track">
-                    <div
-                      className="by-user-bar-fill"
-                      style={{ width: `${Math.round(u.total / totalGastos * 100)}%` }}
-                    />
-                  </div>
-                  <span className="by-user-pct">{Math.round(u.total / totalGastos * 100)}%</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
 
         {/* Over-budget alert */}
         {!loading && !isFutureMonth && (() => {
@@ -1866,34 +1937,6 @@ export default function MesView() {
           )
         })()}
 
-        {/* Approaching budget warning (current month, 75-99%) */}
-        {isCurrentMonth && !loading && (() => {
-          const approaching = gastosCats.filter(c => {
-            const b = presupuestoPorCat[c.id]
-            const spent = gastoPorCat[c.id] ?? 0
-            const ratio = b > 0 ? spent / b : 0
-            return ratio >= 0.75 && ratio < 1.0
-          })
-          if (approaching.length === 0) return null
-          return (
-            <div className="approaching-alert">
-              <span className="approaching-alert-icon">⚡</span>
-              <span className="approaching-alert-text">
-                {approaching.map(c => {
-                  const pct = Math.round((gastoPorCat[c.id] ?? 0) / presupuestoPorCat[c.id] * 100)
-                  return `${c.nombre} ${pct}%`
-                }).join(' · ')}
-                {' — '}{lang === 'es' ? 'cerca del límite' : 'near budget limit'}
-              </span>
-              <button
-                className="overbudget-alert-link"
-                onClick={() => { setFiltroCatId(approaching[0].id); setFiltroTipo('gasto') }}
-              >
-                {lang === 'es' ? 'ver' : 'view'}
-              </button>
-            </div>
-          )
-        })()}
 
         {/* Future month planning banner */}
         {isFutureMonth && !loading && (
@@ -2506,50 +2549,61 @@ export default function MesView() {
                         </button>
                       )}
                     </div>
-                    <button
-                      className={`sort-btn${sortMovs === 'fecha' ? ' sort-btn-active' : ''}`}
-                      onClick={() => {
-                        if (sortMovs === 'fecha') {
-                          const d = sortDir === 'desc' ? 'asc' : 'desc'
-                          setSortDir(d); localStorage.setItem('sortDir', d)
-                        } else {
-                          setSortMovs('fecha'); localStorage.setItem('sortMovs', 'fecha')
-                          setSortDir('desc'); localStorage.setItem('sortDir', 'desc')
-                        }
-                      }}
-                    >
-                      {t(lang, 'sort_by_date')}{sortMovs === 'fecha' ? (sortDir === 'desc' ? ' ↓' : ' ↑') : ''}
-                    </button>
-                    <button
-                      className={`sort-btn${sortMovs === 'importe' ? ' sort-btn-active' : ''}`}
-                      onClick={() => {
-                        if (sortMovs === 'importe') {
-                          const d = sortDir === 'desc' ? 'asc' : 'desc'
-                          setSortDir(d); localStorage.setItem('sortDir', d)
-                        } else {
-                          setSortMovs('importe'); localStorage.setItem('sortMovs', 'importe')
-                          setSortDir('desc'); localStorage.setItem('sortDir', 'desc')
-                        }
-                      }}
-                    >
-                      {t(lang, 'sort_by_amount')}{sortMovs === 'importe' ? (sortDir === 'desc' ? ' ↓' : ' ↑') : ''}
-                    </button>
-                    {isCurrentMonth && movimientos.some(m => m.fecha === todayStr) && (
+                    <div className="filters-dropdown-wrap">
                       <button
-                        className={`sort-btn${filterDate === todayStr ? ' sort-btn-active' : ''}`}
-                        onClick={() => setFilterDate(filterDate === todayStr ? null : todayStr)}
-                        title={t(lang, 'today')}
+                        className={`filters-toggle-btn${showFiltersPanel ? ' filters-toggle-active' : ''}${hayFiltroActivo || sortMovs !== 'fecha' || sortDir !== 'desc' || compactMode ? ' filters-toggle-dot' : ''}`}
+                        onClick={() => setShowFiltersPanel(v => !v)}
+                        aria-expanded={showFiltersPanel}
+                        title={lang === 'es' ? 'Filtros y orden' : 'Filters & sort'}
                       >
-                        {t(lang, 'today')}
+                        ⚙
                       </button>
-                    )}
-                    <button
-                      className={`sort-btn${compactMode ? ' sort-btn-active' : ''}`}
-                      onClick={() => setCompactMode(v => { const next = !v; localStorage.setItem('compactMode', next ? '1' : ''); return next })}
-                      title={compactMode ? (lang === 'es' ? 'Vista normal' : 'Normal view') : (lang === 'es' ? 'Vista compacta' : 'Compact view')}
-                    >
-                      {compactMode ? '⊟' : '⊞'}
-                    </button>
+                      {showFiltersPanel && (
+                        <>
+                          <div className="filters-panel-backdrop" onClick={() => setShowFiltersPanel(false)} />
+                          <div className="filters-panel">
+                            <p className="filters-panel-label">{lang === 'es' ? 'Ordenar' : 'Sort'}</p>
+                            <div className="filters-panel-row">
+                              <button
+                                className={`filters-panel-opt${sortMovs === 'fecha' && sortDir === 'desc' ? ' fp-opt-active' : ''}`}
+                                onClick={() => { setSortMovs('fecha'); setSortDir('desc'); localStorage.setItem('sortMovs','fecha'); localStorage.setItem('sortDir','desc') }}
+                              >{lang === 'es' ? 'Fecha ↓' : 'Date ↓'}</button>
+                              <button
+                                className={`filters-panel-opt${sortMovs === 'fecha' && sortDir === 'asc' ? ' fp-opt-active' : ''}`}
+                                onClick={() => { setSortMovs('fecha'); setSortDir('asc'); localStorage.setItem('sortMovs','fecha'); localStorage.setItem('sortDir','asc') }}
+                              >{lang === 'es' ? 'Fecha ↑' : 'Date ↑'}</button>
+                              <button
+                                className={`filters-panel-opt${sortMovs === 'importe' && sortDir === 'desc' ? ' fp-opt-active' : ''}`}
+                                onClick={() => { setSortMovs('importe'); setSortDir('desc'); localStorage.setItem('sortMovs','importe'); localStorage.setItem('sortDir','desc') }}
+                              >{lang === 'es' ? 'Importe ↓' : 'Amount ↓'}</button>
+                              <button
+                                className={`filters-panel-opt${sortMovs === 'importe' && sortDir === 'asc' ? ' fp-opt-active' : ''}`}
+                                onClick={() => { setSortMovs('importe'); setSortDir('asc'); localStorage.setItem('sortMovs','importe'); localStorage.setItem('sortDir','asc') }}
+                              >{lang === 'es' ? 'Importe ↑' : 'Amount ↑'}</button>
+                            </div>
+                            <p className="filters-panel-label" style={{ marginTop: '0.5rem' }}>{lang === 'es' ? 'Opciones' : 'Options'}</p>
+                            <div className="filters-panel-row">
+                              {isCurrentMonth && movimientos.some(m => m.fecha === todayStr) && (
+                                <button
+                                  className={`filters-panel-opt${filterDate === todayStr ? ' fp-opt-active' : ''}`}
+                                  onClick={() => { setFilterDate(filterDate === todayStr ? null : todayStr); setShowFiltersPanel(false) }}
+                                >{lang === 'es' ? 'Hoy' : 'Today'}</button>
+                              )}
+                              <button
+                                className={`filters-panel-opt${compactMode ? ' fp-opt-active' : ''}`}
+                                onClick={() => setCompactMode(v => { const next = !v; localStorage.setItem('compactMode', next ? '1' : ''); return next })}
+                              >{lang === 'es' ? 'Vista compacta' : 'Compact'}</button>
+                            </div>
+                            {hayFiltroActivo && (
+                              <button
+                                className="filters-panel-clear"
+                                onClick={() => { setFiltroTipo('all'); setBusqueda(''); setFiltroCatId(null); setFiltroFijo(null); setFiltroPendiente(false); setFilterDate(null); setShowFiltersPanel(false) }}
+                              >{lang === 'es' ? '✕ Limpiar filtros' : '✕ Clear filters'}</button>
+                            )}
+                          </div>
+                        </>
+                      )}
+                    </div>
                   </div>
                   {filtroPendiente && gastosPendientes.length > 0 && filtroTipo !== 'ingreso' && (
                     <div className="pending-actions-row">
@@ -2782,14 +2836,12 @@ export default function MesView() {
                               {m.tipo === 'ingreso' ? t(lang, 'pending_income_badge') : t(lang, 'pending_badge')}
                             </span>
                           )}
+                          {m.metodo_pago === 'efectivo' && (
+                            <span className="movement-cash-badge" title={lang === 'es' ? 'Efectivo' : 'Cash'}>💵</span>
+                          )}
                           <span className={`movement-amount ${m.tipo === 'gasto' ? 'amount-expense' : 'amount-income'}${m.pendiente ? ' amount-pending' : ''}`}>
                             {m.tipo === 'gasto' ? '-' : '+'}{fmt(Number(m.importe))}
                           </span>
-                          {rb != null && (
-                            <span className={`movement-running-bal${rb < 0 ? ' running-bal-neg' : ''}`}>
-                              {fmt(rb)}
-                            </span>
-                          )}
                         </div>
                       </button>
                       {m.pendiente && m.tipo === 'gasto' && (

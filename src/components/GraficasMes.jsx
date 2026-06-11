@@ -182,10 +182,7 @@ function TrendBars({ data, fmt, lang }) {
 
 function InsightsBlock({ insights, fmt, lang, catMap }) {
   if (!insights) return null
-  const { biggest, topDay, weekendTotal, weekdayTotal } = insights
-  const total = weekendTotal + weekdayTotal
-  const weekendPct = total > 0 ? Math.round(weekendTotal / total * 100) : 0
-  const weekdayPct = 100 - weekendPct
+  const { biggest, topDay, avgDaily, projectedTotal, topCatId } = insights
 
   const topDayDate = topDay ? new Date(topDay[0] + 'T12:00:00') : null
   const topDayLabel = topDayDate
@@ -193,37 +190,45 @@ function InsightsBlock({ insights, fmt, lang, catMap }) {
     : null
 
   const biggestCatName = biggest?.categoria_id ? (catMap?.get(biggest.categoria_id) ?? '') : ''
+  const topCatName = topCatId ? (catMap?.get(topCatId) ?? '') : ''
 
   return (
     <div className="insights-grid">
       {biggest && (
         <div className="insight-card">
-          <span className="insight-icon" aria-hidden="true">🔝</span>
+          <span className="insight-title">{lang === 'es' ? 'Gasto mayor' : 'Biggest expense'}</span>
           <span className="insight-val">{fmt(Number(biggest.importe))}</span>
           <span className="insight-label">
-            {biggest.concepto || biggestCatName || (lang === 'es' ? 'mayor gasto' : 'top expense')}
+            {biggest.concepto || biggestCatName || (lang === 'es' ? 'sin categoría' : 'uncategorized')}
           </span>
         </div>
       )}
       {topDay && topDay[1] > 0 && (
         <div className="insight-card">
-          <span className="insight-icon" aria-hidden="true">📅</span>
+          <span className="insight-title">{lang === 'es' ? 'Día más caro' : 'Top spending day'}</span>
           <span className="insight-val">{fmt(topDay[1])}</span>
           <span className="insight-label">{topDayLabel}</span>
         </div>
       )}
-      {total > 0 && (
-        <div className="insight-card insight-card-wide">
-          <span className="insight-icon" aria-hidden="true">📊</span>
-          <div className="insight-split-bars">
-            <div className="insight-split-bar" style={{ width: `${weekdayPct}%`, background: 'var(--accent)' }} />
-            <div className="insight-split-bar" style={{ width: `${weekendPct}%`, background: 'var(--expense)' }} />
-          </div>
-          <span className="insight-label">
-            {lang === 'es'
-              ? `L–V ${weekdayPct}% · F–D ${weekendPct}%`
-              : `Mon–Fri ${weekdayPct}% · Sat–Sun ${weekendPct}%`}
-          </span>
+      {avgDaily > 0 && (
+        <div className="insight-card">
+          <span className="insight-title">{lang === 'es' ? 'Media diaria' : 'Daily average'}</span>
+          <span className="insight-val">{fmt(Math.round(avgDaily))}</span>
+          <span className="insight-label">{lang === 'es' ? 'por día' : 'per day'}</span>
+        </div>
+      )}
+      {projectedTotal !== null && projectedTotal > 0 && (
+        <div className="insight-card">
+          <span className="insight-title">{lang === 'es' ? 'Proyección fin de mes' : 'Month-end forecast'}</span>
+          <span className="insight-val">{fmt(projectedTotal)}</span>
+          <span className="insight-label">{lang === 'es' ? 'al ritmo actual' : 'at current pace'}</span>
+        </div>
+      )}
+      {topCatName && (
+        <div className="insight-card">
+          <span className="insight-title">{lang === 'es' ? 'Categoría frecuente' : 'Most used category'}</span>
+          <span className="insight-val insight-val-sm">{topCatName}</span>
+          <span className="insight-label">{lang === 'es' ? 'más movimientos' : 'most transactions'}</span>
         </div>
       )}
     </div>

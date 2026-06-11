@@ -41,6 +41,7 @@ export default function MovimientoModal({
   const [nota, setNota] = useState('')
   const [esFijo, setEsFijo] = useState(false)
   const [pendiente, setPendiente] = useState(false)
+  const [metodoPago, setMetodoPago] = useState('tarjeta')
   const [saving, setSaving] = useState(false)
   // Modo ultra-rápido: importe + concepto + categoría; el resto tras "Más opciones"
   const [showMore, setShowMore] = useState(false)
@@ -70,6 +71,7 @@ export default function MovimientoModal({
       setNota(movimiento.nota ?? '')
       setEsFijo(movimiento.es_fijo ?? false)
       setPendiente(movimiento.pendiente ?? false)
+      setMetodoPago(movimiento.metodo_pago ?? 'tarjeta')
       setShowMore(true)
     } else {
       setShowMore(false)
@@ -82,6 +84,7 @@ export default function MovimientoModal({
       setNota(defaultNota || '')
       setEsFijo(false)
       setPendiente(false)
+      setMetodoPago('tarjeta')
     }
   }, [open, movimiento?.id, defaultTipo, defaultCatId, defaultImporte, defaultSubcatId, defaultNota, defaultConcepto, defaultFecha])
 
@@ -157,6 +160,7 @@ export default function MovimientoModal({
       creado_por: userId,
       es_fijo: tipo === 'gasto' ? esFijo : false,
       pendiente,
+      metodo_pago: metodoPago,
     }
     if (concepto.trim()) payload.concepto = concepto.trim()
     return payload
@@ -444,6 +448,29 @@ export default function MovimientoModal({
               maxLength={120}
             />
           </div>
+          )}
+
+          {/* Método de pago: tarjeta / efectivo */}
+          {showMore && (
+            <div className="field">
+              <label>{lang === 'es' ? 'Método de pago' : 'Payment method'}</label>
+              <div className="metodo-toggle">
+                <button
+                  type="button"
+                  className={`metodo-btn${metodoPago === 'tarjeta' ? ' metodo-active' : ''}`}
+                  onClick={() => setMetodoPago('tarjeta')}
+                >
+                  💳 {lang === 'es' ? 'Tarjeta / Digital' : 'Card / Digital'}
+                </button>
+                <button
+                  type="button"
+                  className={`metodo-btn${metodoPago === 'efectivo' ? ' metodo-active metodo-efectivo' : ''}`}
+                  onClick={() => setMetodoPago('efectivo')}
+                >
+                  💵 {lang === 'es' ? 'Efectivo' : 'Cash'}
+                </button>
+              </div>
+            </div>
           )}
 
           {/* Toggles row — expenses: fixed + pending; income: pending only */}

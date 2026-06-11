@@ -4118,3 +4118,208 @@ kbd {
 .ctx-item:hover { background: var(--surface2); }
 .ctx-item-ok { color: var(--income); }
 .ctx-item-del { color: var(--expense); }
+
+/* ── Filtros dropdown ──────────────────────────────────────────────── */
+.filters-dropdown-wrap {
+  position: relative;
+}
+.filters-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 0.5px solid var(--hairline);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text2);
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.12s;
+  flex-shrink: 0;
+}
+.filters-toggle-btn:hover, .filters-toggle-active {
+  background: var(--surface2);
+  color: var(--text);
+}
+.filters-toggle-dot::after {
+  content: '';
+  position: absolute;
+  top: 4px; right: 4px;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.filters-panel-backdrop {
+  position: fixed; inset: 0; z-index: 99;
+}
+.filters-panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 100;
+  background: var(--surface);
+  border: 0.5px solid var(--hairline);
+  border-radius: 14px;
+  box-shadow: var(--shadow-lg);
+  padding: 0.75rem;
+  min-width: 220px;
+  animation: toastIn 0.12s ease;
+}
+.filters-panel-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text3);
+  margin: 0 0 0.35rem;
+}
+.filters-panel-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+.filters-panel-opt {
+  padding: 0.35rem 0.65rem;
+  border-radius: 20px;
+  border: 0.5px solid var(--hairline);
+  background: var(--surface2);
+  color: var(--text);
+  font-size: 0.8rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.filters-panel-opt:hover { background: var(--surface3, var(--hairline)); }
+.fp-opt-active {
+  background: var(--accent) !important;
+  color: #fff;
+  border-color: var(--accent);
+}
+.filters-panel-clear {
+  display: block;
+  width: 100%;
+  margin-top: 0.6rem;
+  padding: 0.4rem;
+  background: none;
+  border: none;
+  border-top: 0.5px solid var(--hairline);
+  color: var(--expense);
+  font-size: 0.82rem;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: center;
+}
+
+/* ── Efectivo ──────────────────────────────────────────────────────── */
+.quick-chip-cash {
+  color: var(--text);
+}
+.movement-cash-badge {
+  font-size: 0.8em;
+  opacity: 0.75;
+  margin-right: 0.15rem;
+  line-height: 1;
+}
+.metodo-toggle {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.metodo-btn {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  border-radius: 10px;
+  border: 1.5px solid var(--hairline);
+  background: var(--surface2);
+  color: var(--text2);
+  font-size: 0.85rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.14s;
+  text-align: center;
+}
+.metodo-btn:hover { border-color: var(--accent); color: var(--text); }
+.metodo-active { border-color: var(--accent) !important; background: color-mix(in srgb, var(--accent) 12%, var(--surface)) !important; color: var(--text) !important; }
+.metodo-efectivo.metodo-active { border-color: var(--income) !important; background: color-mix(in srgb, var(--income) 12%, var(--surface)) !important; }
+
+/* ── Aviso pre-cobro ───────────────────────────────────────────────── */
+.precobro-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.75rem 1rem;
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+  border: 0.5px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  border-radius: 12px;
+  margin-bottom: 0.75rem;
+  font-size: 0.84rem;
+  color: var(--text);
+  line-height: 1.45;
+}
+.precobro-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 0.1rem; }
+.precobro-text { display: flex; flex-direction: column; gap: 0.2rem; }
+.precobro-pending { color: var(--expense); font-weight: 600; }
+.precobro-total {
+  font-weight: 700;
+  color: var(--text);
+  border-top: 0.5px solid color-mix(in srgb, var(--accent) 25%, transparent);
+  padding-top: 0.25rem;
+  margin-top: 0.1rem;
+}
+
+/* ── Insights mejorados ────────────────────────────────────────────── */
+.insight-title {
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text3);
+  display: block;
+  margin-bottom: 0.1rem;
+}
+.insight-val-sm {
+  font-size: 0.95rem !important;
+}
+
+/* ── Responsive móvil — iPhone Pro / Pro Max ───────────────────────── */
+@media (max-width: 430px) {
+  .app-shell { padding: 0; }
+  .app-header { padding: 0.6rem 0.9rem; }
+  .app-content { padding: 0 0.75rem 5rem; }
+  .hero-card { padding: 1.1rem 1rem; border-radius: 14px; }
+  .hero-value { font-size: 2.2rem; }
+  .hero-sub { gap: 0.5rem; }
+  .hero-sub-item { padding: 0.5rem 0.65rem; border-radius: 10px; }
+  .section { border-radius: 14px; }
+  .section-header { padding: 0.75rem 0.85rem 0.5rem; }
+  .modal-card { border-radius: 20px 20px 0 0; max-width: 100%; margin: 0; width: 100%; padding: 1rem 1rem 2rem; }
+  .modal-overlay { align-items: flex-end; }
+  .budget-row { padding: 0.55rem 0.85rem; font-size: 0.85rem; }
+  .movement-item { padding: 0.55rem 0.85rem; }
+  .filter-tabs { gap: 0.25rem; }
+  .filter-tab { padding: 0.3rem 0.55rem; font-size: 0.78rem; }
+  .filter-tabs-row { padding: 0.5rem 0.85rem 0; }
+  .search-wrap { margin: 0.5rem 0.85rem; }
+  .cat-chips-row { padding: 0 0.85rem; }
+  .quick-bits { padding: 0 0.85rem; }
+  .movements-list { padding: 0 0.1rem; }
+  .movement-date-header { padding: 0.35rem 0.85rem; }
+  .trend-wrap, .donut-wrap, .insights-grid, .spend-cal { padding: 0 0.1rem; }
+  .filters-panel { right: -0.5rem; min-width: 200px; }
+  .btn-add-main { width: 52px; height: 52px; font-size: 1.5rem; bottom: 1.2rem; right: 1rem; }
+}
+
+@media (max-width: 390px) {
+  .hero-value { font-size: 1.9rem; }
+  .header-month { font-size: 1rem; }
+  .cat-grid-chip { font-size: 0.76rem; padding: 0.35rem 0.45rem; }
+  .insights-grid { grid-template-columns: 1fr 1fr; }
+  .insight-card { padding: 0.6rem; }
+  .quick-chip { font-size: 0.75rem; padding: 0.25rem 0.5rem; }
+  .filter-tab { padding: 0.28rem 0.45rem; font-size: 0.75rem; }
+}
+
+@media (min-width: 431px) and (max-width: 768px) {
+  .modal-card { max-width: 460px; border-radius: 20px; }
+}

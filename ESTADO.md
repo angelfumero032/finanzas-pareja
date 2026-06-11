@@ -1,6 +1,6 @@
 # ESTADO — finanzas-pareja
 
-**Fecha:** 2026-06-10
+**Fecha:** 2026-06-11
 **Estado:** Activo — desarrollo continuo
 
 ---
@@ -13,13 +13,15 @@ App React + Vite PWA con Supabase. **Build limpio. App funcional.** Todas las mi
 - `todayStr` añadido a scope del componente MesView (línea 29). Estaba solo definido dentro de `formatFecha()` causando `ReferenceError` al renderizar el botón "Hoy" y el indicador gasto-vs-media.
 - `BusquedaGlobal` call site actualizado para recibir `catColorMap` y `catIconMap`.
 
-### Migraciones pendientes de aplicar en Supabase SQL Editor
-- `supabase/migrations/005_subcategory_budgets.sql`
-- `supabase/migrations/006_plantillas_frecuencia.sql`
-- `supabase/migrations/007_cat_emoji.sql`
+### Migraciones pendientes de aplicar en Supabase SQL Editor (en orden)
+1. `supabase/migrations/005_presupuestos_subcat.sql`
+2. `supabase/migrations/006_plantillas_frecuencia.sql`
+3. `supabase/migrations/007_cat_emoji.sql`
+4. `supabase/migrations/008_efectivo.sql` — añade columna `metodo_pago` a movimientos
+5. `supabase/migrations/009_default_categories.sql` — añade categorías/subcategorías por defecto
 
-### Pendiente de push (código listo, Ángel debe hacer push vía GitHub Desktop)
-- 20+ commits con mejoras acumuladas
+### Pendiente de push
+- Esta sesión: ~30 commits acumulados. Ángel hace push vía GitHub Desktop.
 
 ---
 
