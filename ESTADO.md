@@ -90,8 +90,16 @@ Notas de integración:
 
 ## Bitácora de sesiones
 
-### 2026-06-11 (esta sesión)
-Aplicados los 25 sprints del backlog (ver "Sprints aplicados" arriba). Build verificado. Quedan: migraciones SQL 005–013 en Supabase + push (Ángel).
+### 2026-06-11 tarde (esta sesión, 2ª tanda)
+Peticiones de Ángel tras probar: banner de plantillas desplegable (añadir todo / elegir),
+plantillas de ingreso al generar movimientos (tipo+metodo_pago), filtros "hasta hoy"/"hoy+resto"
+y toggle "Vencidos", badge HOY en la lista, zona de archivos del hogar (Storage, migración 014),
+safe-area iOS reforzada. SQL 008 y 009 reescritas (009 fallaba: auth.uid() NULL en SQL Editor;
+además el pegado convertía -- en guion largo). Creado supabase/aplicar-en-supabase/TODO-EN-UNO.sql
+(005→014 en un solo pegado, idempotente). Build OK. Pendiente: TODO-EN-UNO en Supabase + push.
+
+### 2026-06-11 (1ª tanda)
+Aplicados los 25 sprints del backlog (ver "Sprints aplicados" arriba). Build verificado.
 
 ### 2026-06-10
 Ver sección "Mejoras implementadas" arriba.
