@@ -4243,31 +4243,6 @@ kbd {
 .metodo-active { border-color: var(--accent) !important; background: color-mix(in srgb, var(--accent) 12%, var(--surface)) !important; color: var(--text) !important; }
 .metodo-efectivo.metodo-active { border-color: var(--income) !important; background: color-mix(in srgb, var(--income) 12%, var(--surface)) !important; }
 
-/* ── Aviso pre-cobro ───────────────────────────────────────────────── */
-.precobro-banner {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.6rem;
-  padding: 0.75rem 1rem;
-  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
-  border: 0.5px solid color-mix(in srgb, var(--accent) 30%, transparent);
-  border-radius: 12px;
-  margin-bottom: 0.75rem;
-  font-size: 0.84rem;
-  color: var(--text);
-  line-height: 1.45;
-}
-.precobro-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 0.1rem; }
-.precobro-text { display: flex; flex-direction: column; gap: 0.2rem; }
-.precobro-pending { color: var(--expense); font-weight: 600; }
-.precobro-total {
-  font-weight: 700;
-  color: var(--text);
-  border-top: 0.5px solid color-mix(in srgb, var(--accent) 25%, transparent);
-  padding-top: 0.25rem;
-  margin-top: 0.1rem;
-}
-
 /* ── Insights mejorados ────────────────────────────────────────────── */
 .insight-title {
   font-size: 0.68rem;

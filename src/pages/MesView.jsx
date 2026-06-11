@@ -1409,34 +1409,6 @@ export default function MesView() {
     return (weekGastos > 0 || weekIngresos > 0) ? { gastos: weekGastos, ingresos: weekIngresos } : null
   }, [isCurrentMonth, movimientos, todayDate])
 
-  // Aviso pre-cobro: basado en el próximo ingreso pendiente con fecha futura
-  const alertaCobro = useMemo(() => {
-    if (!isCurrentMonth) return null
-    // Buscar el próximo ingreso marcado como pendiente con fecha >= hoy
-    const proximoIngreso = ingresosItems
-      .filter(m => m.pendiente && m.fecha > todayStr)
-      .sort((a, b) => a.fecha.localeCompare(b.fecha))[0]
-    if (!proximoIngreso) return null
-    const diasHasta = Math.round((new Date(proximoIngreso.fecha + 'T12:00:00') - new Date(todayStr + 'T12:00:00')) / 86400000)
-    if (diasHasta <= 0) return null
-    // Gastos ya realizados en días anteriores a la fecha del ingreso (en este mes)
-    const gastosAntes = movimientos.filter(m => m.tipo === 'gasto' && !m.pendiente && m.fecha < proximoIngreso.fecha)
-    const totalAntes = gastosAntes.reduce((s, m) => s + Number(m.importe), 0)
-    // Gastos pendientes programados antes de la fecha del ingreso
-    const pendientesAntes = movimientos.filter(m => m.tipo === 'gasto' && m.pendiente && m.fecha < proximoIngreso.fecha)
-    const totalPendAntes = pendientesAntes.reduce((s, m) => s + Number(m.importe), 0)
-    const necesario = totalAntes + totalPendAntes
-    if (necesario === 0) return null
-    return {
-      fecha: proximoIngreso.fecha,
-      importeEsperado: Number(proximoIngreso.importe),
-      diasHasta,
-      totalAntes,
-      totalPendAntes,
-      necesario,
-    }
-  }, [isCurrentMonth, ingresosItems, movimientos, todayStr])
-
   const budgetHealthScore = useMemo(() => {
     const budgeted = gastosCats.filter(c => presupuestoPorCat[c.id] > 0)
     if (budgeted.length === 0 || isCurrentMonth) return null
@@ -1799,40 +1771,6 @@ export default function MesView() {
               </button>
             )}
           </form>
-        )}
-
-        {/* Aviso pre-cobro: gastos antes del próximo ingreso esperado */}
-        {alertaCobro && (
-          <div className="precobro-banner">
-            <span className="precobro-icon">📆</span>
-            <div className="precobro-text">
-              <strong>
-                {lang === 'es'
-                  ? `Cobráis el día ${parseInt(alertaCobro.fecha.slice(8), 10)} — en ${alertaCobro.diasHasta} ${alertaCobro.diasHasta === 1 ? 'día' : 'días'}`
-                  : `Payday on the ${parseInt(alertaCobro.fecha.slice(8), 10)}th — ${alertaCobro.diasHasta} ${alertaCobro.diasHasta === 1 ? 'day' : 'days'} away`}
-                {alertaCobro.importeEsperado > 0 && ` (+${fmt(alertaCobro.importeEsperado)})`}
-              </strong>
-              {alertaCobro.totalAntes > 0 && (
-                <span>
-                  {lang === 'es'
-                    ? `Antes de cobrar ya habéis gastado ${fmt(alertaCobro.totalAntes)}`
-                    : `You've already spent ${fmt(alertaCobro.totalAntes)} before payday`}
-                </span>
-              )}
-              {alertaCobro.totalPendAntes > 0 && (
-                <span className="precobro-pending">
-                  {lang === 'es'
-                    ? `+ ${fmt(alertaCobro.totalPendAntes)} en gastos pendientes de cargo antes de esa fecha`
-                    : `+ ${fmt(alertaCobro.totalPendAntes)} in pending charges due before then`}
-                </span>
-              )}
-              <span className="precobro-total">
-                {lang === 'es'
-                  ? `Total a cubrir antes del cobro: ${fmt(alertaCobro.necesario)}`
-                  : `Total to cover before payday: ${fmt(alertaCobro.necesario)}`}
-              </span>
-            </div>
-          </div>
         )}
 
         {/* Budget health score (past months only) */}
