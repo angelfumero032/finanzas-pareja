@@ -1123,8 +1123,19 @@ html, body { overscroll-behavior: none; }
 }
 .movements-footer-count { color: var(--text3); font-variant-numeric: tabular-nums; }
 .movements-footer-total { font-weight: 600; color: var(--text); margin-left: auto; }
-.movements-footer-exp { font-weight: 600; color: var(--text2); margin-left: auto; }
+.movements-footer-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin-left: auto;
+  align-items: flex-end;
+}
+.movements-footer-line { display: flex; align-items: baseline; gap: 0.4rem; flex-wrap: wrap; justify-content: flex-end; }
+.movements-footer-label { color: var(--text3); font-size: 0.75rem; }
+.movements-footer-exp { font-weight: 600; color: var(--text2); }
 .movements-footer-inc { font-weight: 600; color: var(--income); }
+.movements-footer-note { color: #d97706; font-size: 0.74rem; font-variant-numeric: tabular-nums; }
+.movements-footer-line:has(.movements-footer-inc) .movements-footer-note { color: #2563eb; }
 
 .movement-item {
   display: flex;
@@ -1482,6 +1493,8 @@ html, body { overscroll-behavior: none; }
 }
 .cat-row:hover .cat-row-edit { opacity: 1; }
 @media (hover: none) { .cat-row-edit { opacity: 1; } }
+/* En filas de plantilla el padre no es .cat-row: el lápiz debe verse siempre */
+.plantilla-row .cat-row-edit { opacity: 1; }
 .cat-row-edit:hover { background: color-mix(in srgb, var(--accent) 12%, transparent) !important; color: var(--accent) !important; border-color: var(--accent) !important; }
 
 .sub-block {
@@ -2464,30 +2477,8 @@ kbd {
   border-color: rgba(59,130,246,0.18);
 }
 .pending-actions-row-income .pending-actions-label { color: #2563eb; }
-.movements-footer-pending-income { color: #2563eb; }
 .summary-pending-hint-income { color: #2563eb; }
 
-/* ── Movements footer pending ── */
-.movements-footer-pending {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.55rem 0.75rem;
-  margin-top: 0.5rem;
-  border-radius: 0.5rem;
-  background: rgba(217,119,6,0.08);
-  border: 1px solid rgba(217,119,6,0.2);
-}
-.movements-footer-pending-label {
-  font-size: 0.8rem;
-  color: #d97706;
-  font-weight: 500;
-}
-.movements-footer-pending-amount {
-  font-size: 0.88rem;
-  font-weight: 700;
-  color: #d97706;
-}
 .btn-mark-all-paid {
   font-size: 0.75rem;
   padding: 0.25rem 0.6rem;
@@ -3111,37 +3102,6 @@ kbd {
 }
 .gs-note { color: var(--text3); font-size: 0.78rem; }
 .gs-amount { flex-shrink: 0; font-weight: 700; font-size: 0.87rem; font-variant-numeric: tabular-nums; }
-
-/* ── Por asignar (YNAB-style) ── */
-.assign-row {
-  display: flex;
-  align-items: baseline;
-  gap: 0.45rem;
-  flex-wrap: wrap;
-  padding: 0.5rem 0.75rem;
-  border-radius: var(--r-sm);
-  font-size: 0.8rem;
-  margin-bottom: 0.6rem;
-}
-.assign-label { font-weight: 700; text-transform: uppercase; font-size: 0.67rem; letter-spacing: 0.06em; }
-.assign-amount { font-weight: 800; font-size: 0.95rem; }
-.assign-hint { color: var(--text3); font-size: 0.73rem; }
-.assign-free {
-  background: color-mix(in srgb, var(--accent) 7%, var(--surface));
-  border: 1px dashed color-mix(in srgb, var(--accent) 40%, var(--border));
-}
-.assign-free .assign-label, .assign-free .assign-amount { color: var(--accent); }
-.assign-over {
-  background: color-mix(in srgb, var(--warn) 8%, var(--surface));
-  border: 1px solid color-mix(in srgb, var(--warn) 30%, var(--border));
-}
-.assign-over .assign-label, .assign-over .assign-amount { color: var(--warn); }
-.assign-done {
-  background: color-mix(in srgb, var(--income) 7%, var(--surface));
-  border: 1px solid color-mix(in srgb, var(--income) 25%, var(--border));
-  color: var(--income);
-  font-weight: 600;
-}
 
 /* ── Secciones plegables / reordenables ── */
 .section-collapse-btn { font-size: 0.85rem; padding: 0.3rem 0.4rem; }

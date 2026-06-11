@@ -2253,38 +2253,6 @@ export default function MesView() {
                 )}
               </div>
 
-              {/* Por asignar (YNAB: dale un destino a cada euro) */}
-              {totalIngresos > 0 && totalPresupuestado > 0 && (() => {
-                const porAsignar = totalIngresos - totalPresupuestado
-                if (Math.abs(porAsignar) < 0.5) {
-                  return (
-                    <div className="assign-row assign-done">
-                      <span>✓ {lang === 'es' ? 'Todo el ingreso tiene destino' : 'Every euro has a job'}</span>
-                    </div>
-                  )
-                }
-                if (porAsignar > 0) {
-                  return (
-                    <div className="assign-row assign-free">
-                      <span className="assign-label">{lang === 'es' ? 'Por asignar' : 'To assign'}</span>
-                      <span className="assign-amount">{fmt(porAsignar)}</span>
-                      <span className="assign-hint">
-                        {lang === 'es' ? 'dale un destino: presupuesto u hucha' : 'give it a job: budget or pot'}
-                      </span>
-                    </div>
-                  )
-                }
-                return (
-                  <div className="assign-row assign-over">
-                    <span className="assign-label">{lang === 'es' ? 'Presupuestado de más' : 'Over-assigned'}</span>
-                    <span className="assign-amount">{fmt(-porAsignar)}</span>
-                    <span className="assign-hint">
-                      {lang === 'es' ? 'el presupuesto supera los ingresos del mes' : 'budgets exceed this month’s income'}
-                    </span>
-                  </div>
-                )
-              })()}
-
               {presupuestos.length === 0 && totalGastos > 0 && !loading && (
                 <div className="budget-setup-banner">
                   <span className="budget-setup-text">
@@ -3044,24 +3012,40 @@ export default function MesView() {
               )}
               {movimientosFiltrados.length > 1 && (
                 <div className="movements-footer">
-                  <span className="movements-footer-count">{movimientosFiltrados.length}</span>
+                  <span className="movements-footer-count">
+                    {movimientosFiltrados.length} {lang === 'es' ? 'movimientos' : 'movements'}
+                  </span>
                   {hayFiltroActivo ? (
                     <span className="movements-footer-total">{fmt(totalFiltrado)}</span>
                   ) : (
-                    <>
-                      {totalGastos > 0 && <span className="movements-footer-exp">−{fmt(totalGastos)}</span>}
-                      {totalPendiente > 0 && (
-                        <span className="movements-footer-pending">
-                          {lang === 'es' ? `(${fmt(totalPendiente)} pte.)` : `(${fmt(totalPendiente)} pend.)`}
+                    <div className="movements-footer-summary">
+                      {totalGastos > 0 && (
+                        <span className="movements-footer-line">
+                          <span className="movements-footer-label">{lang === 'es' ? 'Gastos' : 'Expenses'}</span>
+                          <span className="movements-footer-exp">−{fmt(totalGastos)}</span>
+                          {totalPendiente > 0 && (
+                            <span className="movements-footer-note">
+                              {lang === 'es'
+                                ? `(${fmt(totalPendiente)} aún sin pagar)`
+                                : `(${fmt(totalPendiente)} not paid yet)`}
+                            </span>
+                          )}
                         </span>
                       )}
-                      {totalPendienteIngresos > 0 && (
-                        <span className="movements-footer-pending movements-footer-pending-income">
-                          {lang === 'es' ? `(+${fmt(totalPendienteIngresos)} p.cobrar)` : `(+${fmt(totalPendienteIngresos)} to collect)`}
+                      {totalIngresos > 0 && (
+                        <span className="movements-footer-line">
+                          <span className="movements-footer-label">{lang === 'es' ? 'Ingresos' : 'Income'}</span>
+                          <span className="movements-footer-inc">+{fmt(totalIngresos)}</span>
+                          {totalPendienteIngresos > 0 && (
+                            <span className="movements-footer-note">
+                              {lang === 'es'
+                                ? `(${fmt(totalPendienteIngresos)} por cobrar)`
+                                : `(${fmt(totalPendienteIngresos)} to collect)`}
+                            </span>
+                          )}
                         </span>
                       )}
-                      {totalIngresos > 0 && <span className="movements-footer-inc">+{fmt(totalIngresos)}</span>}
-                    </>
+                    </div>
                   )}
                 </div>
               )}

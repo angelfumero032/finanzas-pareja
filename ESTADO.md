@@ -1,7 +1,15 @@
 # ESTADO — finanzas-pareja
 
-**Fecha:** 2026-06-11 (tarde)
-**Estado:** Activo — **25 sprints APLICADOS en código** (sesión 2026-06-11). Pendiente: migraciones SQL en Supabase + push.
+**Fecha:** 2026-06-11 (noche)
+**Estado:** Activo — código completo y pusheado (origin/main = 43ad4d6). Supabase ✅ (TODO-EN-UNO.sql ejecutado sin errores). **Pendiente: forzar deploy en Netlify** (no se disparó con el push) + refrescar PWA de Mia.
+
+### ⚠ Deploy Netlify (diagnóstico 2026-06-11 noche)
+- Hosting confirmado: **Netlify** — https://finanzasfamiliade3.netlify.app (cabecera `server: Netlify`).
+- Netlify no registró ningún deploy tras el push de 43ad4d6 (sigue Published 399e30a "sum").
+- Solución inmediata: Deploys → **Trigger deploy → Clear cache and deploy site**.
+- Causa raíz a revisar: Site configuration → Build & deploy → Continuous deployment
+  (Builds = Active, Production branch = main, Linked repository = angelfumero032/finanzas-pareja).
+- Tras Published: PWA de Mia — cerrar/reabrir 2 veces; si persiste, reinstalar desde Safari.
 
 ---
 
