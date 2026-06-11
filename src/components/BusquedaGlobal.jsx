@@ -46,7 +46,7 @@ export default function BusquedaGlobal({ open, onClose, hogarId, lang, fmt, catM
     debounce.current = setTimeout(async () => {
       setSearching(true)
       try {
-        const esc = q.replace(/[%_,()]/g, ' ').trim()
+        const esc = q.replace(/[%_,()']/g, ' ').trim()
         const num = parseFloat(q.replace(',', '.'))
         // Categorías cuyo nombre coincide
         const catIds = [...catMap.entries()]
@@ -75,9 +75,9 @@ export default function BusquedaGlobal({ open, onClose, hogarId, lang, fmt, catM
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-card global-search-card" onClick={e => e.stopPropagation()}>
+      <div className="modal-card global-search-card" role="dialog" aria-modal="true" aria-labelledby="search-modal-title" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
-          <h2 className="modal-title">{es ? 'Buscar en todos los meses' : 'Search all months'}</h2>
+          <h2 id="search-modal-title" className="modal-title">{es ? 'Buscar en todos los meses' : 'Search all months'}</h2>
           <button className="btn-icon" onClick={onClose} aria-label={t(lang, 'close')}>✕</button>
         </div>
         <div className="search-wrap">
@@ -95,8 +95,30 @@ export default function BusquedaGlobal({ open, onClose, hogarId, lang, fmt, catM
         {!searching && results && results.length === 0 && (
           <p className="empty-text">{t(lang, 'no_results')}</p>
         )}
-        {!searching && results && results.length > 0 && (
-          <div className="global-search-results">
+        {!searching && results && results.length > 0 && (() => {
+          const patterns = Object.values(
+            results.reduce((acc, m) => {
+              const key = (m.concepto || '').toLowerCase()
+              if (!key) return acc
+              if (!acc[key]) acc[key] = { concepto: m.concepto, count: 0, total: 0, tipo: m.tipo }
+              acc[key].count++; acc[key].total += Number(m.importe)
+              return acc
+            }, {})
+          ).filter(p => p.count >= 3).sort((a, b) => b.total - a.total)
+          return (
+            <>
+              {patterns.length > 0 && (
+                <div className="gs-patterns">
+                  <p className="gs-patterns-title">{es ? 'Recurrentes' : 'Patterns'}</p>
+                  {patterns.map(p => (
+                    <div key={p.concepto} className="gs-pattern-row">
+                      <span className="gs-pattern-concept">{p.concepto}</span>
+                      <span className="gs-pattern-meta">{p.count}× · {fmt(p.total)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="global-search-results">
             {results.map(m => {
               const q = query.trim()
               const catId = m.categoria_id
@@ -125,11 +147,13 @@ export default function BusquedaGlobal({ open, onClose, hogarId, lang, fmt, catM
                 </button>
               )
             })}
-            {results.length === 50 && (
-              <p className="empty-text">{es ? 'Mostrando los 50 más recientes' : 'Showing the 50 most recent'}</p>
-            )}
-          </div>
-        )}
+                {results.length === 50 && (
+                  <p className="empty-text">{es ? 'Mostrando los 50 más recientes' : 'Showing the 50 most recent'}</p>
+                )}
+              </div>
+            </>
+          )
+        })()}
       </div>
     </div>
   )

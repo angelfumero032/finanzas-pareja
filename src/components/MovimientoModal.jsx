@@ -139,6 +139,14 @@ export default function MovimientoModal({
     return combined
   }, [catId, catName, recentConceptos])
 
+  const importePorConcepto = useMemo(() => {
+    const map = {}
+    recentConceptos.forEach(r => {
+      if (r.concepto && r.importe) map[r.concepto] = Number(r.importe)
+    })
+    return map
+  }, [recentConceptos])
+
   function handleTipo(newTipo) {
     setTipo(newTipo)
     setCatId('')
@@ -196,9 +204,9 @@ export default function MovimientoModal({
 
   return (
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="modal-card" ref={cardRef}>
+      <div className="modal-card" role="dialog" aria-modal="true" aria-labelledby="mov-modal-title" ref={cardRef}>
         <div className="modal-header">
-          <h2 className="modal-title">
+          <h2 id="mov-modal-title" className="modal-title">
             {movimiento ? t(lang, 'edit_movement') : t(lang, 'new_movement')}
           </h2>
           <button className="btn-icon" onClick={onClose} aria-label={t(lang, 'close')}>✕</button>
@@ -273,6 +281,10 @@ export default function MovimientoModal({
               list="concepto-list"
               value={concepto}
               onChange={e => setConcepto(e.target.value)}
+              onInput={e => {
+                const val = e.target.value
+                if (!importe && importePorConcepto[val]) setImporte(String(importePorConcepto[val]))
+              }}
               maxLength={60}
               placeholder={t(lang, 'concept_placeholder')}
               autoComplete="off"
@@ -288,7 +300,10 @@ export default function MovimientoModal({
                     key={chip}
                     type="button"
                     className={`concepto-chip${concepto === chip ? ' concepto-chip-active' : ''}`}
-                    onClick={() => setConcepto(chip)}
+                    onClick={() => {
+                      setConcepto(chip)
+                      if (!importe && importePorConcepto[chip]) setImporte(String(importePorConcepto[chip]))
+                    }}
                   >
                     {chip}
                   </button>

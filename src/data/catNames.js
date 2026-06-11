@@ -149,6 +149,30 @@ const ES_EN = {
   'regalos recibidos': 'Gifts received',
   'trabajo freelance': 'Freelance',
   'alquiler recibido': 'Rental income',
+  // ── Categorías completas de migración 009 (faltaban en ES_EN) ──
+  'ocio y entretenimiento': 'Entertainment',
+  'ropa y calzado': 'Clothing & Footwear',
+  'cuidado personal': 'Personal care',
+  'gastos inesperados': 'Unexpected expenses',
+  'gastos extra programados': 'Scheduled extras',
+  'educación y formación': 'Education & Training',
+  'trabajo y negocio': 'Work & Business',
+  // ── Subcategorías de migración 009 ──
+  'médico / dentista': 'Doctor / Dentist',
+  'salidas y bares': 'Bars & Outings',
+  'cine / espectáculos': 'Cinema / Shows',
+  'libros y cultura': 'Books & Culture',
+  'streaming (netflix, etc.)': 'Streaming (Netflix, etc.)',
+  'música (spotify, etc.)': 'Music (Spotify, etc.)',
+  'apps y software': 'Apps & Software',
+  'almacenamiento en la nube': 'Cloud storage',
+  'periódicos y revistas': 'Newspapers & Magazines',
+  'cosmética y cuidado': 'Beauty & Care',
+  'depilación / estética': 'Hair removal / Aesthetics',
+  'multas': 'Fines',
+  'médico urgente': 'Emergency medical',
+  'vacaciones': 'Holidays',
+  'navidad': 'Christmas',
 }
 
 const EN_ES = Object.fromEntries(Object.entries(ES_EN).map(([es, en]) => [en.toLowerCase(), es]))

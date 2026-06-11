@@ -115,7 +115,7 @@ function fmtTrendK(n) {
   return `${Math.round(n)}`
 }
 
-function TrendBars({ data, fmt, lang }) {
+function TrendBars({ data, fmt, lang, onNavigate }) {
   const [activeCol, setActiveCol] = useState(null)
   const maxVal = Math.max(...data.flatMap(d => [d.income, d.expenses]), 1)
   const lastIdx = data.length - 1
@@ -148,6 +148,8 @@ function TrendBars({ data, fmt, lang }) {
               key={i}
               className={`trend-col${i === lastIdx ? ' trend-col-current' : ''}${activeCol === i ? ' trend-col-active' : ''}`}
               onClick={() => setActiveCol(activeCol === i ? null : i)}
+              onDoubleClick={() => onNavigate?.(d.anio, d.mes)}
+              title={onNavigate ? (lang === 'es' ? 'Doble click para ir a este mes' : 'Double-click to navigate to this month') : undefined}
               aria-pressed={activeCol === i}
               aria-label={`${d.label}: ${t(lang, 'total_income')} ${fmt(d.income)}, ${t(lang, 'total_expenses')} ${fmt(d.expenses)}`}
             >
@@ -182,7 +184,7 @@ function TrendBars({ data, fmt, lang }) {
 
 function InsightsBlock({ insights, fmt, lang, catMap }) {
   if (!insights) return null
-  const { biggest, topDay, avgDaily, projectedTotal, topCatId } = insights
+  const { biggest, topDay, avgDaily, projectedTotal, topCatId, topCatAmt, deltaGastosMes } = insights
 
   const topDayDate = topDay ? new Date(topDay[0] + 'T12:00:00') : null
   const topDayLabel = topDayDate
@@ -226,9 +228,22 @@ function InsightsBlock({ insights, fmt, lang, catMap }) {
       )}
       {topCatName && (
         <div className="insight-card">
-          <span className="insight-title">{lang === 'es' ? 'Categoría frecuente' : 'Most used category'}</span>
+          <span className="insight-title">{lang === 'es' ? 'Mayor categoría' : 'Top category'}</span>
           <span className="insight-val insight-val-sm">{topCatName}</span>
-          <span className="insight-label">{lang === 'es' ? 'más movimientos' : 'most transactions'}</span>
+          <span className="insight-label">{topCatAmt ? fmt(Math.round(topCatAmt)) : (lang === 'es' ? 'en gastos' : 'in expenses')}</span>
+        </div>
+      )}
+      {deltaGastosMes !== null && deltaGastosMes !== undefined && (
+        <div className="insight-card">
+          <span className="insight-title">{lang === 'es' ? 'vs mes anterior' : 'vs last month'}</span>
+          <span className={`insight-val ${deltaGastosMes >= 0 ? 'delta-neg' : 'delta-pos'}`}>
+            {deltaGastosMes >= 0 ? '+' : ''}{deltaGastosMes}%
+          </span>
+          <span className="insight-label">
+            {deltaGastosMes >= 0
+              ? (lang === 'es' ? 'más gasto' : 'more spent')
+              : (lang === 'es' ? 'menos gasto' : 'less spent')}
+          </span>
         </div>
       )}
     </div>
@@ -242,6 +257,7 @@ function SpendingCalendar({ byDay, anio, mes, lang, fmt, onSelectDate, selectedD
   const values = Object.values(byDay).filter(v => v > 0)
   const maxSpend = values.length > 0 ? Math.max(...values) : 1
   const DOW = lang === 'es' ? ['L','M','X','J','V','S','D'] : ['M','T','W','T','F','S','S']
+  const todayStr = new Date().toISOString().slice(0, 10)
 
   const cells = []
   for (let i = 0; i < offset; i++) cells.push(null)
@@ -263,7 +279,7 @@ function SpendingCalendar({ byDay, anio, mes, lang, fmt, onSelectDate, selectedD
           return (
             <button
               key={cell.d}
-              className={`spend-cal-day heat-${heat}${sel ? ' spend-cal-sel' : ''}`}
+              className={`spend-cal-day heat-${heat}${sel ? ' spend-cal-sel' : ''}${cell.dateStr === todayStr ? ' spend-cal-today' : ''}`}
               onClick={() => onSelectDate?.(sel ? null : cell.dateStr)}
               title={cell.spend > 0 ? fmt(cell.spend) : String(cell.d)}
               aria-label={`${cell.dateStr}${cell.spend > 0 ? ': ' + fmt(cell.spend) : ''}`}
@@ -278,7 +294,7 @@ function SpendingCalendar({ byDay, anio, mes, lang, fmt, onSelectDate, selectedD
   )
 }
 
-export default function GraficasMes({ lang, gastoPorCat, categorias, trendData, fmt, onSelectCat, catColors, catMap, insights, selectedCatId, spendingByDay, anio, mes, onSelectDate, selectedDate, order, onMoveUp, onMoveDown }) {
+export default function GraficasMes({ lang, gastoPorCat, categorias, trendData, fmt, onSelectCat, catColors, catMap, insights, selectedCatId, spendingByDay, anio, mes, onSelectDate, selectedDate, order, onMoveUp, onMoveDown, onNavigate }) {
   // Contraída por defecto (armonía visual); se recuerda lo que elija el usuario
   const [collapsed, setCollapsed] = useState(() => (localStorage.getItem('sec_charts_collapsed') ?? '1') === '1')
   function toggleCollapsed() {
@@ -359,7 +375,7 @@ export default function GraficasMes({ lang, gastoPorCat, categorias, trendData, 
       {hasTrend && (
         <div className={`chart-block${pieData.length > 0 || insights || hasCal ? ' chart-block-sep' : ''}`}>
           <p className="chart-subtitle">{t(lang, 'monthly_trend')}</p>
-          <TrendBars data={trendData} fmt={fmt} lang={lang} />
+          <TrendBars data={trendData} fmt={fmt} lang={lang} onNavigate={onNavigate} />
         </div>
       )}
       </>}

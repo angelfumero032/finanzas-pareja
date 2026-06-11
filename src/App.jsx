@@ -9,7 +9,7 @@ function AppInner() {
   const { session, profile } = useAuth()
 
   if (session === undefined) {
-    return <div className="splash">Loading…</div>
+    return <div className="splash">{navigator.language.startsWith('es') ? 'Cargando…' : 'Loading…'}</div>
   }
 
   if (!session) {

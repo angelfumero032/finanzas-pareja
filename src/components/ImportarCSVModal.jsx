@@ -25,7 +25,7 @@ function detectSep(headerLine) {
   return semis > commas ? ';' : ','
 }
 
-function parseCSV(text, categorias) {
+function parseCSV(text, categorias, subcategorias = []) {
   const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(l => l.trim())
   if (lines.length < 2) return []
   const [headerLine, ...dataLines] = lines
@@ -41,10 +41,16 @@ function parseCSV(text, categorias) {
     fijo: cols.findIndex(c => ['fijo', 'fixed', 'es_fijo'].includes(c)),
     pendiente: cols.findIndex(c => ['pendiente', 'pending'].includes(c)),
     nota: cols.findIndex(c => ['nota', 'note'].includes(c)),
+    metodo_pago: cols.findIndex(c => ['metodo_pago', 'payment_method', 'metodo', 'pago'].includes(c)),
   }
 
   const catByName = {}
   categorias.forEach(c => { catByName[c.nombre.toLowerCase()] = c.id })
+  // Índice: "catId::subcatNombre" → subcatId
+  const subcatsByName = {}
+  subcategorias.forEach(s => {
+    subcatsByName[`${s.categoria_id}::${s.nombre.toLowerCase()}`] = s.id
+  })
 
   return dataLines.map((line, rowIdx) => {
     if (!line.trim()) return null
@@ -61,13 +67,19 @@ function parseCSV(text, categorias) {
     const importe = parseFloat(importeStr)
     const catNombre = get('categoria').toLowerCase()
     const catId = catByName[catNombre] ?? null
+    const subcatNombre = get('subcategoria').toLowerCase()
+    const subcatId = catId && subcatNombre ? (subcatsByName[`${catId}::${subcatNombre}`] ?? null) : null
+    const metodoPago = (() => {
+      const mp = get('metodo_pago').toLowerCase()
+      return ['tarjeta', 'efectivo', 'transferencia', 'bizum'].includes(mp) ? mp : 'tarjeta'
+    })()
     const nota = get('nota') || null
     const concepto = get('concepto') || null
     const esFijo = ['1', 'true', 'si', 'yes', 'sí'].includes(get('fijo').toLowerCase())
     const pendiente = ['1', 'true', 'si', 'yes', 'sí'].includes(get('pendiente').toLowerCase())
 
     const errors = []
-    if (!fecha || !/^\d{4}-\d{2}-\d{2}$/.test(fecha)) errors.push('fecha')
+    if (!fecha || !/^\d{4}-\d{2}-\d{2}$/.test(fecha) || isNaN(Date.parse(fecha))) errors.push('fecha')
     if (!tipo) errors.push('tipo')
     if (isNaN(importe) || importe <= 0) errors.push('importe')
 
@@ -78,6 +90,8 @@ function parseCSV(text, categorias) {
       importe: isNaN(importe) ? 0 : importe,
       catNombre: get('categoria'),
       catId,
+      subcatId,
+      metodoPago,
       concepto,
       nota,
       esFijo,
@@ -88,7 +102,7 @@ function parseCSV(text, categorias) {
   }).filter(Boolean)
 }
 
-export default function ImportarCSVModal({ open, onClose, lang, hogarId, userId, categorias, anio, mes, onImported }) {
+export default function ImportarCSVModal({ open, onClose, lang, hogarId, userId, categorias, subcategorias = [], anio, mes, onImported }) {
   const [rows, setRows] = useState([])
   const [importing, setImporting] = useState(false)
   const [done, setDone] = useState(null)
@@ -112,7 +126,7 @@ export default function ImportarCSVModal({ open, onClose, lang, hogarId, userId,
     if (!file || !file.name.match(/\.csv$/i)) return
     const reader = new FileReader()
     reader.onload = ev => {
-      const parsed = parseCSV(ev.target.result, categorias)
+      const parsed = parseCSV(ev.target.result, categorias, subcategorias)
       setRows(parsed)
     }
     reader.readAsText(file, 'utf-8')
@@ -120,6 +134,19 @@ export default function ImportarCSVModal({ open, onClose, lang, hogarId, userId,
 
   function handleFile(e) {
     readFile(e.target.files?.[0])
+  }
+
+  function downloadTemplate() {
+    const csv = [
+      'fecha,tipo,concepto,importe,categoria,subcategoria,nota,fijo,pendiente,metodo_pago',
+      '2024-01-15,gasto,Compra supermercado,85.50,Alimentación,Supermercado,,,,tarjeta',
+      '2024-01-16,ingreso,Nómina enero,2000,Nómina,,,,,'
+    ].join('\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url; a.download = 'plantilla-finanzas.csv'; a.click()
+    URL.revokeObjectURL(url)
   }
 
   function handleDrop(e) {
@@ -141,6 +168,8 @@ export default function ImportarCSVModal({ open, onClose, lang, hogarId, userId,
         importe: r.importe,
         fecha: r.fecha,
         categoria_id: r.catId,
+        subcategoria_id: r.subcatId ?? null,
+        metodo_pago: r.metodoPago ?? 'tarjeta',
         concepto: r.concepto || null,
         nota: r.nota,
         es_fijo: r.tipo === 'gasto' ? r.esFijo : false,
@@ -163,9 +192,9 @@ export default function ImportarCSVModal({ open, onClose, lang, hogarId, userId,
 
   return (
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="modal-card import-modal-card">
+      <div className="modal-card import-modal-card" role="dialog" aria-modal="true" aria-labelledby="import-modal-title">
         <div className="modal-header">
-          <h2 className="modal-title">{lang === 'es' ? 'Importar CSV' : 'Import CSV'}</h2>
+          <h2 id="import-modal-title" className="modal-title">{lang === 'es' ? 'Importar CSV' : 'Import CSV'}</h2>
           <button className="btn-icon" onClick={onClose} aria-label={t(lang, 'close')}>✕</button>
         </div>
 
@@ -185,14 +214,17 @@ export default function ImportarCSVModal({ open, onClose, lang, hogarId, userId,
             <div className="import-help">
               <p className="import-help-text">
                 {lang === 'es'
-                  ? 'CSV con columnas: fecha (YYYY-MM-DD), tipo (gasto/ingreso), concepto, importe, categoria, fijo (0/1), pendiente (0/1), nota — todas opcionales excepto fecha, tipo e importe.'
-                  : 'CSV columns: fecha (YYYY-MM-DD), tipo (gasto/ingreso), concepto, importe, categoria, fijo (0/1), pendiente (0/1), nota — only fecha, tipo and importe are required.'}
+                  ? 'CSV con columnas: fecha (YYYY-MM-DD), tipo (gasto/ingreso), concepto, importe, categoria, subcategoria, fijo (0/1), pendiente (0/1), metodo_pago (tarjeta/efectivo/transferencia/bizum), nota — todas opcionales excepto fecha, tipo e importe.'
+                  : 'CSV columns: fecha (YYYY-MM-DD), tipo (gasto/ingreso), concepto, importe, categoria, subcategoria, fijo (0/1), pendiente (0/1), metodo_pago (tarjeta/efectivo/transferencia/bizum), nota — only fecha, tipo and importe are required.'}
               </p>
               <p className="import-help-note">
                 {lang === 'es'
                   ? `Los movimientos se importarán con su fecha original. La fecha del mes actual (${monthStr}) no se fuerza.`
                   : `Movements are imported with their original date. The current month (${monthStr}) is not forced.`}
               </p>
+              <button type="button" className="btn-sm btn-ghost" onClick={downloadTemplate}>
+                ⬇ {lang === 'es' ? 'Descargar plantilla' : 'Download template'}
+              </button>
             </div>
 
             <div

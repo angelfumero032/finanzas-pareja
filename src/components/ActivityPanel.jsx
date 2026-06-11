@@ -16,7 +16,7 @@ function formatDay(dateStr, lang) {
     : `${monthAbbr} ${parseInt(d)}`
 }
 
-export default function ActivityPanel({ open, onClose, actividades, currentUserId, usuarios, lastViewedAt }) {
+export default function ActivityPanel({ open, onClose, actividades, currentUserId, usuarios, lastViewedAt, onNavigate }) {
   const { lang } = useLang()
 
   useEffect(() => {
@@ -63,14 +63,34 @@ export default function ActivityPanel({ open, onClose, actividades, currentUserI
                 <div className="activity-day-header">{formatDay(group.day, lang)}</div>
                 {group.items.map(a => {
                   const isNew = lastViewedAt && a.actor_id !== currentUserId && a.creado_en > lastViewedAt
+                  const hasMonth = onNavigate && a.payload?.anio && a.payload?.mes
+                  const canNav = hasMonth && a.entidad === 'movimiento' && a.entidad_id
+                  const Tag = canNav ? 'button' : 'div'
                   return (
-                    <div key={a.id} className={`activity-item${isNew ? ' activity-item-new' : ''}`}>
+                    <Tag
+                      key={a.id}
+                      className={`activity-item${isNew ? ' activity-item-new' : ''}${canNav ? ' activity-item-link' : ''}`}
+                      onClick={canNav ? () => { onNavigate(a.payload.anio, a.payload.mes, a.entidad_id); onClose() } : undefined}
+                      type={canNav ? 'button' : undefined}
+                    >
                       <div className="activity-meta">
                         <span className="activity-actor">{actorName(a.actor_id)}</span>
                         <span className="activity-time">{timeAgo(a.creado_en, lang)}</span>
+                        {hasMonth && !canNav && (
+                          <button
+                            className="activity-nav-btn"
+                            onClick={e => { e.stopPropagation(); onNavigate(a.payload.anio, a.payload.mes); onClose() }}
+                            title={lang === 'es'
+                              ? `Ir a ${MONTHS[lang][a.payload.mes - 1]} ${a.payload.anio}`
+                              : `Go to ${MONTHS[lang][a.payload.mes - 1]} ${a.payload.anio}`}
+                          >
+                            → {MONTHS[lang][a.payload.mes - 1].slice(0, 3)} {a.payload.anio}
+                          </button>
+                        )}
                       </div>
                       <div className="activity-text">{a.resumen}</div>
-                    </div>
+                      {canNav && <span className="activity-nav-hint">→</span>}
+                    </Tag>
                   )
                 })}
               </div>

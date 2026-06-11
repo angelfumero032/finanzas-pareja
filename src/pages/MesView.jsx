@@ -44,6 +44,7 @@ export default function MesView() {
   const [actividades, setActividades] = useState([])
   const [unread, setUnread] = useState(0)
   const [showActivity, setShowActivity] = useState(false)
+  const [highlightMovId, setHighlightMovId] = useState(null)
 
   // Modal de movimiento
   const [modalOpen, setModalOpen] = useState(false)
@@ -59,10 +60,12 @@ export default function MesView() {
   const [sortDir, setSortDir] = useState(() => localStorage.getItem('sortDir') ?? 'desc')
   const [compactMode, setCompactMode] = useState(() => localStorage.getItem('compactMode') === '1')
   const [filterDate, setFilterDate] = useState(null)
+  const [filtroMetodo, setFiltroMetodo] = useState(null)
 
   const movListRef = useRef(null)
   const searchRef = useRef(null)
   const monthPickerRef = useRef(null)
+  const restoreFileRef = useRef(null)
   const touchX = useRef(null)
   const touchY = useRef(null)
 
@@ -199,6 +202,16 @@ export default function MesView() {
   const [yearLoading, setYearLoading] = useState(false)
 
 
+  // Estado de conexión (banner offline)
+  const [isOnline, setIsOnline] = useState(() => navigator.onLine)
+  useEffect(() => {
+    const up = () => setIsOnline(true)
+    const down = () => setIsOnline(false)
+    window.addEventListener('online', up)
+    window.addEventListener('offline', down)
+    return () => { window.removeEventListener('online', up); window.removeEventListener('offline', down) }
+  }, [])
+
   // Welcome banner (shown once on empty current month)
   const [welcomeDismissed, setWelcomeDismissed] = useState(() => !!localStorage.getItem('welcomeDismissed'))
   function dismissWelcome() { localStorage.setItem('welcomeDismissed', '1'); setWelcomeDismissed(true) }
@@ -271,21 +284,36 @@ export default function MesView() {
   const [huchaTotals, setHuchaTotals] = useState(null)
   const onHuchaTotals = useCallback((t2) => setHuchaTotals(t2), [])
 
-  // Month notes (per device, per household, per month)
-  const monthNoteKey = hogarId ? `month_note_${hogarId}_${anio}_${mes}` : null
+  // Month notes (compartida por hogar, tabla notas_mes)
   const [monthNote, setMonthNote] = useState('')
   const [editingNote, setEditingNote] = useState(false)
   useEffect(() => {
-    if (!monthNoteKey) return
-    setMonthNote(localStorage.getItem(monthNoteKey) ?? '')
+    if (!hogarId) return
     setEditingNote(false)
-  }, [monthNoteKey])
-  function saveMonthNote(val) {
+    supabase.from('notas_mes').select('texto').eq('hogar_id', hogarId).eq('anio', anio).eq('mes', mes).maybeSingle()
+      .then(({ data }) => setMonthNote(data?.texto ?? ''))
+  }, [hogarId, anio, mes])
+  useEffect(() => {
+    if (!hogarId) return
+    const ch = supabase.channel(`nota-rt-${hogarId}-${anio}-${mes}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'notas_mes', filter: `hogar_id=eq.${hogarId}` },
+        () => supabase.from('notas_mes').select('texto').eq('hogar_id', hogarId).eq('anio', anio).eq('mes', mes).maybeSingle()
+          .then(({ data }) => setMonthNote(data?.texto ?? '')))
+      .subscribe()
+    return () => supabase.removeChannel(ch)
+  }, [hogarId, anio, mes])
+  async function saveMonthNote(val) {
     const v = val.trim()
-    if (v) localStorage.setItem(monthNoteKey, v)
-    else localStorage.removeItem(monthNoteKey)
     setMonthNote(v)
     setEditingNote(false)
+    if (v) {
+      await supabase.from('notas_mes').upsert(
+        { hogar_id: hogarId, anio, mes, texto: v, actualizado_en: new Date().toISOString() },
+        { onConflict: 'hogar_id,anio,mes' }
+      )
+    } else {
+      await supabase.from('notas_mes').delete().eq('hogar_id', hogarId).eq('anio', anio).eq('mes', mes)
+    }
   }
 
   const fmt = useMemo(() => {
@@ -320,7 +348,7 @@ export default function MesView() {
       supabase.from('categorias').select('*').eq('hogar_id', hogarId).eq('archivada', false).order('tipo').order('orden'),
       supabase.from('subcategorias').select('*').eq('hogar_id', hogarId).eq('archivada', false).order('orden'),
       supabase.from('usuarios').select('id, nombre').eq('hogar_id', hogarId),
-      supabase.from('movimientos').select('concepto, categoria_id').eq('hogar_id', hogarId).not('concepto', 'is', null).gte('fecha', since60d).limit(200),
+      supabase.from('movimientos').select('concepto, categoria_id, importe').eq('hogar_id', hogarId).not('concepto', 'is', null).gte('fecha', since60d).limit(200),
       supabase.from('plantillas_fijas').select('*').eq('hogar_id', hogarId).order('orden').order('creado_en'),
     ]).then(([cats, subcats, usrs, recentC, plantillasRes]) => {
       if (cats.data) setCategorias(cats.data)
@@ -371,7 +399,7 @@ export default function MesView() {
   useEffect(() => { loadMes() }, [loadMes])
 
   // Limpiar filtros al cambiar de mes
-  useEffect(() => { setBusqueda(''); setFiltroTipo('all'); setFiltroCatId(null); setFiltroFijo(null); setFiltroPendiente(false); setFilterDate(null) }, [anio, mes])
+  useEffect(() => { setBusqueda(''); setFiltroTipo('all'); setFiltroCatId(null); setFiltroFijo(null); setFiltroPendiente(false); setFilterDate(null); setFiltroMetodo(null) }, [anio, mes])
 
   // Bloquear scroll del body cuando hay un panel/modal abierto (fix iOS)
   useEffect(() => {
@@ -447,20 +475,22 @@ export default function MesView() {
     if (!hogarId) return
     setYearLoading(true)
     try {
-      const { data } = await supabase
-        .from('movimientos')
-        .select('tipo, importe, mes')
-        .eq('hogar_id', hogarId)
-        .eq('anio', anio)
-      if (!data) return
-      const byMonth = Array.from({ length: 12 }, (_, i) => ({ mes: i + 1, income: 0, expenses: 0 }))
-      data.forEach(m => {
+      const [movRes, budgRes] = await Promise.all([
+        supabase.from('movimientos').select('tipo, importe, mes').eq('hogar_id', hogarId).eq('anio', anio).eq('pendiente', false),
+        supabase.from('presupuestos').select('mes, importe').eq('hogar_id', hogarId).eq('anio', anio),
+      ])
+      if (!movRes.data) return
+      const byMonth = Array.from({ length: 12 }, (_, i) => ({ mes: i + 1, income: 0, expenses: 0, budget: 0 }))
+      movRes.data.forEach(m => {
         const idx = m.mes - 1
         if (byMonth[idx]) {
           if (m.tipo === 'ingreso') byMonth[idx].income += Number(m.importe)
           else byMonth[idx].expenses += Number(m.importe)
         }
       })
+      if (budgRes.data) {
+        budgRes.data.forEach(b => { if (byMonth[b.mes - 1]) byMonth[b.mes - 1].budget += Number(b.importe) })
+      }
       setYearData(byMonth)
     } finally {
       setYearLoading(false)
@@ -537,6 +567,22 @@ export default function MesView() {
           realtimeDebounce.current = setTimeout(() => loadMesRef.current?.(), 400)
         }
       )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'presupuestos', filter: `hogar_id=eq.${hogarId}` },
+        () => {
+          if (realtimeDebounce.current) clearTimeout(realtimeDebounce.current)
+          realtimeDebounce.current = setTimeout(() => loadMesRef.current?.(), 400)
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'ahorro_aportes', filter: `hogar_id=eq.${hogarId}` },
+        () => {
+          if (realtimeDebounce.current) clearTimeout(realtimeDebounce.current)
+          realtimeDebounce.current = setTimeout(() => loadMesRef.current?.(), 400)
+        }
+      )
       .subscribe()
 
     return () => supabase.removeChannel(channel)
@@ -575,6 +621,7 @@ export default function MesView() {
     function onKey(e) {
       if (e.key === 'Escape' && showHelp) { setShowHelp(false); return }
       if (['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target.tagName)) return
+      if (e.key === 'a' || e.key === 'A') { setShowActivity(v => !v); return }
       if (modalOpen || showActivity || showHelp) return
       if (e.key === 'ArrowLeft') prevMes()
       if (e.key === 'ArrowRight') nextMes()
@@ -594,7 +641,7 @@ export default function MesView() {
       if (e.key === 'b' || e.key === 'B') setShowGlobalSearch(true)
       if (e.key === 'p' || e.key === 'P') { setFiltroPendiente(v => !v); setFiltroTipo(t => t === 'all' ? 'gasto' : t) }
       if (e.key === 'f' || e.key === 'F') { setFiltroFijo(v => v === true ? null : true) }
-      if (e.key === 'x' || e.key === 'X') { setFiltroTipo('all'); setBusqueda(''); setFiltroCatId(null); setFiltroFijo(null); setFiltroPendiente(false); setFilterDate(null) }
+      if (e.key === 'x' || e.key === 'X') { setFiltroTipo('all'); setBusqueda(''); setFiltroCatId(null); setFiltroFijo(null); setFiltroPendiente(false); setFilterDate(null); setFiltroMetodo(null) }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -922,9 +969,14 @@ export default function MesView() {
         showToast(lang === 'es' ? 'Todas las categorías con gasto ya tienen presupuesto' : 'All spending categories already have budgets')
         return
       }
+      const preview = rows.slice(0, 5).map(r => {
+        const nombre = categorias.find(c => c.id === r.categoria_id)?.nombre ?? '?'
+        return `• ${nombre}: ${r.importe}€`
+      }).join('\n')
+      const extra = rows.length > 5 ? `\n…y ${rows.length - 5} más` : ''
       const ok = window.confirm(lang === 'es'
-        ? `¿Crear ${rows.length} presupuesto(s) con la media de los últimos 3 meses? Podrás ajustarlos después.`
-        : `Create ${rows.length} budget(s) from the last 3 months’ average? You can adjust them later.`)
+        ? `¿Crear ${rows.length} presupuesto(s) con la media de los últimos 3 meses?\n\n${preview}${extra}\n\nPodrás ajustarlos después.`
+        : `Create ${rows.length} budget(s) from the last 3 months’ average?\n\n${preview}${extra}\n\nYou can adjust them later.`)
       if (!ok) return
       const { error: upErr } = await supabase
         .from('presupuestos')
@@ -1010,7 +1062,7 @@ export default function MesView() {
   // ── Exportar CSV del mes (respeta el filtro activo) ──
   function exportarCSV() {
     const source = hayFiltroActivo ? movimientosFiltrados : movimientos
-    const header = ['fecha', 'tipo', 'concepto', 'importe', 'categoria', 'subcategoria', 'fijo', 'pendiente', 'nota'].join(',')
+    const header = ['fecha', 'tipo', 'concepto', 'importe', 'categoria', 'subcategoria', 'fijo', 'pendiente', 'metodo_pago', 'nota'].join(',')
     const rows = source.map(m => [
       m.fecha,
       m.tipo,
@@ -1020,6 +1072,7 @@ export default function MesView() {
       `"${subcatName(m.subcategoria_id).replace(/"/g, '""')}"`,
       m.es_fijo ? '1' : '0',
       m.pendiente ? '1' : '0',
+      m.metodo_pago ?? 'tarjeta',
       `"${(m.nota || '').replace(/"/g, '""')}"`,
     ].join(','))
     const csv = [header, ...rows].join('\n')
@@ -1100,6 +1153,49 @@ export default function MesView() {
       showToast(lang === 'es' ? 'Backup descargado ✓' : 'Backup downloaded ✓')
     } catch {
       showToast(t(lang, 'save_error'), 'error')
+    }
+  }
+
+  async function handleRestore(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    e.target.value = ''
+    try {
+      const text = await file.text()
+      const backup = JSON.parse(text)
+      if (!backup.version || !backup.hogar_id) {
+        showToast(lang === 'es' ? 'Archivo no válido' : 'Invalid backup file', 'error')
+        return
+      }
+      if (backup.hogar_id !== hogarId) {
+        showToast(lang === 'es' ? 'Este backup es de otro hogar' : 'Backup belongs to a different household', 'error')
+        return
+      }
+      const movCount = backup.movimientos?.length ?? 0
+      const presCount = backup.presupuestos?.length ?? 0
+      const exportDate = backup.exportado_en?.slice(0, 10) ?? '?'
+      const ok = window.confirm(
+        lang === 'es'
+          ? `¿Restaurar backup del ${exportDate}?\n• ${movCount} movimientos\n• ${presCount} presupuestos\n\nSe añadirán/actualizarán los datos existentes. No se borrará nada.`
+          : `Restore backup from ${exportDate}?\n• ${movCount} movements\n• ${presCount} budgets\n\nExisting data will be added/updated. Nothing will be deleted.`
+      )
+      if (!ok) return
+      showToast(lang === 'es' ? 'Restaurando…' : 'Restoring…')
+      const tables = ['movimientos', 'presupuestos', 'plantillas_fijas', 'objetivos', 'ahorro_aportes', 'presupuestos_subcat']
+      let restored = 0
+      for (const tb of tables) {
+        if (!backup[tb]?.length) continue
+        const rows = backup[tb].map(r => ({ ...r, hogar_id: hogarId }))
+        for (let i = 0; i < rows.length; i += 500) {
+          const { error } = await supabase.from(tb).upsert(rows.slice(i, i + 500), { onConflict: 'id' })
+          if (error) throw error
+          restored += Math.min(500, rows.length - i)
+        }
+      }
+      loadMesRef.current?.()
+      showToast(lang === 'es' ? `Restaurados ${restored} registros ✓` : `Restored ${restored} records ✓`)
+    } catch {
+      showToast(lang === 'es' ? 'Error al restaurar' : 'Error restoring backup', 'error')
     }
   }
 
@@ -1217,6 +1313,7 @@ export default function MesView() {
       .filter(m => filtroFijo === null || (filtroFijo === true ? m.es_fijo : !m.es_fijo))
       .filter(m => !filtroPendiente || m.pendiente)
       .filter(m => !filterDate || m.fecha === filterDate)
+      .filter(m => !filtroMetodo || (m.metodo_pago ?? 'tarjeta') === filtroMetodo)
       .filter(m => {
         if (!busqueda) return true
         const q = busqueda.toLowerCase()
@@ -1240,13 +1337,13 @@ export default function MesView() {
       list = [...list].sort((a, b) => a.fecha.localeCompare(b.fecha) || (a.creado_en ?? '').localeCompare(b.creado_en ?? ''))
     }
     return list
-  }, [movimientos, filtroTipo, filtroCatId, busqueda, sortMovs, sortDir, catMap, subcatMap, usuarios, profile?.id, lang, filtroFijo, filtroPendiente, filterDate])
+  }, [movimientos, filtroTipo, filtroCatId, busqueda, sortMovs, sortDir, catMap, subcatMap, usuarios, profile?.id, lang, filtroFijo, filtroPendiente, filterDate, filtroMetodo])
 
   const totalFiltrado = useMemo(
     () => movimientosFiltrados.reduce((s, m) => s + Number(m.importe), 0),
     [movimientosFiltrados]
   )
-  const hayFiltroActivo = filtroTipo !== 'all' || busqueda || filtroCatId || filtroFijo !== null || filtroPendiente || filterDate
+  const hayFiltroActivo = filtroTipo !== 'all' || busqueda || filtroCatId || filtroFijo !== null || filtroPendiente || filterDate || !!filtroMetodo
 
   const gastosPorUsuario = useMemo(() => {
     if (usuarios.length < 2) return null
@@ -1382,12 +1479,17 @@ export default function MesView() {
     const projectedTotal = isCurrentMonth && daysElapsed > 0
       ? Math.round(avgDaily * daysInMonth)
       : null
-    // Most frequent category
-    const catFreq = {}
-    gastosItems.forEach(m => { if (m.categoria_id) catFreq[m.categoria_id] = (catFreq[m.categoria_id] ?? 0) + 1 })
-    const topCatId = Object.entries(catFreq).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null
-    return { biggest, topDay, avgDaily, projectedTotal, topCatId, daysElapsed, daysInMonth }
-  }, [gastosItems])
+    // Top category by total amount
+    const catAmt = {}
+    gastosItems.forEach(m => { if (m.categoria_id) catAmt[m.categoria_id] = (catAmt[m.categoria_id] ?? 0) + Number(m.importe) })
+    const topCatId = Object.entries(catAmt).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null
+    const topCatAmt = topCatId ? catAmt[topCatId] : null
+    // Delta vs previous month
+    const deltaGastosMes = prevTotals?.gastos > 0
+      ? Math.round((totalGastosAll - prevTotals.gastos) / prevTotals.gastos * 100)
+      : null
+    return { biggest, topDay, avgDaily, projectedTotal, topCatId, topCatAmt, deltaGastosMes, daysElapsed, daysInMonth }
+  }, [gastosItems, prevTotals])
 
   const spendingByDay = useMemo(() => {
     const map = {}
@@ -1482,6 +1584,11 @@ export default function MesView() {
 
   return (
     <div className="app-root" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
+      {!isOnline && (
+        <div className="offline-banner" role="alert">
+          {lang === 'es' ? '⚠ Sin conexión — los cambios no se guardarán' : '⚠ Offline — changes won\'t be saved'}
+        </div>
+      )}
       {/* ── Cabecera ── */}
       <header className="app-header">
         <button className="btn-nav" onClick={prevMes} title={t(lang, 'prev_month')}>‹</button>
@@ -1535,6 +1642,7 @@ export default function MesView() {
             onClick={() => setShowMenu(v => !v)}
             title={lang === 'es' ? 'Más' : 'More'}
             aria-label={lang === 'es' ? 'Más opciones' : 'More options'}
+            aria-haspopup="menu"
             aria-expanded={showMenu}
           >
             ⋯
@@ -1543,26 +1651,32 @@ export default function MesView() {
         {showMenu && (
           <>
             <div className="menu-backdrop" onClick={() => setShowMenu(false)} />
-            <div className="header-menu" role="menu">
-              <button className="header-menu-item" onClick={() => { setShowMenu(false); setShowGlobalSearch(true) }}>
+            <div className="header-menu" role="menu" aria-label={lang === 'es' ? 'Opciones' : 'Options'}>
+              <button className="header-menu-item" role="menuitem" onClick={() => { setShowMenu(false); setShowGlobalSearch(true) }}>
                 🔍 {lang === 'es' ? 'Buscar en todos los meses' : 'Search all months'}
               </button>
-              <button className="header-menu-item" onClick={() => { setShowMenu(false); setShowPlantillasModal(true) }}>
+              <button className="header-menu-item" role="menuitem" onClick={() => { setShowMenu(false); setShowPlantillasModal(true) }}>
                 ↺ {lang === 'es' ? 'Gastos fijos' : 'Recurring expenses'}
                 {plantillasNoGeneradas.length > 0 && (
                   <span className="menu-item-badge">{plantillasNoGeneradas.length}</span>
                 )}
               </button>
-              <button className="header-menu-item" onClick={() => { setShowMenu(false); setShowGuide(true) }}>
+              <button className="header-menu-item" role="menuitem" onClick={() => { setShowMenu(false); setShowGuide(true) }}>
                 💡 {lang === 'es' ? 'Cómo funciona' : 'How it works'}
               </button>
-              <button className="header-menu-item" onClick={() => { setShowMenu(false); setShowCatsModal(true) }}>
+              <button className="header-menu-item" role="menuitem" onClick={() => { setShowMenu(false); setShowCatsModal(true) }}>
                 🏷 {t(lang, 'manage_categories')}
               </button>
-              <button className="header-menu-item" onClick={() => setLang(lang === 'es' ? 'en' : 'es')}>
+              <button className="header-menu-item" role="menuitem" onClick={() => setLang(lang === 'es' ? 'en' : 'es')}>
                 🌐 {lang === 'es' ? 'English' : 'Español'}
               </button>
-              <button className="header-menu-item header-menu-item-danger" onClick={handleSignOut}>
+              <button className="header-menu-item" role="menuitem" onClick={() => { setShowMenu(false); cycleTheme() }}>
+                {theme === 'auto' ? '🌙' : theme === 'dark' ? '☀️' : '🔆'}
+                {' '}{lang === 'es'
+                  ? (theme === 'auto' ? 'Modo oscuro' : theme === 'dark' ? 'Modo claro' : 'Modo auto')
+                  : (theme === 'auto' ? 'Dark mode' : theme === 'dark' ? 'Light mode' : 'Auto mode')}
+              </button>
+              <button className="header-menu-item header-menu-item-danger" role="menuitem" onClick={handleSignOut}>
                 ⏻ {t(lang, 'sign_out')}
               </button>
             </div>
@@ -1701,7 +1815,7 @@ export default function MesView() {
           const daysInMonth = new Date(anio, mes, 0).getDate()
           const daysLeft = isCurrentMonth ? daysInMonth - todayDate.getDate() : 0
           const hasData = totalIngresos > 0 || totalGastos > 0
-          if (!hasData && daysLeft <= 0 && !monthNoteKey) return null
+          if (!hasData && daysLeft <= 0 && !hogarId) return null
           return (
             <div className="quick-bits">
               {daysLeft > 0 && (
@@ -1718,8 +1832,12 @@ export default function MesView() {
               )}
               {saldoEfectivo && (
                 <button
-                  className="quick-chip quick-chip-btn quick-chip-cash"
-                  onClick={() => { setBusqueda(''); setFiltroTipo('all'); movListRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }}
+                  className={`quick-chip quick-chip-btn quick-chip-cash${filtroMetodo === 'efectivo' ? ' quick-chip-active' : ''}`}
+                  onClick={() => {
+                    setFiltroMetodo(prev => prev === 'efectivo' ? null : 'efectivo')
+                    setBusqueda('')
+                    movListRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                  }}
                   title={lang === 'es' ? 'Efectivo este mes' : 'Cash this month'}
                 >
                   💵 {lang === 'es' ? 'Efectivo' : 'Cash'}
@@ -1733,7 +1851,7 @@ export default function MesView() {
                   📋 {lang === 'es' ? 'Copiar' : 'Copy'}
                 </button>
               )}
-              {monthNoteKey && !editingNote && (
+              {hogarId && !editingNote && (
                 monthNote ? (
                   <button className="quick-chip quick-chip-btn" onClick={() => setEditingNote(true)}
                     title={lang === 'es' ? 'Editar nota del mes' : 'Edit month note'}>
@@ -2260,6 +2378,7 @@ export default function MesView() {
                               <input
                                 className="budget-inline-input"
                                 type="number"
+                                inputMode="decimal"
                                 min="0"
                                 step="0.01"
                                 defaultValue={budget > 0 ? budget : (spent > 0 ? Math.ceil(spent / 10) * 10 : '')}
@@ -2341,6 +2460,7 @@ export default function MesView() {
                                           <input
                                             className="budget-inline-input budget-inline-input-sm"
                                             type="number"
+                                            inputMode="decimal"
                                             min="0"
                                             step="0.01"
                                             defaultValue={subBudget > 0 ? subBudget : ''}
@@ -2532,10 +2652,22 @@ export default function MesView() {
                                 onClick={() => setCompactMode(v => { const next = !v; localStorage.setItem('compactMode', next ? '1' : ''); return next })}
                               >{lang === 'es' ? 'Vista compacta' : 'Compact'}</button>
                             </div>
+                            <p className="filters-panel-label" style={{ marginTop: '0.5rem' }}>{lang === 'es' ? 'Método pago' : 'Payment'}</p>
+                            <div className="filters-panel-row">
+                              {['tarjeta', 'efectivo', 'transferencia', 'bizum'].map(mp => (
+                                <button
+                                  key={mp}
+                                  className={`filters-panel-opt${filtroMetodo === mp ? ' fp-opt-active' : ''}`}
+                                  onClick={() => setFiltroMetodo(filtroMetodo === mp ? null : mp)}
+                                >
+                                  {mp === 'tarjeta' ? '💳' : mp === 'efectivo' ? '💵' : mp === 'transferencia' ? '🏦' : '📱'} {mp}
+                                </button>
+                              ))}
+                            </div>
                             {hayFiltroActivo && (
                               <button
                                 className="filters-panel-clear"
-                                onClick={() => { setFiltroTipo('all'); setBusqueda(''); setFiltroCatId(null); setFiltroFijo(null); setFiltroPendiente(false); setFilterDate(null); setShowFiltersPanel(false) }}
+                                onClick={() => { setFiltroTipo('all'); setBusqueda(''); setFiltroCatId(null); setFiltroFijo(null); setFiltroPendiente(false); setFilterDate(null); setFiltroMetodo(null); setShowFiltersPanel(false) }}
                               >{lang === 'es' ? '✕ Limpiar filtros' : '✕ Clear filters'}</button>
                             )}
                           </div>
@@ -2718,7 +2850,7 @@ export default function MesView() {
                     return (
                       <div
                         key={m.id}
-                        className={`movement-item-wrap${m.pendiente ? ' movement-item-wrap-pending' : ''}`}
+                        className={`movement-item-wrap${m.pendiente ? ' movement-item-wrap-pending' : ''}${m.id === highlightMovId ? ' movement-item-highlight' : ''}`}
                       >
                       <button
                         className={`movement-item${m.pendiente ? ' movement-item-pending' : ''}`}
@@ -2849,6 +2981,7 @@ export default function MesView() {
               spendingByDay={spendingByDay}
               anio={anio}
               mes={mes}
+              onNavigate={(a, m) => { setAnio(a); setMes(m) }}
               selectedDate={filterDate}
               onSelectDate={dateStr => {
                 setFilterDate(dateStr)
@@ -2959,6 +3092,14 @@ export default function MesView() {
                                       />
                                     </div>
                                   )}
+                                  {d.budget > 0 && !isFutureCell && (
+                                    <span
+                                      className={`year-cell-budget-dot ${d.expenses > d.budget ? 'year-budget-over' : 'year-budget-ok'}`}
+                                      title={`${lang === 'es' ? 'Presupuesto' : 'Budget'}: ${fmtK(d.budget)}`}
+                                    >
+                                      {d.expenses > d.budget ? '▲' : '✓'}
+                                    </span>
+                                  )}
                                 </>
                               ) : isFutureCell && plantillaTotal > 0 ? (
                                 <span className="year-cell-projected">{fmtK(plantillaTotal)}</span>
@@ -2995,6 +3136,22 @@ export default function MesView() {
                 >
                   ⬇ {lang === 'es' ? 'Copia de seguridad' : 'Backup'}
                 </button>
+                <button
+                  className="tool-chip"
+                  onClick={() => restoreFileRef.current?.click()}
+                  title={lang === 'es'
+                    ? 'Restaurar datos desde un archivo de backup JSON descargado anteriormente'
+                    : 'Restore data from a previously downloaded JSON backup file'}
+                >
+                  ⤴ {lang === 'es' ? 'Restaurar backup' : 'Restore backup'}
+                </button>
+                <input
+                  ref={restoreFileRef}
+                  type="file"
+                  accept=".json,application/json"
+                  style={{ display: 'none' }}
+                  onChange={handleRestore}
+                />
               </div>
             </section>
           </>
@@ -3049,6 +3206,7 @@ export default function MesView() {
         hogarId={hogarId}
         userId={profile?.id}
         categorias={categorias}
+        subcategorias={subcategorias}
         anio={anio}
         mes={mes}
         onImported={(n) => { loadMes(); setShowImportModal(false); showToast(tFmt(lang, 'imported_ok', { n })) }}
@@ -3117,14 +3275,21 @@ export default function MesView() {
         currentUserId={profile?.id}
         usuarios={usuarios}
         lastViewedAt={profile?.actividad_vista_en}
+        onNavigate={(navAnio, navMes, movId) => {
+          setAnio(navAnio); setMes(navMes); setShowActivity(false)
+          if (movId) {
+            setHighlightMovId(movId)
+            setTimeout(() => setHighlightMovId(null), 3000)
+          }
+        }}
       />
 
       {/* Help overlay: atajos de teclado */}
       {showHelp && (
         <div className="modal-overlay" onClick={() => setShowHelp(false)}>
-          <div className="modal-card help-card" onClick={e => e.stopPropagation()}>
+          <div className="modal-card help-card" role="dialog" aria-modal="true" aria-labelledby="help-modal-title" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h2 className="modal-title">{lang === 'es' ? 'Atajos de teclado' : 'Keyboard shortcuts'}</h2>
+              <h2 id="help-modal-title" className="modal-title">{lang === 'es' ? 'Atajos de teclado' : 'Keyboard shortcuts'}</h2>
               <button className="btn-icon" onClick={() => setShowHelp(false)} aria-label="Cerrar">✕</button>
             </div>
             <table className="help-table">
@@ -3148,6 +3313,7 @@ export default function MesView() {
                   ['/', lang === 'es' ? 'Enfocar búsqueda' : 'Focus search'],
                   ['?', lang === 'es' ? 'Mostrar / ocultar atajos' : 'Show / hide shortcuts'],
                   ['D', lang === 'es' ? 'Alternar tema oscuro/claro' : 'Toggle dark/light theme'],
+                  ['A', lang === 'es' ? 'Panel de actividad' : 'Activity panel'],
                   ['Esc', lang === 'es' ? 'Cerrar modal' : 'Close modal'],
                 ].map(([key, desc]) => (
                   <tr key={key}>

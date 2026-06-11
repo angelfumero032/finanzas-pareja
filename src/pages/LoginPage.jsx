@@ -46,6 +46,7 @@ export default function LoginPage() {
               onChange={e => setEmail(e.target.value)}
               required
               placeholder="you@email.com"
+              autoFocus={!email}
             />
           </div>
           <div className="field">
@@ -59,6 +60,7 @@ export default function LoginPage() {
                 onChange={e => setPassword(e.target.value)}
                 required
                 placeholder="••••••••"
+                autoFocus={!!email}
               />
               <button
                 type="button"

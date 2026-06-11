@@ -4298,3 +4298,90 @@ kbd {
 @media (min-width: 431px) and (max-width: 768px) {
   .modal-card { max-width: 460px; border-radius: 20px; }
 }
+
+/* ── Sprint ACT-NAV / B: panel de actividad navegable ── */
+.activity-nav-btn {
+  background: none;
+  border: none;
+  padding: 0 0 0 0.5rem;
+  font-size: 0.7rem;
+  color: var(--accent);
+  cursor: pointer;
+  opacity: 0.8;
+  white-space: nowrap;
+}
+.activity-nav-btn:hover { opacity: 1; text-decoration: underline; }
+.activity-item-link {
+  cursor: pointer; background: none; border: none;
+  width: 100%; text-align: left; padding: inherit;
+  font: inherit; color: inherit;
+}
+.activity-item-link:hover { background: var(--bg-hover, rgba(0,0,0,.05)); }
+.activity-nav-hint { margin-left: auto; opacity: 0.4; font-size: 0.8rem; }
+.movement-item-highlight { animation: highlight-pulse 3s ease-out; }
+@keyframes highlight-pulse {
+  0%, 30% { background: color-mix(in srgb, var(--accent) 14%, transparent); border-radius: 6px; }
+  100% { background: transparent; }
+}
+
+/* ── Sprint OFFLINE: banner sin conexión ── */
+.offline-banner {
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  background: var(--warn, #f59e0b);
+  color: #fff;
+  text-align: center;
+  padding: 0.4rem 1rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+/* ── Sprint GR: hoy en calendario de gastos ── */
+.spend-cal-today { outline: 1.5px solid var(--text3); outline-offset: -1px; }
+
+/* ── Sprint T2: patrones recurrentes en búsqueda global ── */
+.gs-patterns { padding: 8px 12px 4px; border-bottom: 1px solid var(--border); }
+.gs-patterns-title { font-size: 0.68rem; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: .04em; margin: 0 0 4px; }
+.gs-pattern-row { display: flex; justify-content: space-between; align-items: center; padding: 3px 0; font-size: 0.82rem; }
+.gs-pattern-concept { color: var(--text); font-weight: 500; }
+.gs-pattern-meta { color: var(--text3); font-size: 0.78rem; }
+
+/* ── Sprint X: presupuesto en vista anual ── */
+.year-cell-budget-dot { font-size: 0.48rem; line-height: 1; }
+.year-budget-ok { color: var(--delta-pos); }
+.year-budget-over { color: var(--delta-neg); }
+
+/* ── Sprint CAT-REORDER: botones subir/bajar categoría ── */
+.cat-reorder-btn {
+  font-size: 0.75rem;
+  opacity: 0.5;
+  padding: 0 0.2rem;
+}
+.cat-reorder-btn:hover:not(:disabled) { opacity: 1; }
+.cat-reorder-btn:disabled { cursor: default; opacity: 0.2; }
+
+/* ── Sprint C: chips de importe rápido en aporte ── */
+.quick-amounts { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+.quick-amt-chip { padding: 0.25rem 0.6rem; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); font-size: 0.8rem; cursor: pointer; color: var(--text); }
+.quick-amt-active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.goal-archive-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.1rem 0.5rem;
+  font-size: 0.72rem;
+  color: var(--delta-pos);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.goal-archive-btn:hover { border-color: var(--delta-pos); }
+
+/* ── Chips/botones genéricos usados por los sprints ── */
+.quick-chip-active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.quick-chip-active b { color: #fff; }
+.btn-ghost { background: none; border: none; color: var(--text3); cursor: pointer; }
+.btn-ghost:hover { color: var(--text); }
+
+/* ── Sprint P: badge plantilla de ingreso ── */
+.plantilla-freq-badge-income { background: color-mix(in srgb, var(--delta-pos) 15%, var(--surface)); color: var(--delta-pos); }

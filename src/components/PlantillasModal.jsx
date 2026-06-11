@@ -19,6 +19,8 @@ export default function PlantillasModal({ open, onClose, lang, hogarId, categori
   const [newNota, setNewNota] = useState('')
   const [newFrecuencia, setNewFrecuencia] = useState('mensual')
   const [newMesInicio, setNewMesInicio] = useState(new Date().getMonth() + 1)
+  const [newTipo, setNewTipo] = useState('gasto')
+  const [newMetodoPago, setNewMetodoPago] = useState('tarjeta')
 
   // Inline edit state
   const [editData, setEditData] = useState({})
@@ -48,7 +50,8 @@ export default function PlantillasModal({ open, onClose, lang, hogarId, categori
 
   if (!open) return null
 
-  const catsFiltradas = categorias.filter(c => c.tipo === 'gasto')
+  const catsFiltradas = categorias.filter(c => c.tipo === newTipo)
+  const editCatsFiltradas = categorias.filter(c => c.tipo === (editData.tipo ?? 'gasto'))
 
   // Monthly-equivalent total for active templates
   const totalMensualEquiv = plantillas
@@ -66,8 +69,10 @@ export default function PlantillasModal({ open, onClose, lang, hogarId, categori
         hogar_id: hogarId,
         nombre: newNombre.trim(),
         importe: imp,
+        tipo: newTipo,
         categoria_id: newCatId || null,
         subcategoria_id: newSubcatId || null,
+        metodo_pago: newMetodoPago,
         dia_mes: newDia,
         nota: newNota.trim() || null,
         activa: true,
@@ -79,6 +84,7 @@ export default function PlantillasModal({ open, onClose, lang, hogarId, categori
       setNewNombre(''); setNewImporte(''); setNewCatId('')
       setNewSubcatId(''); setNewDia(1); setNewNota('')
       setNewFrecuencia('mensual'); setNewMesInicio(new Date().getMonth() + 1)
+      setNewTipo('gasto'); setNewMetodoPago('tarjeta')
       await reload()
       onRefresh?.()
     } finally {
@@ -114,8 +120,10 @@ export default function PlantillasModal({ open, onClose, lang, hogarId, categori
     setEditData({
       nombre: p.nombre,
       importe: String(p.importe),
+      tipo: p.tipo ?? 'gasto',
       categoria_id: p.categoria_id ?? '',
       subcategoria_id: p.subcategoria_id ?? '',
+      metodo_pago: p.metodo_pago ?? 'tarjeta',
       dia_mes: p.dia_mes ?? 1,
       nota: p.nota ?? '',
       frecuencia: p.frecuencia ?? 'mensual',
@@ -131,8 +139,10 @@ export default function PlantillasModal({ open, onClose, lang, hogarId, categori
       await supabase.from('plantillas_fijas').update({
         nombre: editData.nombre.trim(),
         importe: imp,
+        tipo: editData.tipo ?? 'gasto',
         categoria_id: editData.categoria_id || null,
         subcategoria_id: editData.subcategoria_id || null,
+        metodo_pago: editData.metodo_pago ?? 'tarjeta',
         dia_mes: editData.dia_mes,
         nota: editData.nota.trim() || null,
         frecuencia: editData.frecuencia,
@@ -164,18 +174,18 @@ export default function PlantillasModal({ open, onClose, lang, hogarId, categori
 
   return (
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="modal-card plantillas-modal-card">
+      <div className="modal-card plantillas-modal-card" role="dialog" aria-modal="true" aria-labelledby="pl-modal-title">
         <div className="modal-header">
-          <h2 className="modal-title">
-            {lang === 'es' ? 'Gastos fijos recurrentes' : 'Recurring fixed expenses'}
+          <h2 id="pl-modal-title" className="modal-title">
+            {lang === 'es' ? 'Plantillas recurrentes' : 'Recurring templates'}
           </h2>
           <button className="btn-icon" onClick={onClose} aria-label={t(lang, 'close')}>✕</button>
         </div>
 
         <p className="plantillas-desc">
           {lang === 'es'
-            ? 'Define tus gastos recurrentes. Úsalos para generar los gastos de cualquier mes con un clic.'
-            : 'Define your recurring expenses. Use them to populate any month with one click.'}
+            ? 'Define tus gastos e ingresos recurrentes. Úsalos para generar movimientos de cualquier mes con un clic.'
+            : 'Define your recurring expenses and income. Use them to populate any month with one click.'}
         </p>
 
         {plantillas.filter(p => p.activa).length > 0 && (
@@ -208,6 +218,7 @@ export default function PlantillasModal({ open, onClose, lang, hogarId, categori
                     <input
                       className="plantilla-edit-input plantilla-edit-imp"
                       type="number"
+                      inputMode="decimal"
                       step="0.01"
                       min="0.01"
                       value={editData.importe}
@@ -251,7 +262,7 @@ export default function PlantillasModal({ open, onClose, lang, hogarId, categori
                       onChange={e => setEditData(d => ({ ...d, categoria_id: e.target.value, subcategoria_id: '' }))}
                     >
                       <option value="">— {lang === 'es' ? 'Categoría' : 'Category'}</option>
-                      {catsFiltradas.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+                      {editCatsFiltradas.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
                     </select>
                     {editSubcatsFiltradas.length > 0 && (
                       <select
@@ -271,6 +282,18 @@ export default function PlantillasModal({ open, onClose, lang, hogarId, categori
                       placeholder={lang === 'es' ? 'Nota…' : 'Note…'}
                       maxLength={60}
                     />
+                    <select className="plantilla-edit-select" value={editData.tipo ?? 'gasto'}
+                      onChange={e => setEditData(d => ({ ...d, tipo: e.target.value, categoria_id: '', subcategoria_id: '' }))}>
+                      <option value="gasto">{lang === 'es' ? 'Gasto' : 'Expense'}</option>
+                      <option value="ingreso">{lang === 'es' ? 'Ingreso' : 'Income'}</option>
+                    </select>
+                    <select className="plantilla-edit-select" value={editData.metodo_pago ?? 'tarjeta'}
+                      onChange={e => setEditData(d => ({ ...d, metodo_pago: e.target.value }))}>
+                      <option value="tarjeta">{lang === 'es' ? 'Tarjeta' : 'Card'}</option>
+                      <option value="efectivo">{lang === 'es' ? 'Efectivo' : 'Cash'}</option>
+                      <option value="transferencia">{lang === 'es' ? 'Transferencia' : 'Transfer'}</option>
+                      <option value="bizum">Bizum</option>
+                    </select>
                   </div>
                   <div className="plantilla-edit-actions">
                     <button type="button" className="btn-sm btn-secondary" onClick={() => setEditingId(null)}>
@@ -302,6 +325,14 @@ export default function PlantillasModal({ open, onClose, lang, hogarId, categori
                           : ''}
                       </span>
                       {p.nota && <span className="plantilla-nota">{p.nota}</span>}
+                      {(p.metodo_pago && p.metodo_pago !== 'tarjeta') && (
+                        <span className="plantilla-nota">{p.metodo_pago}</span>
+                      )}
+                      {p.tipo === 'ingreso' && (
+                        <span className="plantilla-freq-badge plantilla-freq-badge-income">
+                          {lang === 'es' ? 'ingreso' : 'income'}
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div className="plantilla-actions">
@@ -355,13 +386,13 @@ export default function PlantillasModal({ open, onClose, lang, hogarId, categori
               <input
                 className="plantilla-edit-input plantilla-edit-imp"
                 type="number"
+                inputMode="decimal"
                 step="0.01"
                 min="0.01"
                 value={newImporte}
                 onChange={e => setNewImporte(e.target.value)}
                 placeholder="0.00"
                 required
-                inputMode="decimal"
               />
               <select
                 className="plantilla-edit-select"
@@ -420,6 +451,20 @@ export default function PlantillasModal({ open, onClose, lang, hogarId, categori
                 placeholder={lang === 'es' ? 'Nota (opcional)' : 'Note (optional)'}
                 maxLength={60}
               />
+            </div>
+            <div className="plantilla-edit-row">
+              <select className="plantilla-edit-select" value={newTipo}
+                onChange={e => { setNewTipo(e.target.value); setNewCatId(''); setNewSubcatId('') }}>
+                <option value="gasto">{lang === 'es' ? 'Gasto' : 'Expense'}</option>
+                <option value="ingreso">{lang === 'es' ? 'Ingreso' : 'Income'}</option>
+              </select>
+              <select className="plantilla-edit-select" value={newMetodoPago}
+                onChange={e => setNewMetodoPago(e.target.value)}>
+                <option value="tarjeta">{lang === 'es' ? 'Tarjeta' : 'Card'}</option>
+                <option value="efectivo">{lang === 'es' ? 'Efectivo' : 'Cash'}</option>
+                <option value="transferencia">{lang === 'es' ? 'Transferencia' : 'Transfer'}</option>
+                <option value="bizum">Bizum</option>
+              </select>
             </div>
             <button
               type="submit"

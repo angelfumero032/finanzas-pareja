@@ -16,6 +16,7 @@ export default function AhorroSection({ lang, hogarId, userId, fmt, balance, ani
   const [aporteImporte, setAporteImporte] = useState('')
   const [aporteObjetivo, setAporteObjetivo] = useState('')
   const [aporteNota, setAporteNota] = useState('')
+  const [aporteDate, setAporteDate] = useState('')
 
   // Withdrawal form
   const [showRetirada, setShowRetirada] = useState(false)
@@ -31,26 +32,21 @@ export default function AhorroSection({ lang, hogarId, userId, fmt, balance, ani
   const [goalNombre, setGoalNombre] = useState('')
   const [goalPresupuesto, setGoalPresupuesto] = useState('')
   const [goalMensual, setGoalMensual] = useState('')
+  const [goalFecha, setGoalFecha] = useState('')
+  const [goalEmoji, setGoalEmoji] = useState('')
+  const [showAllAportes, setShowAllAportes] = useState(false)
 
   // Meta de ahorro mensual
   const [metaMensual, setMetaMensual] = useState(null)
   const [editingMeta, setEditingMeta] = useState(false)
   const [metaInput, setMetaInput] = useState('')
-  useEffect(() => {
-    if (!hogarId) return
-    const stored = localStorage.getItem(`savings_goal_${hogarId}`)
-    setMetaMensual(stored ? parseFloat(stored) : null)
-  }, [hogarId])
-  function saveMeta(val) {
+  async function saveMeta(val) {
     const n = parseFloat(String(val).replace(',', '.'))
-    if (!isNaN(n) && n > 0) {
-      localStorage.setItem(`savings_goal_${hogarId}`, String(n))
-      setMetaMensual(n)
-    } else {
-      localStorage.removeItem(`savings_goal_${hogarId}`)
-      setMetaMensual(null)
-    }
+    const newVal = (!isNaN(n) && n > 0) ? n : null
+    setMetaMensual(newVal)
     setEditingMeta(false)
+    const { error } = await supabase.from('hogares').update({ meta_ahorro: newVal }).eq('id', hogarId)
+    if (error) { showToast?.(lang === 'es' ? 'Error al guardar la meta' : 'Error saving goal', 'error'); load() }
   }
 
   const [expanded, setExpanded] = useState(() => localStorage.getItem('ahorro_expanded') !== '0')
@@ -62,13 +58,15 @@ export default function AhorroSection({ lang, hogarId, userId, fmt, balance, ani
     if (!hogarId) return
     setLoading(true)
     try {
-      const [apRes, objRes] = await Promise.all([
-        supabase.from('ahorro_aportes').select('*').eq('hogar_id', hogarId).order('fecha', { ascending: false }),
+      const [apRes, objRes, hogRes] = await Promise.all([
+        supabase.from('ahorro_aportes').select('*').eq('hogar_id', hogarId).order('fecha', { ascending: false }).limit(50),
         supabase.from('objetivos').select('*').eq('hogar_id', hogarId).eq('activo', true).order('orden').order('creado_en'),
+        supabase.from('hogares').select('meta_ahorro').eq('id', hogarId).single(),
       ])
       if (apRes.error || objRes.error) { setAvailable(false); return }
       setAportes(apRes.data ?? [])
       setObjetivos(objRes.data ?? [])
+      if (!hogRes.error) setMetaMensual(hogRes.data?.meta_ahorro ?? null)
       setAvailable(true)
     } finally {
       setLoading(false)
@@ -82,6 +80,7 @@ export default function AhorroSection({ lang, hogarId, userId, fmt, balance, ani
       .channel(`ahorro-rt-${hogarId}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'ahorro_aportes', filter: `hogar_id=eq.${hogarId}` }, () => load())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'objetivos', filter: `hogar_id=eq.${hogarId}` }, () => load())
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'hogares', filter: `id=eq.${hogarId}` }, () => load())
       .subscribe()
     return () => supabase.removeChannel(channel)
   }, [hogarId, available, load])
@@ -107,7 +106,7 @@ export default function AhorroSection({ lang, hogarId, userId, fmt, balance, ani
     [subcategorias, retiradaCatId]
   )
 
-  function closeAporte() { setShowAporte(false); setAporteImporte(''); setAporteObjetivo(''); setAporteNota('') }
+  function closeAporte() { setShowAporte(false); setAporteImporte(''); setAporteObjetivo(''); setAporteNota(''); setAporteDate('') }
   function closeRetirada() { setShowRetirada(false); setRetiradaImporte(''); setRetiradaObjetivo(''); setRetiradaCatId(''); setRetiradaSubcatId(''); setRetiradaNota('') }
 
   async function handleAportar(e) {
@@ -118,6 +117,7 @@ export default function AhorroSection({ lang, hogarId, userId, fmt, balance, ani
       hogar_id: hogarId,
       objetivo_id: aporteObjetivo || null,
       importe: n,
+      fecha: aporteDate || new Date().toISOString().slice(0, 10),
       nota: aporteNota.trim() || null,
       creado_por: userId ?? null,
     })
@@ -128,7 +128,7 @@ export default function AhorroSection({ lang, hogarId, userId, fmt, balance, ani
       hogar_id: hogarId,
       tipo: 'gasto',
       importe: n,
-      fecha: new Date().toISOString().slice(0, 10),
+      fecha: aporteDate || new Date().toISOString().slice(0, 10),
       categoria_id: ahorroCat?.id ?? null,
       concepto: `🐷 ${objetivoNombre ?? (lang === 'es' ? 'Hucha común' : 'Shared pot')}`,
       nota: aporteNota.trim() || null,
@@ -182,12 +182,15 @@ export default function AhorroSection({ lang, hogarId, userId, fmt, balance, ani
       nombre,
       presupuesto: isNaN(presupuesto) || presupuesto <= 0 ? null : presupuesto,
       aporte_mensual: isNaN(mensual) || mensual <= 0 ? null : mensual,
+      fecha_objetivo: goalFecha || null,
+      emoji: goalEmoji.trim() || null,
     }
     const { error } = editGoal
       ? await supabase.from('objetivos').update(row).eq('id', editGoal.id)
       : await supabase.from('objetivos').insert({ ...row, hogar_id: hogarId })
     if (error) { showToast(t(lang, 'save_error'), 'error'); return }
-    setShowGoalForm(false); setEditGoal(null); setGoalNombre(''); setGoalPresupuesto(''); setGoalMensual('')
+    setShowGoalForm(false); setEditGoal(null); setGoalNombre(''); setGoalPresupuesto('')
+    setGoalMensual(''); setGoalFecha(''); setGoalEmoji('')
     showToast(t(lang, 'saved_ok'))
     load()
   }
@@ -207,6 +210,8 @@ export default function AhorroSection({ lang, hogarId, userId, fmt, balance, ani
     setGoalNombre(goal?.nombre ?? '')
     setGoalPresupuesto(goal?.presupuesto ? String(goal.presupuesto) : '')
     setGoalMensual(goal?.aporte_mensual ? String(goal.aporte_mensual) : '')
+    setGoalFecha(goal?.fecha_objetivo ?? '')
+    setGoalEmoji(goal?.emoji ?? '')
     setShowGoalForm(true)
   }
 
@@ -269,6 +274,7 @@ export default function AhorroSection({ lang, hogarId, userId, fmt, balance, ani
             <input
               className="savings-goal-input"
               type="number"
+              inputMode="decimal"
               min="0"
               step="1"
               value={metaInput}
@@ -314,6 +320,7 @@ export default function AhorroSection({ lang, hogarId, userId, fmt, balance, ani
           <input
             className="ahorro-input"
             type="number"
+            inputMode="decimal"
             step="0.01"
             min="0.01"
             placeholder={es ? 'Importe €' : 'Amount €'}
@@ -322,6 +329,16 @@ export default function AhorroSection({ lang, hogarId, userId, fmt, balance, ani
             autoFocus
             required
           />
+          <div className="quick-amounts">
+            {[10, 25, 50, 100, 200].map(n => (
+              <button
+                key={n}
+                type="button"
+                className={`quick-amt-chip${Number(aporteImporte) === n ? ' quick-amt-active' : ''}`}
+                onClick={() => setAporteImporte(String(n))}
+              >{n}€</button>
+            ))}
+          </div>
           {objetivos.length > 0 && (
             <select className="ahorro-input" value={aporteObjetivo} onChange={e => setAporteObjetivo(e.target.value)}>
               <option value="">{es ? 'Hucha general' : 'General pot'}</option>
@@ -335,6 +352,13 @@ export default function AhorroSection({ lang, hogarId, userId, fmt, balance, ani
             placeholder={es ? 'Nota (opcional)' : 'Note (optional)'}
             value={aporteNota}
             onChange={e => setAporteNota(e.target.value)}
+          />
+          <input
+            className="ahorro-input"
+            type="date"
+            value={aporteDate}
+            max={new Date().toISOString().slice(0, 10)}
+            onChange={e => setAporteDate(e.target.value)}
           />
           <div className="ahorro-form-actions">
             <button type="submit" className="btn-sm btn-primary">{es ? 'Guardar aporte' : 'Save deposit'}</button>
@@ -355,6 +379,7 @@ export default function AhorroSection({ lang, hogarId, userId, fmt, balance, ani
           <input
             className="ahorro-input"
             type="number"
+            inputMode="decimal"
             step="0.01"
             min="0.01"
             max={totalAhorrado > 0 ? totalAhorrado : undefined}
@@ -433,6 +458,7 @@ export default function AhorroSection({ lang, hogarId, userId, fmt, balance, ani
               <input
                 className="ahorro-input"
                 type="number"
+                inputMode="decimal"
                 step="0.01"
                 min="0"
                 placeholder={es ? 'Presupuesto objetivo € (opcional)' : 'Target amount € (optional)'}
@@ -442,12 +468,31 @@ export default function AhorroSection({ lang, hogarId, userId, fmt, balance, ani
               <input
                 className="ahorro-input"
                 type="number"
+                inputMode="decimal"
                 step="0.01"
                 min="0"
                 placeholder={es ? 'Aportación mensual € (opcional)' : 'Monthly contribution € (optional)'}
                 value={goalMensual}
                 onChange={e => setGoalMensual(e.target.value)}
               />
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <input
+                  className="ahorro-input"
+                  type="text"
+                  maxLength={2}
+                  placeholder="🎯"
+                  value={goalEmoji}
+                  onChange={e => setGoalEmoji(e.target.value)}
+                  style={{ width: '3.5rem', textAlign: 'center', fontSize: '1.25rem' }}
+                />
+                <input
+                  className="ahorro-input"
+                  type="date"
+                  value={goalFecha}
+                  onChange={e => setGoalFecha(e.target.value)}
+                  style={{ flex: 1 }}
+                />
+              </div>
               <div className="ahorro-form-actions">
                 <button type="submit" className="btn-sm btn-primary">{t(lang, 'save')}</button>
                 <button type="button" className="btn-sm btn-secondary" onClick={() => { setShowGoalForm(false); setEditGoal(null) }}>{t(lang, 'cancel')}</button>
@@ -480,7 +525,7 @@ export default function AhorroSection({ lang, hogarId, userId, fmt, balance, ani
               <div key={o.id} className="goal-row">
                 <div className="goal-row-top">
                   <button className="goal-name" onClick={() => openGoalForm(o)} title={es ? 'Editar objetivo' : 'Edit goal'}>
-                    {done ? '🎉 ' : ''}{o.nombre}
+                    {done ? '🎉 ' : o.emoji ? `${o.emoji} ` : ''}{o.nombre}
                   </button>
                   <span className="goal-amounts">
                     <strong>{fmt(saved)}</strong>
@@ -505,6 +550,13 @@ export default function AhorroSection({ lang, hogarId, userId, fmt, balance, ani
                     }}
                     title={es ? 'Retirar de este objetivo' : 'Withdraw from this goal'}
                   >−</button>
+                  {done && (
+                    <button
+                      className="goal-archive-btn"
+                      onClick={() => handleArchiveGoal(o)}
+                      title={es ? 'Archivar objetivo completado' : 'Archive completed goal'}
+                    >✓ {es ? 'Archivar' : 'Archive'}</button>
+                  )}
                 </div>
                 {pct !== null && (
                   <div className="goal-bar-wrap">
@@ -514,10 +566,11 @@ export default function AhorroSection({ lang, hogarId, userId, fmt, balance, ani
                     <span className="goal-pct">{Math.round(pct)}%</span>
                   </div>
                 )}
-                {(o.aporte_mensual > 0 || monthsLeft) && (
+                {(o.aporte_mensual > 0 || monthsLeft || o.fecha_objetivo) && (
                   <span className="goal-hint">
                     {o.aporte_mensual > 0 && (es ? `${fmt(o.aporte_mensual)}/mes` : `${fmt(o.aporte_mensual)}/mo`)}
                     {monthsLeft && ` · ${es ? `~${monthsLeft} meses para llegar` : `~${monthsLeft} months to go`}`}
+                    {o.fecha_objetivo && !done && ` · ${es ? 'para el' : 'by'} ${new Date(o.fecha_objetivo + 'T12:00').toLocaleDateString(es ? 'es-ES' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`}
                   </span>
                 )}
               </div>
@@ -527,14 +580,19 @@ export default function AhorroSection({ lang, hogarId, userId, fmt, balance, ani
           {/* Historial de movimientos de la hucha */}
           {aportes.length > 0 && (
             <div className="aportes-recent">
-              {aportes.slice(0, 8).map(a => {
+              {(showAllAportes ? aportes : aportes.slice(0, 8)).map(a => {
                 const isWithdrawal = Number(a.importe) < 0
                 return (
                   <div key={a.id} className={`aporte-row${isWithdrawal ? ' aporte-row-withdrawal' : ''}`}>
                     <span className={`aporte-type-icon${isWithdrawal ? ' aporte-type-withdraw' : ' aporte-type-deposit'}`}>
                       {isWithdrawal ? '↑' : '↓'}
                     </span>
-                    <span className="aporte-fecha">{a.fecha}</span>
+                    <span className="aporte-fecha">
+                      {new Date(a.fecha + 'T12:00').toLocaleDateString(
+                        lang === 'es' ? 'es-ES' : 'en-GB',
+                        { day: 'numeric', month: 'short' }
+                      )}
+                    </span>
                     <span className="aporte-desc">
                       {a.objetivo_id ? (objetivos.find(o => o.id === a.objetivo_id)?.nombre ?? (es ? 'Objetivo' : 'Goal')) : (es ? 'Hucha general' : 'General pot')}
                       {a.nota ? ` · ${a.nota}` : ''}
@@ -545,6 +603,13 @@ export default function AhorroSection({ lang, hogarId, userId, fmt, balance, ani
                   </div>
                 )
               })}
+              {aportes.length > 8 && (
+                <button className="btn-sm btn-ghost" onClick={() => setShowAllAportes(v => !v)} style={{ width: '100%', marginTop: '0.25rem' }}>
+                  {showAllAportes
+                    ? (es ? '▲ Ver menos' : '▲ Show less')
+                    : (es ? `▼ Ver todos (${aportes.length})` : `▼ Show all (${aportes.length})`)}
+                </button>
+              )}
             </div>
           )}
         </>

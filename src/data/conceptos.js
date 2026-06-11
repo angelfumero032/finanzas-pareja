@@ -19,6 +19,11 @@ export const CONCEPTOS = {
   nomina:         ['Nómina mensual', 'Paga extra junio', 'Paga extra diciembre'],
   'extra/bonus':  ['Bonus empresa', 'Comisión/Variable', 'Premio', 'Horas extra'],
   'otros ingresos': ['Transferencia recibida', 'Reembolso/Devolución', 'Alquiler cobrado', 'Venta artículo', 'Dividendos'],
+  'ropa y calzado': ['Ropa nueva', 'Calzado/Zapatos', 'Ropa interior', 'Accesorios', 'Ropa niños', 'Temporada'],
+  'suscripciones':  ['Netflix', 'Spotify', 'Amazon Prime', 'HBO Max', 'YouTube Premium', 'iCloud', 'Office 365'],
+  'cuidado personal': ['Peluquería/Barbería', 'Cosmética', 'Perfume', 'Depilación', 'Spa/Masaje'],
+  'gastos extra programados': ['Viaje verano', 'Navidad', 'Cumpleaños', 'Regalos programados', 'Revisión coche anual'],
+  'trabajo y negocio': ['Material oficina', 'Formación profesional', 'Software/Herramientas', 'Desplazamiento trabajo'],
 }
 
 const strip = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')

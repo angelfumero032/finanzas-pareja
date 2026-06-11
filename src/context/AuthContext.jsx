@@ -23,7 +23,7 @@ export function AuthProvider({ children }) {
   }, [])
 
   async function fetchProfile(uid) {
-    const { data } = await supabase.from('usuarios').select('*').eq('id', uid).single()
+    const { data } = await supabase.from('usuarios').select('id, hogar_id, idioma, actividad_vista_en').eq('id', uid).single()
     setProfile(data ?? null)
   }
 

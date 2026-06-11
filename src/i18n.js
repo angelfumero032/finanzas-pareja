@@ -125,6 +125,10 @@ const T = {
     save_and_another: 'Guardar y otro',
     emoji_icon: 'Icono',
     mark_all_collected: 'Marcar todas como cobradas',
+    dark_mode: 'Modo oscuro', light_mode: 'Modo claro', auto_mode: 'Modo auto',
+    cash: 'Efectivo', deposit: '+ Aportar', withdraw: '− Retirar',
+    monthly_goal: 'Meta mensual de ahorro', deposit_title: 'Añadir a la hucha',
+    activity_shortcut: 'Panel de actividad',
   },
   en: {
     app_name: 'Couple finances',
@@ -252,6 +256,10 @@ const T = {
     save_and_another: 'Save & add',
     emoji_icon: 'Icon',
     mark_all_collected: 'Mark all as collected',
+    dark_mode: 'Dark mode', light_mode: 'Light mode', auto_mode: 'Auto mode',
+    cash: 'Cash', deposit: '+ Deposit', withdraw: '− Withdraw',
+    monthly_goal: 'Monthly savings goal', deposit_title: 'Deposit to pot',
+    activity_shortcut: 'Activity panel',
   },
 }
 
@@ -277,5 +285,6 @@ export function timeAgo(dateStr, lang) {
   if (secs < 60) return t(lang, 'just_now')
   if (secs < 3600) return `${Math.floor(secs / 60)}${t(lang, 'min_ago')}`
   if (secs < 86400) return `${Math.floor(secs / 3600)}${t(lang, 'hr_ago')}`
+  if (secs < 604800) return `${Math.floor(secs / 86400)}${t(lang, 'day_ago')}`
   return new Date(dateStr).toLocaleTimeString(lang === 'es' ? 'es-ES' : 'en-GB', { hour: '2-digit', minute: '2-digit', hour12: false })
 }

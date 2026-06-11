@@ -130,6 +130,25 @@ export default function CategoriasModal({ open, onClose, lang, hogarId, onRefres
     }
   }
 
+  async function handleReorderCat(id, dir) {
+    const cats = activeCats.slice().sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0))
+    const idx = cats.findIndex(c => c.id === id)
+    const swapIdx = idx + dir
+    if (swapIdx < 0 || swapIdx >= cats.length) return
+    const a = cats[idx], b = cats[swapIdx]
+    const aOrden = a.orden ?? idx, bOrden = b.orden ?? swapIdx
+    await Promise.all([
+      supabase.from('categorias').update({ orden: bOrden }).eq('id', a.id),
+      supabase.from('categorias').update({ orden: aOrden }).eq('id', b.id),
+    ])
+    setAllCats(prev => prev.map(c =>
+      c.id === a.id ? { ...c, orden: bOrden }
+      : c.id === b.id ? { ...c, orden: aOrden }
+      : c
+    ))
+    onRefresh()
+  }
+
   async function handleAddSub(e, catId) {
     e.preventDefault()
     const nombre = newSubNombre.trim()
@@ -178,9 +197,9 @@ export default function CategoriasModal({ open, onClose, lang, hogarId, onRefres
 
   return (
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="modal-card cats-modal-card">
+      <div className="modal-card cats-modal-card" role="dialog" aria-modal="true" aria-labelledby="cats-modal-title">
         <div className="modal-header">
-          <h2 className="modal-title">{lang === 'es' ? 'Categorías' : 'Categories'}</h2>
+          <h2 id="cats-modal-title" className="modal-title">{lang === 'es' ? 'Categorías' : 'Categories'}</h2>
           <button className="btn-icon" onClick={onClose} aria-label={t(lang, 'close')}>✕</button>
         </div>
 
@@ -289,6 +308,18 @@ export default function CategoriasModal({ open, onClose, lang, hogarId, onRefres
                     <span className="cat-row-name">{cat.nombre}</span>
                   )}
                   <div className="cat-row-btns">
+                    <button
+                      className="cat-row-action cat-reorder-btn"
+                      onClick={() => handleReorderCat(cat.id, -1)}
+                      title={lang === 'es' ? 'Subir' : 'Move up'}
+                      disabled={activeCats.indexOf(cat) === 0}
+                    >↑</button>
+                    <button
+                      className="cat-row-action cat-reorder-btn"
+                      onClick={() => handleReorderCat(cat.id, 1)}
+                      title={lang === 'es' ? 'Bajar' : 'Move down'}
+                      disabled={activeCats.indexOf(cat) === activeCats.length - 1}
+                    >↓</button>
                     {editingCatId !== cat.id && (
                       <button
                         className="cat-row-action cat-row-edit"
